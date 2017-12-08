@@ -1,0 +1,32 @@
+[task_history]
+db_connection = sqlite:///ntr-luigi-db.sqlite
+
+[scheduler]
+record_task_history = True
+state_path = luigi-state.pickle
+
+[GlobalConfig]
+transmart_copy_jar = /Users/jb/thehyve/transmart-core/transmart-copy/build/libs/transmart-copy-17.1-SNAPSHOT.jar
+# list parameters as json string
+jar_params = ["-i", "-u", "-r", "-a"]
+#Some environment variables you can set here
+PGHOST = localhost
+PGPORT = 5432
+PGDATABASE = transmart
+PGUSER = admin
+PGPASSWORD = admin
+TM_CZ_PWD = tm_cz
+
+[resources]
+# Resources are used to limit the number of concurrent tasks
+transmart_loader = 1
+
+[retcode]
+# The following return codes are the recommended exit codes for Luigi
+# They are in increasing level of severity (for most applications)
+already_running=10
+missing_data=20
+not_run=25
+task_failed=30
+scheduling_error=35
+unhandled_exception=40
