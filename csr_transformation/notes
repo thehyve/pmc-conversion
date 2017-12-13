@@ -1,0 +1,61 @@
+
+
+
+<root_input_files>
+    |
+    |__Study --> from study table
+    |   |__some_study_file.txt
+    |   |__some_study_file.sha
+    |
+    |__EPD --> both EPD and Clinical trials?
+    |   |__individual_data.txt
+    |   |    ==> Age, DoB etc.
+    |   |__individual_data.sha
+    |   |__diagnosis_data.txt
+    |   |__diagnosis_data.sha
+    |
+    |__LIMMS
+    |   |__biosource_data.txt
+    |   |__biosource_data.sha
+    |   |__biomaterial_data.txt
+    |   |__biomaterial_data.sha
+
+
+
+List of files with correct headers
+- in tab separated files
+- file extension .txt
+Headers (crucial):
+- individual_id
+- study_id
+- biosource_id
+- biomaterial_id
+- diagnosis_id
+
+Per data file:
+Individual:
+- individual_id
+
+Diagnosis:
+- individual_id
+- diagnosis_id
+
+Biosource:
+- individual_id
+- diagnosis_id
+- biosource_id
+
+Biomaterial:
+- src_biosource_id (or biosource_id)
+- biomaterial_id
+
+Study:
+- individual_id
+- study_id
+
+
+Assumptions:
+- Data for individuals that is unrelated to samples, studies etc.
+are provided in a separate file. (see individual.txt vs diagnosis.txt)
+- Data files have the headers provided in the Central Subject Registry
+--> especially the identifying ones
