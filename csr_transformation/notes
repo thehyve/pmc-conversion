@@ -1,6 +1,3 @@
-
-
-
 <root_input_files>
     |
     |__Study --> from study table
@@ -14,7 +11,7 @@
     |   |__diagnosis_data.txt
     |   |__diagnosis_data.sha
     |
-    |__LIMMS
+    |__LIMMS -->
     |   |__biosource_data.txt
     |   |__biosource_data.sha
     |   |__biomaterial_data.txt
@@ -25,6 +22,9 @@
 List of files with correct headers
 - in tab separated files
 - file extension .txt
+- Predefined file names --> to support ordering
+- Minimum list of defined headers per file corresponding to the CSR (optional, preferred)
+
 Headers (crucial):
 - individual_id
 - study_id
@@ -53,9 +53,7 @@ Study:
 - individual_id
 - study_id
 
-
 Assumptions:
 - Data for individuals that is unrelated to samples, studies etc.
 are provided in a separate file. (see individual.txt vs diagnosis.txt)
-- Data files have the headers provided in the Central Subject Registry
---> especially the identifying ones
+
