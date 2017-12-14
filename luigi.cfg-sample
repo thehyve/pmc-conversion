@@ -7,8 +7,10 @@ state_path = luigi-state.pickle
 
 [GlobalConfig]
 transmart_copy_jar = /Users/jb/thehyve/transmart-core/transmart-copy/build/libs/transmart-copy-17.1-SNAPSHOT.jar
+
 # list parameters as json string
 jar_params = ["-i", "-u", "-r", "-a"]
+
 #Some environment variables you can set here
 PGHOST = localhost
 PGPORT = 5432
