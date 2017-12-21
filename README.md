@@ -61,3 +61,10 @@ To start the pipeline run point to the _scripts_ module and start :
 $ python -m luigi --module scripts DataLoader
 
 ```
+
+The pipeline creates files with identifiers in several subdirectories. These files
+all start with `.done-*` and if you remove them the pipeline will rerun all tasks. E.g:
+
+``` bash
+$ find . -iname ".done-*" -exec rm {} +
+```
