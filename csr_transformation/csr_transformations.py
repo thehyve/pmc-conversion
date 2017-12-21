@@ -35,11 +35,11 @@ class Config(object):
         self.file_dir = self.config.get('GENERAL', 'file_dir')
         self.file_list = read_config_list_from_file('file_list_config')
         self.file_headers = read_config_dict_from_file('file_header_config')
-        self.file_headers_list = sum(self.file_headers.values(),[])
+        self.file_headers_list = sum(self.file_headers.values(), [])
         self.header_mapping = read_config_dict_from_file('header_mapping_config')
         self.file_order = read_config_list_from_file('file_order_config')
 
-        self.output_file = self.config.get('OUTPUT','target_file')
+        self.output_file = self.config.get('OUTPUT', 'target_file')
 
 # This stuff is not needed but fun to have.
     def add_to_file_list(self, items):
@@ -113,15 +113,15 @@ def main(config_file):
 
     # Merge study data files
     studies = merge_data_frames(df_dict=files['study'],
-                                  file_order=config.file_order,
-                                  id_col=['STUDY_ID', 'INDIVIDUAL_ID'])
+                                file_order=config.file_order,
+                                id_col=['STUDY_ID', 'INDIVIDUAL_ID'])
 
     # Add patient identifiers to the biomaterial files.
     # Steps:
     # - Merge biomaterial files into one data file based on biomaterial id
     biomaterials = merge_data_frames(df_dict=files['biomaterial'],
                                      file_order=config.file_order,
-                                     id_col=['BIOMATERIAL_ID','SRC_BIOSOURCE_ID'])
+                                     id_col=['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID'])
 
     # - Merge biosource files into one data file based on biosource id
     biosources = merge_data_frames(df_dict=files['biosource'],
@@ -131,19 +131,19 @@ def main(config_file):
     # - Add INDIVIDUAL_ID and DIAGNOSIS_ID to biomaterials using the biosources
     biomaterials = add_biosource_identifiers(biosources, biomaterials)
 
-
     # TODO: Add advanced deduplication for double values from for example individual and diagnosis.
     # TODO: idea to capture this in a config file where per column for the CSR the main source is described.
     # TODO: This could reuse the file_header mapping to create subselections and see if there are duplicates.
     # TODO: The only thing that is not covered is some edge cases where a data point from X should lead instead of the
     # TODO: normal Y data point.
 
-
     # Concat all data starting with individual into the CSR dataframe, study, diagnosis, biosource and biomaterial
-    subject_registry = pd.concat([individuals,diagnosis,studies,biosources,biomaterials])
+    subject_registry = pd.concat([individuals, diagnosis, studies, biosources, biomaterials])
     # - Check if all CSR headers are in the merged dataframe
     missing_header = [l for l in config.file_headers_list if l not in subject_registry.columns]
-    print(missing_header)
+    if len(missing_header) > 0:
+        print('[ERROR] Missing columns from Subject Registry data model:\n', missing_header)
+        sys.exit(9)
 
     subject_registry.to_csv(config.output_file, sep='\t', index=False)
 # TODO:
@@ -154,6 +154,7 @@ def main(config_file):
 # - config file needs mappings
 # - Throw error if patient ID not found
     sys.exit(0)
+
 
 def get_encoding(file_name):
     """Open the file and determine the encoding, returns the encoding cast to lower"""
@@ -235,7 +236,7 @@ def print_errors(messages):
         sys.exit(9)
 
 
-def merge_data_frames(df_dict, file_order, id_col): #<-- is inderdaad een dict
+def merge_data_frames(df_dict, file_order, id_col):
     df_list = [f for f in file_order if f in df_dict.keys()]
     ref_df = df_dict[df_list[0]]
     for i in df_list[1:]:
@@ -249,7 +250,7 @@ def combine_column_data(df):
     col_map = {}
     for i in df.columns:
         i_split = i.rsplit('_', 1)
-        if len(i_split) > 1 and i_split[1] in ['x','y']:
+        if len(i_split) > 1 and i_split[1] in ['x', 'y']:
             if not i_split[0] in col_map.keys():
                 col_map[i_split[0]] = [i_split[1]]
             else:
@@ -262,7 +263,7 @@ def combine_column_data(df):
 
 
 def add_biosource_identifiers(biosource, biomaterial, biosource_merge_on='BIOSOURCE_ID',
-                              biomaterial_merge_on = 'SRC_BIOSOURCE_ID'):
+                              biomaterial_merge_on='SRC_BIOSOURCE_ID'):
     """Merges two pandas DataFrames adding predefined columns from the biosource to the biomaterial
 
     predefined columns to be added: INDIVIDUAL_ID, DIAGNOSIS_ID
@@ -275,7 +276,8 @@ def add_biosource_identifiers(biosource, biomaterial, biosource_merge_on='BIOSOU
     """
     select_header = ['INDIVIDUAL_ID', 'DIAGNOSIS_ID'] + biomaterial.columns.tolist()
     id_look_up = biosource[['INDIVIDUAL_ID', 'BIOSOURCE_ID', 'DIAGNOSIS_ID']]
-    df = biomaterial.merge(id_look_up, how='left', left_on=biomaterial_merge_on, right_on=biosource_merge_on)[select_header]
+    df = biomaterial.merge(id_look_up, how='left',
+                           left_on=biomaterial_merge_on, right_on=biosource_merge_on)[select_header]
     return df
 
 
