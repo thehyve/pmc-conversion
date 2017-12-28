@@ -30,17 +30,30 @@ class BaseTask(luigi.Task):
     @property
     def done_signal_file(self):
         """ Full path filename that is written to when task is finished successfully. """
-        return os.path.join(os.path.dirname(self.input_signal_file), self.done_signal_filename)
+        if isinstance(self.input_signal_file, list):
+            return os.path.join(os.path.dirname(self.input_signal_file[0]), self.done_signal_filename)
+        else:
+            return os.path.join(os.path.dirname(self.input_signal_file), self.done_signal_filename)
 
     def complete(self):
         """
         By default a task is complete when the input_signal_file identifier is the
         same as the done_signal_file identifier.
         """
-        if not os.path.exists(self.input_signal_file):
-            return False
+        if isinstance(self.input_signal_file, list):
+            for input_signal_file in self.input_signal_file:
+                if not os.path.exists(input_signal_file):
+                    return False
 
-        return read_sha1_file(self.done_signal_file) == read_sha1_file(self.input_signal_file)
+                if read_sha1_file(self.done_signal_file) != read_sha1_file(input_signal_file):
+                    return False
+            return True
+        else:
+            if not os.path.exists(self.input_signal_file):
+                return False
+
+            return read_sha1_file(self.done_signal_file) == read_sha1_file(self.input_signal_file)
+
 
     def calc_done_signal(self):
         """
@@ -49,7 +62,10 @@ class BaseTask(luigi.Task):
 
         :return: some identifier (sha1 hash)
         """
-        return read_sha1_file(self.input_signal_file)
+        if isinstance(self.input_signal_file, list):
+            return read_sha1_file(self.input_signal_file[0])
+        else:
+            return read_sha1_file(self.input_signal_file)
 
     def output(self):
         """ Send the done signal file to the tasks that requires it. """
@@ -180,8 +196,8 @@ class GitAddStagingFilesAndCommit(BaseTask):
         return self.input()
     
     def requires(self):
-        return {'transmart': TransmartDataTransformation(),
-                'cbioportal': CbioportalDataTransformation()}
+        yield TransmartDataTransformation()
+        yield CbioportalDataTransformation()
 
     def run(self):
         pass
