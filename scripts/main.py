@@ -1,6 +1,9 @@
-import os
-
 import luigi
+import os
+import subprocess
+import logging
+from subprocess import PIPE, Popen
+
 
 from checksum import read_sha1_file
 
@@ -23,8 +26,8 @@ class BaseTask(luigi.Task):
     define a requires and run method.
     """
 
-    input_signal_file = None  # has to be set as full path.
-    done_signal_filename = None  # set name here to
+    input_signal_file = None  # set name here
+    done_signal_filename = None  # set name here
 
     @property
     def done_signal_file(self):
@@ -131,6 +134,12 @@ class MergeClinicalData(BaseTask):
 
     done_signal_filename = '.done-MergeClinicalData'
 
+    wd = luigi.Parameter('Working directory with the CSR transformation script', significant = False)
+    csr_transformation = luigi.Parameter('CSR transformation script name', significant = False)
+    csr_config = luigi.Parameter('CSR transformation config file', significant = False)
+    python_version = luigi.Parameter('Python command to use to execute', significant = False)
+
+
     @property
     def input_signal_file(self):
         return self.input()
@@ -139,7 +148,13 @@ class MergeClinicalData(BaseTask):
         return GitAddRawFiles()
     
     def run(self):
-        pass
+        with Popen([self.python_version, self.csr_transformation, self.csr_config],stdout=PIPE, stderr=PIPE, cwd=self.wd) as proc:
+            stdout, stderr = proc.communicate()
+            if proc.returncode > 0:
+                logger.critical(stderr)
+                raise Exception('csr transformation failed!')
+            else:
+                logger.info(stdout)
 
 
 class TransmartDataTransformation(BaseTask):
@@ -149,6 +164,11 @@ class TransmartDataTransformation(BaseTask):
 
     done_signal_filename = '.done-TransmartDataTransformation'
 
+    wd = luigi.Parameter('Working directory with the tranSMART transformation script', significant = False)
+    csr_transformation = luigi.Parameter('tranSMART data transformation script name', significant = False)
+    csr_config = luigi.Parameter('tranSMART data transformation config file', significant = False)
+    python_version = luigi.Parameter('Python command to use to execute', significant = False)
+
     @property
     def input_signal_file(self):
         return self.input()
@@ -157,7 +177,13 @@ class TransmartDataTransformation(BaseTask):
         return MergeClinicalData()
     
     def run(self):
-        pass
+        with Popen([self.python_version, self.tm_transformation, self.tm_config],stdout=PIPE, stderr=PIPE, cwd=self.wd) as proc:
+            stdout, stderr = proc.communicate()
+            if proc.returncode > 0:
+                logger.critical(stderr)
+                raise Exception('transmart transformation failed!')
+            else:
+                logger.info(stdout)
 
 
 class CbioportalDataTransformation(BaseTask):

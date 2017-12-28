@@ -45,8 +45,11 @@ class Config(object):
 @click.command()
 @click.argument('config_file', type=click.File('r'))
 def main(config_file):
-    error_messages = []  # TODO: implement python logger?
     config = Config(config_file)
+    csr_transformation(config)
+
+def csr_transformation(config):
+    error_messages = []  # TODO: implement python logger?
 
     files = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
     all_files = []

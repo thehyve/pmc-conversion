@@ -3,6 +3,7 @@ import pandas as pd
 import click
 import configparser
 import chardet
+import sys
 
 class Config(object):
 
@@ -77,6 +78,8 @@ def main(config_file):
 
     print(tm_study.observation_fact.df.shape)
     tm_study.to_disk()
+
+    sys.exit(0)
 
     # save column mapping etc?
     # Run skinny loader export
