@@ -1,0 +1,5 @@
+modifier_path	modifier_cd	name_char	Data Type
+\study_mod	CSR_STUDY_MOD	PMC Study ID	CATEGORICAL
+\diagnose_mod	CSR_DIAGNOSIS_MOD	PMC Diagnosis ID	CATEGORICAL
+\biosource_mod	CSR_BIOSOURCE_MOD	PMC Biosource ID	CATEGORICAL
+\biomaterial_mod	CSR_BIOMATERIAL_MOD	PMC Biomaterial ID	CATEGORICAL
