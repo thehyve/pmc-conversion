@@ -16,12 +16,11 @@ class Config(object):
         file_headers: A dict with files from the file list as keys and the expected headers for each file as a list.
 
     """
-    def __init__(self, config_file):
 
+    def __init__(self, config_file):
         def read_config_dict_from_file(config_item):
             with open(self.config.get('GENERAL', config_item)) as f:
                 dict_ = json.loads(f.read())
-            # dict_upper = {k.upper():v for k,v in dict_.items()}
             return dict_
 
         def read_config_list_from_file(config_item):
@@ -48,43 +47,11 @@ def main(config_file):
     config = Config(config_file)
     csr_transformation(config)
 
+
 def csr_transformation(config):
-    error_messages = []  # TODO: implement python logger?
+    files_per_entity = read_data_files(config)
 
-    files = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
-    all_files = []
-    for path, dir_, filenames in os.walk(config.file_dir):
-        all_files += filenames
-        for filename in filenames:
-            working_dir = path.rsplit('/', 1)[1].upper()
-            if dir_ == [] and working_dir in ['EPD', 'LIMMS', 'STUDY']:
-                file = os.path.join(path, filename)
-                encoding = get_encoding(file)
-
-                # Implement column mapping
-                if filename in config.header_mapping:
-                    header_map = config.header_mapping[filename]
-                else:
-                    header_map = None
-
-                # Read data from file and create a pandas DataFrame. If a header mapping is provided the columns
-                # are mapped before the DataFrame is returned
-                df = input_file_to_df(file, encoding, column_mapping=header_map)
-
-                columns = df.columns
-                # Check if headers are present
-                file_type = determine_file_type(columns)
-                # TODO: extend the error checking and input config so files do not need all the data but together
-                # TODO: have a set of needed columns
-                error_messages = error_messages + (check_file_header(columns, config.file_headers[file_type], filename))
-
-                files[file_type].update({filename: df})
-
-    error_messages += check_file_list(all_files, config.file_list)
-    # Temporarily disabled
-    # print_errors(error_messages)
-
-    subject_registry = build_csr_dataframe(files, config)
+    subject_registry = build_csr_dataframe(files_per_entity, config)
 
     # - Check if all CSR headers are in the merged dataframe
     missing_header = [l for l in config.file_headers_list if l not in subject_registry.columns]
@@ -94,9 +61,10 @@ def csr_transformation(config):
         # sys.exit(9)
 
     subject_registry.to_csv(config.output_file, sep='\t', index=False)
-# TODO:
-# - need a mapping to deduplicate potential double values from the CSR --> requires a order of correct datafiles
-# - Throw error if patient ID not found
+    if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
+        print('[ERROR] Some individuals do not have a identifier')
+        # sys.exit(9)
+
     sys.exit(0)
 
 
@@ -118,13 +86,15 @@ def input_file_to_df(file_name, encoding, seperator='\t', column_mapping=None):
 
 
 def apply_header_map(df_columns, header):
-    """Generate a new header for a pandas Dataframe. Returns uppercased column names from the header"""
+    """Generate a new header for a pandas Dataframe using either the column name or the mapped column name if provided
+    in the header object. Returns uppercased column names from the header"""
+    header_upper = {k.upper(): v.upper() for k, v in header.items()}
     new_header = []
     for i in df_columns:
-        if i in header:
-            new_header.append(header[i].upper())
+        if i in header_upper:
+            new_header.append(header_upper[i])
         else:
-            new_header.append(i.upper())
+            new_header.append(i)
     return new_header
 
 
@@ -148,6 +118,7 @@ def determine_file_type(columns):
         # TODO: implement error messages
         # Fails if none of the key identifiers are present
         print('\nI am not working! - No Key Identifier found: Individual, diagnosis, study, biosource or biomaterial\n')
+        # sys.exit(9)
 
 
 def check_file_header(file_header, expected_header, name):
@@ -180,17 +151,31 @@ def print_errors(messages):
         sys.exit(9)
 
 
-def merge_data_frames(df_dict, file_order, id_col):
+def merge_data_frames(df_dict, file_order, id_columns):
+    """Takes a dictionary with filenames as keys and dataframes as values and merges these into one pandas dataframe
+    based on the id_columns. This should be done per entity type.
+
+    :param df_dict: A dictionary of filenames and dataframes
+    :param file_order: List of files to indicate which data to use in case of duplicate observations.
+    :param id_columns: ID columns to merge data on (INDIVIDUAL, STUDY, DIAGNOSIS, BIOSOURCE, BIOMATERIAL).
+    :return: Merged pandas Dataframe
+    """
+    # TODO: add warning to indicate there are files in the dict that are not in the order list
     df_list = [f for f in file_order if f in df_dict.keys()]
     ref_df = df_dict[df_list[0]]
     for i in df_list[1:]:
-        ref_df = ref_df.merge(df_dict[i], how='outer', on=id_col, suffixes=('_x', '_y'))
+        ref_df = ref_df.merge(df_dict[i], how='outer', on=id_columns, suffixes=('_x', '_y'))
         combine_column_data(ref_df)
     return ref_df
 
 
-# TODO: come up with better name
 def combine_column_data(df):
+    """Take a pandas dataframe and combine columns based on the suffixes after using the pandas merge() function.
+    Assumes the suffixes are X and Y. Using combine_first combines the suffix columns into a column without the suffix.
+
+    :param df: pandas Dataframe, optionally with suffixes (_x and _y only)
+    :return: pandas Dataframe without _x and _y suffixes
+    """
     col_map = {}
     for i in df.columns:
         i_split = i.rsplit('_', 1)
@@ -225,40 +210,41 @@ def add_biosource_identifiers(biosource, biomaterial, biosource_merge_on='BIOSOU
     return df
 
 
-def build_csr_dataframe(file_dict,config):
-    # Merge multiple individual data objects into one dataframe
-    # - Requires hierarchy thingy --> Taken from file order
-    # - Requires data deduplication
-    # Figure out how I should take into account data from different sources
+def build_csr_dataframe(file_dict, config):
+    """Takes the complete data dictionary with all of the read input files. Merges the data per entity type and adds
+     INDIVIDUAL_ID and DIAGNOSIS_ID to the biomaterial entity. Data duplication is taken care of within entities
+
+     Returns the complete central subject registry as a
+     pandas Dataframe using pandas concat()
+
+    :param file_dict: dictionary with all the files to be merged
+    :param config: the config object
+    :return: Central Subject Registry as pandas Dataframe
+    """
+
     individuals = merge_data_frames(df_dict=file_dict['individual'],
                                     file_order=config.file_order,
-                                    id_col='INDIVIDUAL_ID')
+                                    id_columns='INDIVIDUAL_ID')
 
-    # Merge diagnosis data file_dict
     diagnosis = merge_data_frames(df_dict=file_dict['diagnosis'],
-                              file_order=config.file_order,
-                              id_col=['DIAGNOSIS_ID', 'INDIVIDUAL_ID'])
+                                  file_order=config.file_order,
+                                  id_columns=['DIAGNOSIS_ID', 'INDIVIDUAL_ID'])
 
-    # Merge study data file_dict
     studies = merge_data_frames(df_dict=file_dict['study'],
-                            file_order=config.file_order,
-                            id_col=['STUDY_ID', 'INDIVIDUAL_ID'])
+                                file_order=config.file_order,
+                                id_columns=['STUDY_ID', 'INDIVIDUAL_ID'])
 
-    # Add patient identifiers to the biomaterial file_dict.
-    # Steps:
-    # - Merge biomaterial file_dict into one data file based on biomaterial id
     biomaterials = merge_data_frames(df_dict=file_dict['biomaterial'],
-                                 file_order=config.file_order,
-                                 id_col=['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID'])
+                                     file_order=config.file_order,
+                                     id_columns=['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID'])
 
-    # - Merge biosource file_dict into one data file based on biosource id
     biosources = merge_data_frames(df_dict=file_dict['biosource'],
-                               file_order=config.file_order,
-                               id_col=['BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID'])
+                                   file_order=config.file_order,
+                                   id_columns=['BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID'])
 
-    # - Add INDIVIDUAL_ID and DIAGNOSIS_ID to biomaterials using the biosources
     biomaterials = add_biosource_identifiers(biosources, biomaterials)
 
+    # TODO: ADD DEDUPLICATION ACROSS ENTITIES:
     # TODO: Add advanced deduplication for double values from for example individual and diagnosis.
     # TODO: idea to capture this in a config file where per column for the CSR the main source is described.
     # TODO: This could reuse the file_header mapping to create subselections and see if there are duplicates.
@@ -268,8 +254,47 @@ def build_csr_dataframe(file_dict,config):
     # Concat all data starting with individual into the CSR dataframe, study, diagnosis, biosource and biomaterial
     subject_registry = pd.concat([individuals, diagnosis, studies, biosources, biomaterials])
 
-
     return subject_registry
+
+
+def read_data_files(config):
+    error_messages = []  # TODO: implement python logger?
+
+    # Input is taken in per entity.
+    files_per_entity = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
+    all_files = []
+    # Assumption is that all the files are in EPD, LIMMS or STUDY folders.
+    for path, dir_, filenames in os.walk(config.file_dir):
+        all_files += filenames
+        for filename in filenames:
+            working_dir = path.rsplit('/', 1)[1].upper()
+            if dir_ == [] and working_dir in ['EPD', 'LIMMS', 'STUDY']:
+                file = os.path.join(path, filename)
+
+                # Implement column mapping
+                if filename in config.header_mapping:
+                    header_map = config.header_mapping[filename]
+                else:
+                    header_map = None
+
+                # Read data from file and create a pandas DataFrame. If a header mapping is provided the columns
+                # are mapped before the DataFrame is returned
+                df = input_file_to_df(file, get_encoding(file), column_mapping=header_map)
+
+                columns = df.columns
+                # Check if headers are present
+                file_type = determine_file_type(columns)
+                # TODO: extend the error checking and input config so files do not need all the data but together
+                # TODO: have a set of needed columns
+                error_messages = error_messages + (check_file_header(columns, config.file_headers[file_type], filename))
+
+                files_per_entity[file_type].update({filename: df})
+
+    error_messages += check_file_list(all_files,
+                                      config.file_list)  # TODO: is this step needed? Covered by checking CSR output?
+    # Temporarily disabled
+    # print_errors(error_messages)
+    return files_per_entity
 
 
 if __name__ == '__main__':
