@@ -4,6 +4,8 @@ import luigi
 
 from checksum import read_sha1_file
 
+from sync import get_checksum_pairs_set, sync_dirs, same_data
+
 
 def signal_files_matches(input_file, output_file):
     if os.path.exists(input_file) and os.path.exists(output_file):
@@ -68,38 +70,29 @@ class BaseTask(luigi.Task):
             f.write(self.calc_done_signal())
 
 
-class CheckForFilesComplete(BaseTask):
-    """
-    Task to check whether file transfers are complete
-    """
-
-    done_signal_filename = '.done-CheckForFilesComplete'
-
-    @property
-    def input_signal_file(self):
-        return 'test.sha1'
-    
-    def run(self):
-        with open(self.input_signal_file, 'w') as f:
-            f.write('test')
-
-
 class CheckForNewFiles(BaseTask):
     """
     Task to check whether new files are available
     """
-    
+
+    drop_dir = luigi.Parameter(description='Directory to copy data files from.')
+    staging_dir = luigi.Parameter(description='Directory to copy data files to.')
+
     done_signal_filename = '.done-CheckForNewFiles'
 
-    @property
-    def input_signal_file(self):
-        return self.input()
-    
-    def requires(self):
-        return CheckForFilesComplete()
-        
     def run(self):
-        pass
+        sync_dirs(self.drop_dir, self.staging_dir)
+
+    def complete(self):
+        return same_data(self.drop_dir, self.staging_dir)
+
+    def calc_done_signal(self):
+        """
+        :return: file with list of files and their checksums
+        """
+        file_checksum_pairs = sorted(get_checksum_pairs_set(self.staging_dir),
+                                     key=lambda file_checksum_pair: file_checksum_pair[0])
+        return '\n'.join([file + ' ' + checksum for file, checksum in file_checksum_pairs])
 
 
 class GitAddRawFiles(BaseTask):
