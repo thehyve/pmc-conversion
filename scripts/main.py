@@ -1,17 +1,14 @@
-import luigi
 import os
 
+import luigi
 
-def read_sha1_file(path):
-    """ Returns the 40 hex characters sha1 from file. """
-    checksum_length = 40
+from checksum import read_sha1_file
 
-    if not os.path.exists(path):
-        return None
 
-    with open(path, 'r') as f:
-        checksum = f.read()[:checksum_length]
-    return checksum
+def signal_files_matches(input_file, output_file):
+    if os.path.exists(input_file) and os.path.exists(output_file):
+        return read_sha1_file(input_file) == read_sha1_file(output_file)
+    return False
 
 
 class BaseTask(luigi.Task):
@@ -42,18 +39,11 @@ class BaseTask(luigi.Task):
         """
         if isinstance(self.input_signal_file, list):
             for input_signal_file in self.input_signal_file:
-                if not os.path.exists(input_signal_file):
-                    return False
-
-                if read_sha1_file(self.done_signal_file) != read_sha1_file(input_signal_file):
+                if not signal_files_matches(input_signal_file, self.done_signal_file):
                     return False
             return True
         else:
-            if not os.path.exists(self.input_signal_file):
-                return False
-
-            return read_sha1_file(self.done_signal_file) == read_sha1_file(self.input_signal_file)
-
+            return signal_files_matches(self.done_signal_file, self.input_signal_file)
 
     def calc_done_signal(self):
         """
