@@ -34,10 +34,15 @@ def split_data_and_checksum_files(files: list):
 
 DataChecksumFilesPair = collections.namedtuple('DataChecksumFilesPair', ['data_file', 'checksum_file'])
 
+def is_hiden_file(path):
+    return os.path.basename(path).startswith('.')
 
 def get_data_checksum_file_pairs(files):
     data_files, checksum_files = split_data_and_checksum_files(files)
     for data_file in data_files:
+        if is_hiden_file(data_file):
+            logger.debug(f'Skip {data_file}')
+            continue
         checksum_file = get_checksum_file(data_file)
         if checksum_file in checksum_files:
             checksum_files.remove(checksum_file)
@@ -65,7 +70,7 @@ def ensure_checksum_matches(data_checksum_files_pairs):
 def scan_files_checksums(dir):
     for root, _, files in os.walk(dir):
         for file in files:
-            if not is_checksum_file(file):
+            if not is_checksum_file(file) and not is_hiden_file(file):
                 path = os.path.join(root, file)
                 yield DataFileChecksumPair(path, compute_sha1(path))
 
