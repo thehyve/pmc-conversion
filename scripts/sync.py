@@ -131,6 +131,7 @@ def sync_dirs(from_dir, to_dir):
         src_path = os.path.join(from_dir, add_file.data_file)
         dst_path = os.path.join(to_dir, add_file.data_file)
         logger.debug(f'Copying {src_path} file to {dst_path}.')
+        os.makedirs(os.path.dirname(dst_path), exist_ok=True)
         copyfile(src_path, dst_path)
 
 
