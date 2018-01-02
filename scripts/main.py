@@ -29,6 +29,9 @@ class BaseTask(luigi.Task):
     @property
     def done_signal_file(self):
         """ Full path filename that is written to when task is finished successfully. """
+        if self.input_signal_file is None:
+            return self.done_signal_filename
+
         if isinstance(self.input_signal_file, list):
             return os.path.join(os.path.dirname(self.input_signal_file[0]), self.done_signal_filename)
         else:
