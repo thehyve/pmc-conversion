@@ -32,3 +32,18 @@ not_run=25
 task_failed=30
 scheduling_error=35
 unhandled_exception=40
+
+[MergeClinicalData]
+test = Hello world
+wd = /Users/wibopipping/Projects/PMC/pmc-conversion/csr_transformation/
+csr_transformation = csr_transformations.py
+csr_config = test_config.config
+python_version = python3
+
+
+[TransmartDataTransformation]
+wd = /Users/wibopipping/Projects/PMC/pmc-conversion/transmart_transformation/
+tm_transformation = transmart_transformation.py
+tm_config = test_config.config
+python_version = python3
+
