@@ -68,6 +68,8 @@ def ensure_checksum_matches(data_checksum_files_pairs):
 
 
 def scan_files_checksums(dir):
+    if not os.path.exists(dir):
+        raise NotADirectoryError(f'{dir} is not a directory.')
     for root, _, files in os.walk(dir):
         for file in files:
             if not is_checksum_file(file) and not is_hiden_file(file):

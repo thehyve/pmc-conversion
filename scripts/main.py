@@ -1,13 +1,14 @@
-import luigi
-import os
-import subprocess
 import logging
+import os
 from subprocess import PIPE, Popen
 
+import luigi
 
 from checksum import read_sha1_file
-
 from sync import sync_dirs, is_dirs_in_sync
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def signal_files_matches(input_file, output_file):
@@ -122,9 +123,23 @@ class GitAddRawFiles(BaseTask):
 
     def requires(self):
         return CheckForNewFiles()
-    
+
     def run(self):
         pass
+
+
+class SubprocessException(Exception):
+    pass
+
+
+def run_cmd(cmd_list, cwd='.'):
+    with Popen(' '.join(cmd_list), stdout=PIPE, stderr=PIPE, cwd=cwd, shell=True) as proc:
+        stdout, stderr = proc.communicate()
+        if proc.returncode > 0:
+            logger.critical(stderr)
+            raise SubprocessException('subprocess command has failed.')
+        else:
+            logger.info(stdout)
 
 
 class MergeClinicalData(BaseTask):
@@ -146,15 +161,9 @@ class MergeClinicalData(BaseTask):
 
     def requires(self):
         return GitAddRawFiles()
-    
+
     def run(self):
-        with Popen([self.python_version, self.csr_transformation, self.csr_config],stdout=PIPE, stderr=PIPE, cwd=self.wd) as proc:
-            stdout, stderr = proc.communicate()
-            if proc.returncode > 0:
-                logger.critical(stderr)
-                raise Exception('csr transformation failed!')
-            else:
-                logger.info(stdout)
+        run_cmd([self.python_version, self.csr_transformation, self.csr_config], cwd=str(self.wd))
 
 
 class TransmartDataTransformation(BaseTask):
@@ -164,26 +173,20 @@ class TransmartDataTransformation(BaseTask):
 
     done_signal_filename = '.done-TransmartDataTransformation'
 
-    wd = luigi.Parameter('Working directory with the tranSMART transformation script', significant = False)
-    tm_transformation = luigi.Parameter('tranSMART data transformation script name', significant = False)
-    tm_config = luigi.Parameter('tranSMART data transformation config file', significant = False)
-    python_version = luigi.Parameter('Python command to use to execute', significant = False)
+    wd = luigi.Parameter('Working directory with the tranSMART transformation script', significant=False)
+    tm_transformation = luigi.Parameter('tranSMART data transformation script name', significant=False)
+    tm_config = luigi.Parameter('tranSMART data transformation config file', significant=False)
+    python_version = luigi.Parameter('Python command to use to execute', significant=False)
 
     @property
     def input_signal_file(self):
         return self.input()
-    
+
     def requires(self):
         return MergeClinicalData()
-    
+
     def run(self):
-        with Popen([self.python_version, self.tm_transformation, self.tm_config],stdout=PIPE, stderr=PIPE, cwd=self.wd) as proc:
-            stdout, stderr = proc.communicate()
-            if proc.returncode > 0:
-                logger.critical(stderr)
-                raise Exception('transmart transformation failed!')
-            else:
-                logger.info(stdout)
+        run_cmd([self.python_version, self.tm_transformation, self.tm_config], cwd=str(self.wd))
 
 
 class CbioportalDataTransformation(BaseTask):
@@ -227,33 +230,58 @@ class TransmartDataLoader(BaseTask):
     """
     Task to load data to tranSMART
     """
- 
+
     done_signal_filename = '.done-TransmartDataLoader'
+
+    transmart_copy_jar = luigi.Parameter('Path to transmart copy jar.')
+    skinny_dir = luigi.Parameter(description="Skinny loader study directory.")
+    study_id = luigi.Parameter(description="Id of the study to load.")
+    PGHOST = luigi.Parameter(description="Configuration for transmart-copy.")
+    PGPORT = luigi.Parameter(description="Configuration for transmart-copy.")
+    PGDATABASE = luigi.Parameter(description="Configuration for transmart-copy.")
+    PGUSER = luigi.Parameter(description="Configuration for transmart-copy.")
+    PGPASSWORD = luigi.Parameter(description="Configuration for transmart-copy.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        os.environ['PGHOST'] = self.PGHOST
+        os.environ['PGPORT'] = self.PGPORT
+        os.environ['PGDATABASE'] = self.PGDATABASE
+        os.environ['PGUSER'] = self.PGUSER
+        os.environ['PGPASSWORD'] = self.PGPASSWORD
 
     @property
     def input_signal_file(self):
         return self.input()
-    
+
     def requires(self):
         return GitAddStagingFilesAndCommit()
-    
+
     def run(self):
-        pass
+        logger.info('TRYING TO REMOVE STUDY WITH STUDY_ID: {}'.format(self.study_id))
+        try:
+            run_cmd(['java', '-jar', f'{self.transmart_copy_jar!r}', '--delete', self.study_id])
+        except SubprocessException:
+            logger.error(f'Can\'t delete study with id {self.study_id}.')
+
+        logger.info('STARTING LOADING JOB ON: {}'.format(self.skinny_dir))
+        run_cmd(['java', '-jar', f'{self.transmart_copy_jar!r}', '-d', f'{self.skinny_dir!r}'])
+
 
 class CbioportalDataLoader(BaseTask):
     """
     Task to load data to cBioPortal
     """
- 
+
     done_signal_filename = '.done-CbioportalDataLoader'
 
     @property
     def input_signal_file(self):
         return self.input()
-    
+
     def requires(self):
         return GitAddStagingFilesAndCommit()
-    
+
     def run(self):
         pass
 

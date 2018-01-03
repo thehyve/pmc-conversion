@@ -5,24 +5,6 @@ db_connection = sqlite:///pmc-luigi-db.sqlite
 record_task_history = True
 state_path = luigi-state.pickle
 
-[GlobalConfig]
-transmart_copy_jar = /Users/jb/thehyve/transmart-core/transmart-copy/build/libs/transmart-copy-17.1-SNAPSHOT.jar
-
-# list parameters as json string
-jar_params = ["-i", "-u", "-r", "-a"]
-
-#Some environment variables you can set here
-PGHOST = localhost
-PGPORT = 5432
-PGDATABASE = transmart
-PGUSER = admin
-PGPASSWORD = admin
-TM_CZ_PWD = tm_cz
-
-[resources]
-# Resources are used to limit the number of concurrent tasks
-transmart_loader = 1
-
 [retcode]
 # The following return codes are the recommended exit codes for Luigi
 # They are in increasing level of severity (for most applications)
@@ -33,17 +15,32 @@ task_failed=30
 scheduling_error=35
 unhandled_exception=40
 
+[CheckForNewFiles]
+drop_dir=/projects/pmc/csr_example_files
+staging_dir=/projects/pmc/staging
+
 [MergeClinicalData]
 test = Hello world
-wd = /Users/wibopipping/Projects/PMC/pmc-conversion/csr_transformation/
+wd = /projects/pmc/pmc-conversion/csr_transformation/
 csr_transformation = csr_transformations.py
 csr_config = test_config.config
 python_version = python3
 
 
 [TransmartDataTransformation]
-wd = /Users/wibopipping/Projects/PMC/pmc-conversion/transmart_transformation/
+wd = /projects/pmc/pmc-conversion/transmart_transformation/
 tm_transformation = transmart_transformation.py
 tm_config = test_config.config
 python_version = python3
+
+[TransmartDataLoader]
+transmart_copy_jar = /projects/ntr/transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
+skinny_dir = /projects/pmc/csr_luigi_study
+study_id = CSR_STUDY_2
+#Some environment variables you can set here
+PGHOST = localhost
+PGPORT = 5431
+PGDATABASE = transmart
+PGUSER = tm_cz
+PGPASSWORD = tm_cz
 
