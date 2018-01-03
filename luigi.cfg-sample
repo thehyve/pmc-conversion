@@ -32,3 +32,7 @@ not_run=25
 task_failed=30
 scheduling_error=35
 unhandled_exception=40
+
+[CheckForNewFiles]
+drop_dir=../drop_dir
+staging_dir=../staging_dir
