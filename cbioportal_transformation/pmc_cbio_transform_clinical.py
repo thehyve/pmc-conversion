@@ -20,19 +20,21 @@ import pmc_cbio_create_metafile
 ### This is useful for when the column name is too long, or if you just want to modify the text.
 ### These will end up in the 1st and 2nd line of the staging file header,
 ### thereby defining the 'name' and 'description' that will show up in the UI.
-RENAME_BEFORE_CREATING_HEADER_MAP = {}
+RENAME_BEFORE_CREATING_HEADER_MAP = {'INDIVIDUAL_ID': 'Patient ID'}
 
 ### Rename attributes after creating header
 ### These are the attribute names that will be saved as column names in the database
 ### This is only necessary for cBioPortal specific columns, such as 'Overal Survival Status' - 'OS_STATUS'
-### Aspecific columns are automatically parsed to cBioPortal format, such as '% tumor cells' -> 'TUMOR_CELLS'
+### Other columns are automatically parsed to cBioPortal format, for example '% tumor cells' -> 'TUMOR_CELLS'
 ### Please make sure the SAMPLE_ID column name is created
-RENAME_AFTER_CREATING_HEADER_MAP = {'individual_id': 'PATIENT_ID',
-                                    'src_biosource_id': 'SAMPLE_ID'}
+RENAME_AFTER_CREATING_HEADER_MAP = {}
 
 ### Rename values in OS_STATUS and DFS_STATUS columns
 RENAME_OS_STATUS_MAP = {}
 RENAME_DFS_STATUS_MAP = {}
+
+### Force some datatypes to be remappad to STRING
+FORCE_STRING_LIST = ['CENTER_TREATMENT', 'CID', 'DIAGNOSIS_ID', 'GENDER', 'IC_DATA', 'IC_LINKING_EXT', 'IC_MATERIAL', 'IC_TYPE', 'IDAA', 'INDIVIDUAL_STUDY_ID', 'TOPOGRAPHY', 'TUMOR_TYPE']
 
 def create_clinical_header(df):
     """ Function to create header in cBioPortal format for clinical data
@@ -69,25 +71,25 @@ def create_clinical_header(df):
 
 def check_integer_na_columns(numerical_column):
     """ Integer columns containing NA values are converted to Float in pandas
-        This function checks for which columns this is the case
+        This function checks for a column if it only contains integers (.0)
+
+        In this case we attempt to convert all columns, not just the columns
+        that contain an NA value, because we sliced the dataframes from a bigger
+        dataframe that could contain NA values.
     """
-    ### Only check columns that contain NA
-    if numerical_column.isnull().values.any() and not numerical_column.isnull().values.all():
-        for i in numerical_column:
-            if str(i) != 'nan':
-                decimal_value = str(i).split('.')[1]
-                ### If float is other than 0, we know for sure it's not an integer column
-                if float(decimal_value) != 0:
-                    return False
-        ### If loop ends by only encountering 0s, return true
-        return True
-    else:
-        return False
+    for i in numerical_column:
+        if str(i) != 'nan':
+            decimal_value = str(i).split('.')[1]
+            ### If float is other than 0, we know for sure it's not an integer column
+            if float(decimal_value) != 0:
+                return False
+    ### If loop ends by only encountering .0, return true
+    return True
 
 
 def fix_integer_na_columns(df):
     """ Integer columns containing NA values are converted to Float in pandas
-        This function selects these columns and converts them to back to integers.
+        This function selects these columns and converts them to back to integers
     """
 
     # Select data with floats
@@ -111,27 +113,56 @@ def remove_empty_columns(df):
             df.drop(column, axis = 1, inplace=True)
     return df
 
+def pmc_data_restructuring(clinical_data, clinical_type):
+    ### Add entity of the row (Patient, Diagnosis, Study, Biosource, Biomaterial)
+    clinical_data['Entity'] = ''
+    for index, row in clinical_data.iterrows():
+        if pd.notnull(row['DIAGNOSIS_ID']) and pd.isnull(row['BIOSOURCE_ID']) and pd.isnull(row['STUDY_ID']) and pd.isnull(row['BIOMATERIAL_ID']):
+            clinical_data.loc[index, 'Entity'] = 'Diagnosis'
+        elif pd.notnull(row['STUDY_ID']):
+            clinical_data.loc[index, 'Entity'] = 'Study'
+        elif pd.notnull(row['BIOSOURCE_ID']):
+            clinical_data.loc[index, 'Entity'] = 'Biosource'
+        elif pd.notnull(row['BIOMATERIAL_ID']):
+            clinical_data.loc[index, 'Entity'] = 'Biomaterial'
+        else:
+            clinical_data.loc[index, 'Entity'] = 'Patient'
+
+    ### Create separate data frames per entity
+    diagnosis_data = clinical_data.loc[clinical_data['Entity'] == 'Diagnosis', :].drop(['Entity', 'INDIVIDUAL_ID'], axis = 1).dropna(axis=1, how='all')
+    biomaterial_data = clinical_data.loc[clinical_data['Entity'] == 'Biomaterial', :].drop(['Entity', 'DIAGNOSIS_ID'], axis = 1).dropna(axis=1, how='all')
+    biosource_data = clinical_data.loc[clinical_data['Entity'] == 'Biosource', :].drop(['Entity', 'INDIVIDUAL_ID'], axis = 1).dropna(axis=1, how='all')
+    study_data = clinical_data.loc[clinical_data['Entity'] == 'Study', :].drop('Entity', axis = 1).dropna(axis=1, how='all')
+    patient_data = clinical_data.loc[clinical_data['Entity'] == 'Patient', :].drop('Entity', axis = 1).dropna(axis=1, how='all')
+
+    ### For patient data, no merging is required
+    if clinical_type == 'patient':
+        return patient_data
+
+    # Rename column, else duplicate columns
+    biomaterial_data.rename(columns = {'DESCRIPTION': 'Biomaterial description',
+                                       'SRC_BIOSOURCE_ID': 'BIOSOURCE_ID',
+                                       'LABEL': 'Biomaterial label'}, inplace = True)
+    biosource_data.rename(columns = {'DESCRIPTION': 'Biosource description',
+                                     'LABEL': 'Biosource label'}, inplace = True)
+
+    # Merge columns
+    biosource_data = pd.merge(biosource_data, diagnosis_data, how='left', on=['DIAGNOSIS_ID'])
+    biomaterial_data = pd.merge(biomaterial_data, biosource_data, how='left', on=['BIOSOURCE_ID'])
+    biomaterial_data['Sample ID'] = biomaterial_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
+
+    # In case of clinical sample data, return merged biomaterial dataframe
+    return biomaterial_data
+
 def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study_id):
     """ Converting the input file to a cBioPortal staging file.
     """
 
-    ### Check arguments
-    if clinical_type == 'sample':
-        if specimen_file == '':
-            print '-s should contain specimen file for clinical sample table'
-            sys.exit(1)
-    elif clinical_type == 'patient':
-        pass
-    else:
-        print "-c should contain contain 'sample' or 'patient'"
-        sys.exit(1)
-
-    ### Create output directory
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
     ### Loading clinical data
     clinical_data = pd.read_csv(clinical_inputfile, sep='\t', na_values=[''])
+
+    ### PMC data restructuring
+    clinical_data = pmc_data_restructuring(clinical_data, clinical_type)
 
     ###############################
     ### Modify column names #######
@@ -159,8 +190,9 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     clinical_data.rename(columns= RENAME_AFTER_CREATING_HEADER_MAP, inplace = True)
 
     ### Set datatype of specific columns before after header
-    # if '' in clinical_header.columns:
-    #     clinical_header.loc[2, ''] = 'STRING'
+    for string_column_name in FORCE_STRING_LIST:
+        if string_column_name in clinical_header.columns:
+            clinical_header.loc[2, string_column_name] = 'STRING'
 
     ### Remove symbols from attribute names and make them uppercase
     clinical_data = clinical_data.rename(columns=lambda s: re.sub('[^0-9a-zA-Z_]+', '_', s))

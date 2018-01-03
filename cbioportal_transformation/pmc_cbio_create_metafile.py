@@ -26,7 +26,8 @@ def create_meta_content(cancer_study_identifier = None,
                         add_global_case_list = None,
                         variant_classification_filter = None,
                         pmid = None,
-                        reference_genome_id = None
+                        reference_genome_id = None,
+                        swissprot_identifier = None
                         ):
 
     ### Required properties
@@ -56,7 +57,10 @@ def create_meta_content(cancer_study_identifier = None,
         meta_content = meta_content + 'add_global_case_list: %s\n' % add_global_case_list
 
     if variant_classification_filter is not None:
-        meta_content = meta_content + 'variant_classification_filter:%s\n' % variant_classification_filter
+        meta_content = meta_content + 'variant_classification_filter: %s\n' % variant_classification_filter
+
+    if swissprot_identifier is not None:
+        meta_content = meta_content + 'swissprot_identifier: %s\n' % swissprot_identifier
 
     if pmid is not None:
         meta_content = meta_content + 'pmid: %s\n' % pmid

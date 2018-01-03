@@ -6,3 +6,9 @@
 
 Data types transformed:
 - Clinical data
+- Mutation data
+- CNA Segment data
+- CNA Continuous data
+- CNA Discrete data
+
+File structure, case lists and meta files are created
