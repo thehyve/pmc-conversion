@@ -101,11 +101,11 @@ class SyncTests(unittest.TestCase):
         with open(path.join(copy_dir, 'remove_me.txt'), 'w') as data_file_to_remove:
             data_file_to_remove.write('remove me file content')
 
-        self.assertFalse(sync.same_data(self.checksum_matches, copy_dir))
+        self.assertFalse(sync.is_dirs_in_sync(self.checksum_matches, copy_dir))
 
         sync.sync_dirs(self.checksum_matches, copy_dir)
 
-        self.assertTrue(sync.same_data(self.checksum_matches, copy_dir))
+        self.assertTrue(sync.is_dirs_in_sync(self.checksum_matches, copy_dir))
 
         dcmp = dircmp(self.checksum_matches, copy_dir)
         self.assertEqual(2, len(dcmp.left_only))

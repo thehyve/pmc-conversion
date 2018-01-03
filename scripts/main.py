@@ -4,7 +4,7 @@ import luigi
 
 from checksum import read_sha1_file
 
-from sync import get_checksum_pairs_set, sync_dirs, same_data
+from sync import sync_dirs, is_dirs_in_sync
 
 
 def signal_files_matches(input_file, output_file):
@@ -58,9 +58,12 @@ class BaseTask(luigi.Task):
         :return: some identifier (sha1 hash)
         """
         if isinstance(self.input_signal_file, list):
-            return read_sha1_file(self.input_signal_file[0])
+            input_signal_file = self.input_signal_file[0]
         else:
-            return read_sha1_file(self.input_signal_file)
+            input_signal_file = self.input_signal_file
+
+        with open(input_signal_file, 'r') as f:
+            return f.read()
 
     def output(self):
         """ Send the done signal file to the tasks that requires it. """
@@ -83,19 +86,24 @@ class CheckForNewFiles(BaseTask):
 
     done_signal_filename = '.done-CheckForNewFiles'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.file_modifications = None
+
     def run(self):
-        sync_dirs(self.drop_dir, self.staging_dir)
+        self.file_modifications = sync_dirs(self.drop_dir, self.staging_dir)
 
     def complete(self):
-        return same_data(self.drop_dir, self.staging_dir)
+        return is_dirs_in_sync(self.drop_dir, self.staging_dir)
 
     def calc_done_signal(self):
         """
         :return: file with list of files and their checksums
         """
-        file_checksum_pairs = sorted(get_checksum_pairs_set(self.staging_dir),
-                                     key=lambda file_checksum_pair: file_checksum_pair[0])
-        return '\n'.join([file + ' ' + checksum for file, checksum in file_checksum_pairs])
+        removed_files = sorted(self.file_modifications.removed, key=lambda removed_file: removed_file.data_file)
+        added_files = sorted(self.file_modifications.added, key=lambda added_file: added_file.data_file)
+        return os.linesep.join([' - ' + file + ' ' + checksum for file, checksum in removed_files] +
+                               [' + ' + file + ' ' + checksum for file, checksum in added_files])
 
 
 class GitAddRawFiles(BaseTask):

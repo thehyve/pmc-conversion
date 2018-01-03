@@ -102,8 +102,11 @@ def get_checksum_pairs_set(dir):
     return result
 
 
-def same_data(dir1, dir2):
+def is_dirs_in_sync(dir1, dir2):
     return get_checksum_pairs_set(dir1) == get_checksum_pairs_set(dir2)
+
+
+FilesModifications = collections.namedtuple('FilesModifications', ['added', 'removed'])
 
 
 def sync_dirs(from_dir, to_dir):
@@ -119,7 +122,7 @@ def sync_dirs(from_dir, to_dir):
 
     if from_dir_files == to_dir_files:
         logger.info('No changes detected. Exit.')
-        return
+        return FilesModifications(set(), set())
 
     logger.info('Differences detected. Start synchronising...')
     remove_files = to_dir_files - from_dir_files
@@ -138,6 +141,8 @@ def sync_dirs(from_dir, to_dir):
         logger.debug(f'Copying {src_path} file to {dst_path}.')
         os.makedirs(os.path.dirname(dst_path), exist_ok=True)
         copyfile(src_path, dst_path)
+
+    return FilesModifications(add_files, remove_files)
 
 
 if __name__ == "__main__":
