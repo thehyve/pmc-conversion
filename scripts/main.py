@@ -165,8 +165,8 @@ class TransmartDataTransformation(BaseTask):
     done_signal_filename = '.done-TransmartDataTransformation'
 
     wd = luigi.Parameter('Working directory with the tranSMART transformation script', significant = False)
-    csr_transformation = luigi.Parameter('tranSMART data transformation script name', significant = False)
-    csr_config = luigi.Parameter('tranSMART data transformation config file', significant = False)
+    tm_transformation = luigi.Parameter('tranSMART data transformation script name', significant = False)
+    tm_config = luigi.Parameter('tranSMART data transformation config file', significant = False)
     python_version = luigi.Parameter('Python command to use to execute', significant = False)
 
     @property
