@@ -1,17 +1,16 @@
-import luigi
 import os
 
+import luigi
 
-def read_sha1_file(path):
-    """ Returns the 40 hex characters sha1 from file. """
-    checksum_length = 40
+from checksum import read_sha1_file
 
-    if not os.path.exists(path):
-        return None
+from sync import sync_dirs, is_dirs_in_sync
 
-    with open(path, 'r') as f:
-        checksum = f.read()[:checksum_length]
-    return checksum
+
+def signal_files_matches(input_file, output_file):
+    if os.path.exists(input_file) and os.path.exists(output_file):
+        return read_sha1_file(input_file) == read_sha1_file(output_file)
+    return False
 
 
 class BaseTask(luigi.Task):
@@ -30,6 +29,9 @@ class BaseTask(luigi.Task):
     @property
     def done_signal_file(self):
         """ Full path filename that is written to when task is finished successfully. """
+        if self.input_signal_file is None:
+            return self.done_signal_filename
+
         if isinstance(self.input_signal_file, list):
             return os.path.join(os.path.dirname(self.input_signal_file[0]), self.done_signal_filename)
         else:
@@ -42,18 +44,11 @@ class BaseTask(luigi.Task):
         """
         if isinstance(self.input_signal_file, list):
             for input_signal_file in self.input_signal_file:
-                if not os.path.exists(input_signal_file):
-                    return False
-
-                if read_sha1_file(self.done_signal_file) != read_sha1_file(input_signal_file):
+                if not signal_files_matches(input_signal_file, self.done_signal_file):
                     return False
             return True
         else:
-            if not os.path.exists(self.input_signal_file):
-                return False
-
-            return read_sha1_file(self.done_signal_file) == read_sha1_file(self.input_signal_file)
-
+            return signal_files_matches(self.done_signal_file, self.input_signal_file)
 
     def calc_done_signal(self):
         """
@@ -63,9 +58,12 @@ class BaseTask(luigi.Task):
         :return: some identifier (sha1 hash)
         """
         if isinstance(self.input_signal_file, list):
-            return read_sha1_file(self.input_signal_file[0])
+            input_signal_file = self.input_signal_file[0]
         else:
-            return read_sha1_file(self.input_signal_file)
+            input_signal_file = self.input_signal_file
+
+        with open(input_signal_file, 'r') as f:
+            return f.read()
 
     def output(self):
         """ Send the done signal file to the tasks that requires it. """
@@ -78,38 +76,34 @@ class BaseTask(luigi.Task):
             f.write(self.calc_done_signal())
 
 
-class CheckForFilesComplete(BaseTask):
-    """
-    Task to check whether file transfers are complete
-    """
-
-    done_signal_filename = '.done-CheckForFilesComplete'
-
-    @property
-    def input_signal_file(self):
-        return 'test.sha1'
-    
-    def run(self):
-        with open(self.input_signal_file, 'w') as f:
-            f.write('test')
-
-
 class CheckForNewFiles(BaseTask):
     """
     Task to check whether new files are available
     """
-    
+
+    drop_dir = luigi.Parameter(description='Directory to copy data files from.')
+    staging_dir = luigi.Parameter(description='Directory to copy data files to.')
+
     done_signal_filename = '.done-CheckForNewFiles'
 
-    @property
-    def input_signal_file(self):
-        return self.input()
-    
-    def requires(self):
-        return CheckForFilesComplete()
-        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.file_modifications = None
+
     def run(self):
-        pass
+        self.file_modifications = sync_dirs(self.drop_dir, self.staging_dir)
+
+    def complete(self):
+        return is_dirs_in_sync(self.drop_dir, self.staging_dir)
+
+    def calc_done_signal(self):
+        """
+        :return: file with list of files and their checksums
+        """
+        removed_files = sorted(self.file_modifications.removed, key=lambda removed_file: removed_file.data_file)
+        added_files = sorted(self.file_modifications.added, key=lambda added_file: added_file.data_file)
+        return os.linesep.join([' - ' + file + ' ' + checksum for file, checksum in removed_files] +
+                               [' + ' + file + ' ' + checksum for file, checksum in added_files])
 
 
 class GitAddRawFiles(BaseTask):
