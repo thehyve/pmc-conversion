@@ -114,7 +114,7 @@ def transform_study(input_dir, output_dir, only_meta_files, only_clinical_files)
             cna_data.to_csv(data_filename, sep='\t', index=False, header=True)
 
             ### Create meta file
-            meta_content = pmc_cbio_create_metafile.create_meta_content(cancer_study_identifier = STUDY_ID, genetic_alteration_type = 'COPY_NUMBER_ALTERATION', datatype = 'CONTINUOUS', stable_id = 'linear_CNA', show_profile_in_analysis_tab = 'false', profile_name = 'Copy-number alteration values', profile_description = 'Continuous copy-number alteration values for each gene.', data_filename = study_file)
+            meta_content = pmc_cbio_create_metafile.create_meta_content(cancer_study_identifier = STUDY_ID, genetic_alteration_type = 'COPY_NUMBER_ALTERATION', datatype = 'LOG2-VALUE', stable_id = 'log2CNA', show_profile_in_analysis_tab = 'false', profile_name = 'Copy-number alteration values', profile_description = 'Continuous copy-number alteration values for each gene.', data_filename = study_file)
             meta_filename = os.path.join(output_dir, 'meta_cna_continuous.txt')
             pmc_cbio_create_metafile.write_file(meta_content, meta_filename)
 
