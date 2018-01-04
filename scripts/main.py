@@ -133,7 +133,7 @@ class SubprocessException(Exception):
 
 
 def run_cmd(cmd_list, cwd='.'):
-    with Popen(' '.join(cmd_list), stdout=PIPE, stderr=PIPE, cwd=cwd, shell=True) as proc:
+    with Popen(cmd_list, stdout=PIPE, stderr=PIPE, cwd=cwd) as proc:
         stdout, stderr = proc.communicate()
         if proc.returncode > 0:
             logger.critical(stderr)
