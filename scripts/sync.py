@@ -34,8 +34,10 @@ def split_data_and_checksum_files(files: list):
 
 DataChecksumFilesPair = collections.namedtuple('DataChecksumFilesPair', ['data_file', 'checksum_file'])
 
+
 def is_hiden_file(path):
     return os.path.basename(path).startswith('.')
+
 
 def get_data_checksum_file_pairs(files):
     data_files, checksum_files = split_data_and_checksum_files(files)
