@@ -12,6 +12,16 @@ input_data_dir_name=input_data
 staging_dir_name=staging
 load_logs_dir_name=load_logs
 
+transmart_copy_jar = /transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
+skinny_dir = /projects/pmc/csr_luigi_study
+study_id = CSR_STUDY_2
+#Some environment variables you can set here
+PGHOST = localhost
+PGPORT = 5432
+PGDATABASE = transmart
+PGUSER = tm_cz
+PGPASSWORD = tm_cz
+
 [resources]
 # Resources are used to limit the number of concurrent tasks
 transmart_loader = 1
@@ -25,3 +35,18 @@ not_run=25
 task_failed=30
 scheduling_error=35
 unhandled_exception=40
+
+
+[MergeClinicalData]
+wd = /projects/pmc/pmc-conversion/csr_transformation/
+csr_transformation = csr_transformations.py
+csr_config = test_config.config
+python_version = python3
+
+
+[TransmartDataTransformation]
+wd = /projects/pmc/pmc-conversion/transmart_transformation/
+tm_transformation = transmart_transformation.py
+tm_config = test_config.config
+python_version = python3
+
