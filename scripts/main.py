@@ -1,10 +1,72 @@
 import os
 
+import git
 import luigi
 
 from checksum import read_sha1_file
-
 from sync import sync_dirs, is_dirs_in_sync
+
+
+class GlobalConfig(luigi.Config):
+    drop_dir = luigi.Parameter(description='Directory files gets uploaded to.')
+
+    repo_root_dir = luigi.Parameter(description='Path to the git repository.')
+    input_data_dir_name = luigi.Parameter(description='Original provided files under the repository.',
+                                          default='input_data')
+    staging_dir_name = luigi.Parameter(description='Directory where ready to load transformed files are stored.',
+                                       default='staging')
+    load_logs_dir_name = luigi.Parameter(description='Path to the log files of the loading scripts.',
+                                         default='load_logs')
+
+    @property
+    def input_data_dir(self):
+        return os.path.join(self.repo_root_dir, self.input_data_dir_name)
+
+    @property
+    def staging_dir(self):
+        return os.path.join(self.repo_root_dir, self.staging_dir_name)
+
+    @property
+    def load_logs_dir(self):
+        return os.path.join(self.repo_root_dir, self.load_logs_dir_name)
+
+
+config = GlobalConfig()
+
+
+def get_git_repo(repo_dir):
+    """
+    Returns the git repository used for VCS of source and transformed data files. As well as load logs.
+    If it does not exist, it will create one.
+
+    :return: git.Repo
+    """
+    if not os.path.exists(repo_dir):
+        return init_git_repo(repo_dir)
+
+    try:
+        return git.Repo(repo_dir)
+    except git.InvalidGitRepositoryError:
+        return init_git_repo(config.repo_root_dir)
+
+
+def init_git_repo(repo_dir):
+    os.makedirs(config.repo_root_dir, exist_ok=True)
+    print(f'Initializing git repository: {repo_dir}')
+    r = git.Repo.init(os.path.realpath(repo_dir))
+    ignore_list = ['.done-*', '.DS_Store']
+
+    gitignore = os.path.realpath(os.path.join(repo_dir, '.gitignore'))
+
+    with open(gitignore, 'w') as f:
+        f.write('\n'.join(ignore_list))
+
+    r.index.add([gitignore])
+    r.index.commit('Initial commit.')
+    return r
+
+
+repo = get_git_repo(config.repo_root_dir)
 
 
 def signal_files_matches(input_file, output_file):
@@ -24,12 +86,19 @@ class BaseTask(luigi.Task):
     """
 
     input_signal_file = None  # has to be set as full path.
-    done_signal_filename = None  # set name here to
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.done_signal_filename = f'.done-{self.__class__.__name__}'
+
+    @property
+    def input_signal_file(self):
+        return self.input()
 
     @property
     def done_signal_file(self):
         """ Full path filename that is written to when task is finished successfully. """
-        if self.input_signal_file is None:
+        if not self.input_signal_file:
             return self.done_signal_filename
 
         if isinstance(self.input_signal_file, list):
@@ -76,25 +145,20 @@ class BaseTask(luigi.Task):
             f.write(self.calc_done_signal())
 
 
-class CheckForNewFiles(BaseTask):
+class UpdateDataFiles(BaseTask):
     """
     Task to check whether new files are available
     """
-
-    drop_dir = luigi.Parameter(description='Directory to copy data files from.')
-    staging_dir = luigi.Parameter(description='Directory to copy data files to.')
-
-    done_signal_filename = '.done-CheckForNewFiles'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.file_modifications = None
 
     def run(self):
-        self.file_modifications = sync_dirs(self.drop_dir, self.staging_dir)
+        self.file_modifications = sync_dirs(config.drop_dir, config.input_data_dir)
 
     def complete(self):
-        return is_dirs_in_sync(self.drop_dir, self.staging_dir)
+        return is_dirs_in_sync(config.drop_dir, config.input_data_dir)
 
     def calc_done_signal(self):
         """
@@ -111,17 +175,11 @@ class GitAddRawFiles(BaseTask):
     Task to add raw data files to git
     """
 
-    done_signal_filename = '.done-GitAddRawFiles'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-
     def requires(self):
-        return CheckForNewFiles()
-    
+        return UpdateDataFiles()
+
     def run(self):
-        pass
+        repo.index.add([config.input_data_dir])
 
 
 class MergeClinicalData(BaseTask):
@@ -129,15 +187,9 @@ class MergeClinicalData(BaseTask):
     Task to merge all clinical data files
     """
 
-    done_signal_filename = '.done-MergeClinicalData'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-
     def requires(self):
         return GitAddRawFiles()
-    
+
     def run(self):
         pass
 
@@ -147,15 +199,9 @@ class TransmartDataTransformation(BaseTask):
     Task to transform data files for tranSMART
     """
 
-    done_signal_filename = '.done-TransmartDataTransformation'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-    
     def requires(self):
         return MergeClinicalData()
-    
+
     def run(self):
         pass
 
@@ -165,15 +211,9 @@ class CbioportalDataTransformation(BaseTask):
     Task to transform data files for cBioPortal
     """
 
-    done_signal_filename = '.done-CbioportalDataTransformation'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-    
     def requires(self):
         return MergeClinicalData()
-    
+
     def run(self):
         pass
 
@@ -183,69 +223,51 @@ class GitAddStagingFilesAndCommit(BaseTask):
     Task to add transformed files to Git and commit
     """
 
-    done_signal_filename = '.done-GitAddStagingFilesAndCommit'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-    
     def requires(self):
         yield TransmartDataTransformation()
         yield CbioportalDataTransformation()
 
     def run(self):
-        pass
+        repo.index.add([config.staging_dir])
+        repo.index.commit(f'Add new input and transformed data.')
 
 
 class TransmartDataLoader(BaseTask):
     """
     Task to load data to tranSMART
     """
- 
-    done_signal_filename = '.done-TransmartDataLoader'
 
-    @property
-    def input_signal_file(self):
-        return self.input()
-    
     def requires(self):
         return GitAddStagingFilesAndCommit()
-    
+
     def run(self):
         pass
+
 
 class CbioportalDataLoader(BaseTask):
     """
     Task to load data to cBioPortal
     """
- 
-    done_signal_filename = '.done-CbioportalDataLoader'
 
-    @property
-    def input_signal_file(self):
-        return self.input()
-    
     def requires(self):
         return GitAddStagingFilesAndCommit()
-    
+
     def run(self):
         pass
 
 
-class GitAmendLoadResults(BaseTask):
+class GitCommitLoadResults(BaseTask):
     """
     Task to amend git commit results with load status
     """
 
-    done_signal_filename = '.done-GitAmendLoadResults'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-
     def requires(self):
         yield TransmartDataLoader()
         yield CbioportalDataLoader()
+
+    def run(self):
+        repo.index.add([config.load_logs_dir])
+        repo.index.commit(f'Add load results.')
 
 
 class DataLoader(luigi.WrapperTask):
@@ -253,11 +275,18 @@ class DataLoader(luigi.WrapperTask):
     Wrapper task whose purpose it is to check whether any tasks need be rerun
     to perform an update and then do it.
     """
-    
+
     def requires(self):
-        return GitAmendLoadResults()
+        yield GitCommitLoadResults()
+        yield CbioportalDataLoader()
+        yield TransmartDataLoader()
+        yield GitAddStagingFilesAndCommit()
+        yield CbioportalDataTransformation()
+        yield TransmartDataTransformation()
+        yield MergeClinicalData()
+        yield GitAddRawFiles()
+        yield UpdateDataFiles()
 
 
 if __name__ == '__main__':
     luigi.run()
-
