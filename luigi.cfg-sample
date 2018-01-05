@@ -5,6 +5,17 @@ db_connection = sqlite:///pmc-luigi-db.sqlite
 record_task_history = True
 state_path = luigi-state.pickle
 
+[GlobalConfig]
+drop_dir=/data/drop_dir
+repo_root_dir=/projects/pmc/data
+input_data_dir_name=input_data
+staging_dir_name=staging
+load_logs_dir_name=load_logs
+
+[resources]
+# Resources are used to limit the number of concurrent tasks
+transmart_loader = 1
+
 [retcode]
 # The following return codes are the recommended exit codes for Luigi
 # They are in increasing level of severity (for most applications)
@@ -20,7 +31,6 @@ drop_dir=/projects/pmc/csr_example_files
 staging_dir=/projects/pmc/staging
 
 [MergeClinicalData]
-test = Hello world
 wd = /projects/pmc/pmc-conversion/csr_transformation/
 csr_transformation = csr_transformations.py
 csr_config = test_config.config
