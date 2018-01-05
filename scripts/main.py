@@ -320,7 +320,15 @@ class DataLoader(luigi.WrapperTask):
     """
 
     def requires(self):
-        return GitCommitLoadResults()
+        yield GitCommitLoadResults()
+        yield CbioportalDataLoader()
+        yield TransmartDataLoader()
+        yield GitAddStagingFilesAndCommit()
+        yield CbioportalDataTransformation()
+        yield TransmartDataTransformation()
+        yield MergeClinicalData()
+        yield GitAddRawFiles()
+        yield CheckForNewFiles()
 
 
 if __name__ == '__main__':
