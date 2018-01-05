@@ -86,12 +86,19 @@ class BaseTask(luigi.Task):
     """
 
     input_signal_file = None  # has to be set as full path.
-    done_signal_filename = None  # set name here to
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.done_signal_filename = f'.done-{self.__class__.__name__}'
+
+    @property
+    def input_signal_file(self):
+        return self.input()
 
     @property
     def done_signal_file(self):
         """ Full path filename that is written to when task is finished successfully. """
-        if self.input_signal_file is None:
+        if not self.input_signal_file:
             return self.done_signal_filename
 
         if isinstance(self.input_signal_file, list):
@@ -138,12 +145,10 @@ class BaseTask(luigi.Task):
             f.write(self.calc_done_signal())
 
 
-class CheckForNewFiles(BaseTask):
+class UpdateDataFiles(BaseTask):
     """
     Task to check whether new files are available
     """
-
-    done_signal_filename = '.done-CheckForNewFiles'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -170,14 +175,8 @@ class GitAddRawFiles(BaseTask):
     Task to add raw data files to git
     """
 
-    done_signal_filename = '.done-GitAddRawFiles'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-
     def requires(self):
-        return CheckForNewFiles()
+        return UpdateDataFiles()
 
     def run(self):
         repo.index.add([config.input_data_dir])
@@ -187,12 +186,6 @@ class MergeClinicalData(BaseTask):
     """
     Task to merge all clinical data files
     """
-
-    done_signal_filename = '.done-MergeClinicalData'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
 
     def requires(self):
         return GitAddRawFiles()
@@ -206,12 +199,6 @@ class TransmartDataTransformation(BaseTask):
     Task to transform data files for tranSMART
     """
 
-    done_signal_filename = '.done-TransmartDataTransformation'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-
     def requires(self):
         return MergeClinicalData()
 
@@ -224,12 +211,6 @@ class CbioportalDataTransformation(BaseTask):
     Task to transform data files for cBioPortal
     """
 
-    done_signal_filename = '.done-CbioportalDataTransformation'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-
     def requires(self):
         return MergeClinicalData()
 
@@ -241,12 +222,6 @@ class GitAddStagingFilesAndCommit(BaseTask):
     """
     Task to add transformed files to Git and commit
     """
-
-    done_signal_filename = '.done-GitAddStagingFilesAndCommit'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
 
     def requires(self):
         yield TransmartDataTransformation()
@@ -262,12 +237,6 @@ class TransmartDataLoader(BaseTask):
     Task to load data to tranSMART
     """
 
-    done_signal_filename = '.done-TransmartDataLoader'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-
     def requires(self):
         return GitAddStagingFilesAndCommit()
 
@@ -280,12 +249,6 @@ class CbioportalDataLoader(BaseTask):
     Task to load data to cBioPortal
     """
 
-    done_signal_filename = '.done-CbioportalDataLoader'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
-
     def requires(self):
         return GitAddStagingFilesAndCommit()
 
@@ -297,12 +260,6 @@ class GitCommitLoadResults(BaseTask):
     """
     Task to amend git commit results with load status
     """
-
-    done_signal_filename = '.done-GitAmendLoadResults'
-
-    @property
-    def input_signal_file(self):
-        return self.input()
 
     def requires(self):
         yield TransmartDataLoader()
@@ -328,7 +285,7 @@ class DataLoader(luigi.WrapperTask):
         yield TransmartDataTransformation()
         yield MergeClinicalData()
         yield GitAddRawFiles()
-        yield CheckForNewFiles()
+        yield UpdateDataFiles()
 
 
 if __name__ == '__main__':
