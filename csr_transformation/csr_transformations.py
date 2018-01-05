@@ -161,6 +161,7 @@ def merge_data_frames(df_dict, file_order, id_columns):
     :return: Merged pandas Dataframe
     """
     # TODO: add warning to indicate there are files in the dict that are not in the order list
+    # TODO: implement test to see if dataframe not empty
     df_list = [f for f in file_order if f in df_dict.keys()]
     ref_df = df_dict[df_list[0]]
     for i in df_list[1:]:
