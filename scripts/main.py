@@ -47,6 +47,10 @@ class GlobalConfig(luigi.Config):
 config = GlobalConfig()
 repo = get_git_repo(config.repo_root_dir)
 
+os.makedirs(config.input_data_dir, exist_ok=True)
+os.makedirs(config.staging_dir, exist_ok=True)
+os.makedirs(config.load_logs_dir, exist_ok=True)
+
 
 class UpdateDataFiles(BaseTask):
     """
