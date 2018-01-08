@@ -55,3 +55,14 @@ tm_config = test_config.config
 python_version = python3
 config_dir = <path_to_pmc-conversion>/config
 
+[CbioportalDataTransformation]
+cbio_transformation = /Users/sander/Data/Project_Princess/05_Pipeline/cbioportal_transformation/pmc_cbio_wrapper.py
+cbio_transformation_input_dir = /Users/sander/Data/Project_Princess/04_TestInput/
+cbio_transformation_output_dir = /Users/sander/Data/Project_Princess/06_TestOutput/
+
+[CbioportalDataLoader]
+cbio_loader_input_dir = /Users/sander/Data/Project_Princess/06_TestOutput
+cbio_loader_report_dir = /Users/sander/Data/Project_Princess/
+cbio_loader_report_name = report_pmc
+cbio_loader_portal_url = http://cbioportal:8080/cbioportal
+cbio_loader_docker_image = cbioportal-hg38:1.10.1
