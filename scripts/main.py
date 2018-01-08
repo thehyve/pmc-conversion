@@ -1,9 +1,11 @@
 import logging
 import os
+
 import luigi
+
 from git_commons import get_git_repo
-from sync import sync_dirs, is_dirs_in_sync
 from luigi_commons import BaseTask, ExternalProgramTask
+from sync import sync_dirs, is_dirs_in_sync
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -138,6 +140,7 @@ class GitAddStagingFilesAndCommit(BaseTask):
         repo.index.add([config.staging_dir])
         repo.index.commit(f'Add new input and transformed data.')
 
+
 class TransmartDataLoader(ExternalProgramTask):
     """
     Task to load data to tranSMART
@@ -152,6 +155,7 @@ class TransmartDataLoader(ExternalProgramTask):
         os.environ['PGUSER'] = config.PGUSER
         os.environ['PGPASSWORD'] = config.PGPASSWORD
 
+
 class DeleteTransmartStudyIfExists(TransmartDataLoader):
     stop_on_error = False
 
@@ -161,12 +165,14 @@ class DeleteTransmartStudyIfExists(TransmartDataLoader):
     def program_args(self):
         return ['java', '-jar', f'{config.transmart_copy_jar!r}', '--delete', f'{config.study_id!r}']
 
+
 class LoadTransmartStudy(TransmartDataLoader):
     def requires(self):
         yield DeleteTransmartStudyIfExists()
 
     def program_args(self):
         return ['java', '-jar', f'{config.transmart_copy_jar!r}', '-d', f'{config.skinny_dir!r}']
+
 
 class CbioportalDataLoader(BaseTask):
     """
@@ -178,6 +184,7 @@ class CbioportalDataLoader(BaseTask):
 
     def run(self):
         pass
+
 
 class GitCommitLoadResults(BaseTask):
     """
@@ -191,6 +198,7 @@ class GitCommitLoadResults(BaseTask):
     def run(self):
         repo.index.add([config.load_logs_dir])
         repo.index.commit(f'Add load results.')
+
 
 class DataLoader(luigi.WrapperTask):
     """
@@ -209,6 +217,7 @@ class DataLoader(luigi.WrapperTask):
         yield MergeClinicalData()
         yield GitAddRawFiles()
         yield UpdateDataFiles()
+
 
 if __name__ == '__main__':
     luigi.run()
