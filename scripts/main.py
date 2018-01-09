@@ -1,11 +1,12 @@
 import logging
 import os
+from shutil import copyfile
 
 import luigi
 
+from checksum import calculate_file_checksum_pairs_considering_checksum_files, calculate_file_checksum_pairs
 from git_commons import get_git_repo
 from luigi_commons import BaseTask, ExternalProgramTask
-from sync import sync_dirs, is_dirs_in_sync
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -54,27 +55,51 @@ os.makedirs(config.load_logs_dir, exist_ok=True)
 
 class UpdateDataFiles(BaseTask):
     """
-    Task to check whether new files are available
+    Task to check whether new files are available and copy them over.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.file_modifications = None
+        self.drop_dir_files = None
+        self.input_data_dir_dir_files = None
 
     def run(self):
-        self.file_modifications = sync_dirs(config.drop_dir, config.input_data_dir)
+        logger.info('Differences detected. Start synchronising...')
+        remove_files = self.input_data_dir_dir_files - self.drop_dir_files
+        add_files = self.drop_dir_files - self.input_data_dir_dir_files
+
+        logger.info(f'Start removing {len(remove_files)} files from the destination directory...')
+        for remove_file in remove_files:
+            remove_path = os.path.join(config.input_data_dir, remove_file.data_file)
+            logger.debug(f'Removing {remove_path} file.')
+            os.remove(remove_path)
+
+        logger.info(f'Start copying {len(add_files)} files from the source to destination directory...')
+        for add_file in add_files:
+            src_path = os.path.join(config.drop_dir, add_file.data_file)
+            dst_path = os.path.join(config.input_data_dir, add_file.data_file)
+            logger.debug(f'Copying {src_path} file to {dst_path}.')
+            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+            copyfile(src_path, dst_path)
 
     def complete(self):
-        return is_dirs_in_sync(config.drop_dir, config.input_data_dir)
+        logger.info(f'Check source ({config.drop_dir}) directory consistency...')
+        self.drop_dir_files = calculate_file_checksum_pairs_considering_checksum_files(config.drop_dir)
+
+        logger.info(f'Reading destination ({config.input_data_dir}) directory content to compare...')
+        self.input_data_dir_dir_files = calculate_file_checksum_pairs(config.input_data_dir)
+
+        return self.drop_dir_files == self.input_data_dir_dir_files and os.path.exists(self.done_signal_file)
 
     def calc_done_signal(self):
         """
-        :return: file with list of files and their checksums
+        :return: ordered file names with checksums of their content
         """
-        removed_files = sorted(self.file_modifications.removed, key=lambda removed_file: removed_file.data_file)
-        added_files = sorted(self.file_modifications.added, key=lambda added_file: added_file.data_file)
-        return os.linesep.join([' - ' + file + ' ' + checksum for file, checksum in removed_files] +
-                               [' + ' + file + ' ' + checksum for file, checksum in added_files])
+        sorted_files = sorted(self.input_data_dir_dir_files, key=lambda file: file.data_file)
+        return os.linesep.join([file + ' ' + checksum for file, checksum in sorted_files])
+
+
+update_data_files = UpdateDataFiles()
 
 
 class GitAddRawFiles(BaseTask):
@@ -83,7 +108,7 @@ class GitAddRawFiles(BaseTask):
     """
 
     def requires(self):
-        return UpdateDataFiles()
+        return update_data_files
 
     def run(self):
         repo.index.add([config.input_data_dir])
@@ -220,7 +245,7 @@ class DataLoader(luigi.WrapperTask):
         yield TransmartDataTransformation()
         yield MergeClinicalData()
         yield GitAddRawFiles()
-        yield UpdateDataFiles()
+        yield update_data_files
 
 
 if __name__ == '__main__':
