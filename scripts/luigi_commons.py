@@ -6,7 +6,7 @@ import tempfile
 import luigi
 from luigi.contrib.external_program import ExternalProgramRunContext, ExternalProgramRunError
 
-from checksum import read_sha1_file
+from .checksum import read_sha1_file
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

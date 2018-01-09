@@ -2,10 +2,9 @@ import logging
 import os
 
 import luigi
-
-from git_commons import get_git_repo
-from luigi_commons import BaseTask, ExternalProgramTask
-from sync import sync_dirs, is_dirs_in_sync
+from .git_commons import get_git_repo
+from .sync import sync_dirs, is_dirs_in_sync
+from .luigi_commons import BaseTask, ExternalProgramTask
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
