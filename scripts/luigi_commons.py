@@ -58,7 +58,7 @@ class BaseTask(luigi.Task):
             for input_signal_file in self.input_signal_file:
                 if not signal_files_matches(input_signal_file, self.done_signal_file):
                     return False
-            return True
+            return os.path.exists(self.done_signal_file)
         else:
             return signal_files_matches(self.done_signal_file, self.input_signal_file)
 
