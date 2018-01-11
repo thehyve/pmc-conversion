@@ -1,10 +1,10 @@
-import pandas as pd
-import chardet
 import os
-import configparser
-import click
 import sys
 import json
+import click
+import chardet
+import pandas as pd
+import configparser
 
 
 class Config(object):
@@ -75,11 +75,15 @@ def get_encoding(file_name):
     return file_encoding.lower()
 
 
-def input_file_to_df(file_name, encoding, seperator='\t', column_mapping=None):
+def input_file_to_df(file_name, encoding, seperator='\t', column_mapping=None, codebook=None):
     """Read in a DataFrame from a plain text file. Columns are cast to uppercase.
-     If a column_mapping is specified the columns will also be tried to map"""
-    df = pd.read_csv(file_name, sep=seperator, encoding=encoding)
+     If a column_mapping is specified the columns will also be tried to map.
+     If a codebook was specified it will be applied before the column mapping"""
+    df = pd.read_csv(file_name, sep=seperator, encoding=encoding, dtype=object)
     df.columns = map(lambda x: str(x).upper(), df.columns)
+    # TODO: write check to see if the df values are all captured in the codebook
+    if codebook:
+        df.replace(codebook, inplace=True)
     if column_mapping:
         df.columns = apply_header_map(df.columns, column_mapping)
     return df
@@ -266,21 +270,24 @@ def read_data_files(config):
     all_files = []
     # Assumption is that all the files are in EPD, LIMMS or STUDY folders.
     for path, dir_, filenames in os.walk(config.file_dir):
-        all_files += filenames
         for filename in filenames:
             working_dir = path.rsplit('/', 1)[1].upper()
-            if dir_ == [] and working_dir in ['EPD', 'LIMMS', 'STUDY']:
+            if dir_ == [] and working_dir in ['EPD', 'LIMMS', 'STUDY'] and 'codebook' not in filename:
+                all_files += filename
                 file = os.path.join(path, filename)
 
-                # Implement column mapping
+                codebook = check_for_codebook(filename, filenames, path)
+
+                # Check if mapping for columns to CSR fields is present
                 if filename in config.header_mapping:
                     header_map = config.header_mapping[filename]
                 else:
                     header_map = None
 
-                # Read data from file and create a pandas DataFrame. If a header mapping is provided the columns
+                # Read data from file and create a
+                #  pandas DataFrame. If a header mapping is provided the columns
                 # are mapped before the DataFrame is returned
-                df = input_file_to_df(file, get_encoding(file), column_mapping=header_map)
+                df = input_file_to_df(file, get_encoding(file), column_mapping=header_map, codebook=codebook)
 
                 columns = df.columns
                 # Check if headers are present
@@ -296,6 +303,17 @@ def read_data_files(config):
     # Temporarily disabled
     # print_errors(error_messages)
     return files_per_entity
+
+
+def check_for_codebook(filename, filenames, path):
+    f_name, f_extension = filename.rsplit('.', 1)
+    code_file = f'{f_name}_codebook.{f_extension}.json'
+    if code_file in filenames:
+        with open(os.path.join(path, code_file),'r') as cf:
+            codebook = json.loads(cf.read())
+        return codebook
+    else:
+        return None
 
 
 if __name__ == '__main__':
