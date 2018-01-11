@@ -4,7 +4,7 @@ import os
 import sys
 from shutil import copyfile
 
-from checksum import read_sha1_file, compute_sha1
+from .checksum import read_sha1_file, compute_sha1
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

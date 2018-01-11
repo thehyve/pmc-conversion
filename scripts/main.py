@@ -2,10 +2,9 @@ import logging
 import os
 
 import luigi
-
-from git_commons import get_git_repo
-from luigi_commons import BaseTask, ExternalProgramTask
-from sync import sync_dirs, is_dirs_in_sync
+from .git_commons import get_git_repo
+from .sync import sync_dirs, is_dirs_in_sync
+from .luigi_commons import BaseTask, ExternalProgramTask
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -22,7 +21,7 @@ class GlobalConfig(luigi.Config):
     load_logs_dir_name = luigi.Parameter(description='Path to the log files of the loading scripts.',
                                          default='load_logs')
 
-    transmart_copy_jar = luigi.Parameter('Path to transmart copy jar.')
+    transmart_copy_jar = luigi.Parameter(description='Path to transmart copy jar.')
     skinny_dir = luigi.Parameter(description="Skinny loader study directory.")
     study_id = luigi.Parameter(description="Id of the study to load.")
     PGHOST = luigi.Parameter(description="Configuration for transmart-copy.")
@@ -94,10 +93,10 @@ class SubprocessException(Exception):
 
 
 class MergeClinicalData(ExternalProgramTask):
-    wd = luigi.Parameter('Working directory with the CSR transformation script', significant=False)
-    csr_transformation = luigi.Parameter('CSR transformation script name', significant=False)
-    csr_config = luigi.Parameter('CSR transformation config file', significant=False)
-    python_version = luigi.Parameter('Python command to use to execute', significant=False)
+    wd = luigi.Parameter(description='Working directory with the CSR transformation script', significant=False)
+    csr_transformation = luigi.Parameter(description='CSR transformation script name', significant=False)
+    csr_config = luigi.Parameter(description='CSR transformation config file', significant=False)
+    python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
 
     def requires(self):
         return GitAddRawFiles()
@@ -107,10 +106,10 @@ class MergeClinicalData(ExternalProgramTask):
 
 
 class TransmartDataTransformation(ExternalProgramTask):
-    wd = luigi.Parameter('Working directory with the tranSMART transformation script', significant=False)
-    tm_transformation = luigi.Parameter('tranSMART data transformation script name', significant=False)
-    tm_config = luigi.Parameter('tranSMART data transformation config file', significant=False)
-    python_version = luigi.Parameter('Python command to use to execute', significant=False)
+    wd = luigi.Parameter(description='Working directory with the tranSMART transformation script', significant=False)
+    tm_transformation = luigi.Parameter(description='tranSMART data transformation script name', significant=False)
+    tm_config = luigi.Parameter(description='tranSMART data transformation config file', significant=False)
+    python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
 
     def requires(self):
         yield MergeClinicalData()
