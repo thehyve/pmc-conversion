@@ -17,12 +17,12 @@ from shutil import copyfile
 
 ### Define study properties
 STUDY_ID = 'pmc_test'
-NAME = "PMC - Study name"
-NAME_SHORT = "PMC - Study name"
-DESCRIPTION = 'Transformed from .... to cBioPortal format.'
+NAME = "PMC - Test Study"
+NAME_SHORT = "PMC - Test Study"
+DESCRIPTION = 'Transformed from PMC Test Data to cBioPortal format.'
 TYPE_OF_CANCER = 'mixed'
 
-def transform_study(input_dir, output_dir, only_meta_files, only_clinical_files):
+def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, only_clinical_files):
 
     ### Create output directories
     if not os.path.exists(output_dir):
@@ -30,7 +30,7 @@ def transform_study(input_dir, output_dir, only_meta_files, only_clinical_files)
 
     ### Select study files
     study_files = []
-    for study_file in os.listdir(input_dir):
+    for study_file in os.listdir(ngs_dir):
         if study_file[0] != '.':
             study_files.append(study_file)
 
@@ -38,23 +38,27 @@ def transform_study(input_dir, output_dir, only_meta_files, only_clinical_files)
     mutation_samples = []
     cna_samples = []
 
+    ### Clinical data
+    if study_file.split('_')[0] == 'clinical':
+        print('Transforming clinical patient data: %s' % study_file)
+
+    ### Transform patient file
+    pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=clinical_input_file,
+                                                        output_dir=output_dir, clinical_type='patient',
+                                                        study_id=STUDY_ID)
+
+    ### Transform sample file
+    pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=clinical_input_file,
+                                                        output_dir=output_dir, clinical_type='sample',
+                                                        study_id=STUDY_ID)
+
     ### Transform data files
     for study_file in study_files:
         file_type = study_file.split('.')[0]
-        study_file_location = os.path.join(input_dir, study_file)
-
-        ### Clinical data
-        if study_file.split('_')[0] == 'clinical':
-            print('Transforming clinical patient data: %s' % study_file)
-
-            ### Transform patient file
-            pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=study_file_location, output_dir= output_dir, clinical_type='patient', study_id = STUDY_ID)
-
-            ### Transform sample file
-            pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=study_file_location, output_dir= output_dir, clinical_type='sample', study_id = STUDY_ID)
+        study_file_location = os.path.join(ngs_dir, study_file)
 
         ### CNA Segment data
-        elif study_file.split('.')[-1] == 'seg':
+        if study_file.split('.')[-1] == 'seg':
             print('Transforming segment data: %s' % study_file)
 
             # TODO: Concatenate all these files into 1 file per study
@@ -161,19 +165,23 @@ def transform_study(input_dir, output_dir, only_meta_files, only_clinical_files)
     print('Transformation of studies complete.')
 
 
-def main(input_dir, output_dir, only_meta_files, only_clinical_files):
-    transform_study(input_dir, output_dir, only_meta_files, only_clinical_files)
+def main(clinical_input_file, ngs_dir, output_dir, only_meta_files, only_clinical_files):
+    transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, only_clinical_files)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        usage = "-i <dir_for_input_files> -o <dir_for_output_files>",
+        usage = "-c <clinical_input_file> -n <dir_for_ngs_files> -o <dir_for_output_files>",
         description = "Transforms all files for all studies in input folder to cBioPortal staging files")
 
     arguments = parser.add_argument_group('Named arguments')
 
-    arguments.add_argument("-i", "--input_dir",
+    arguments.add_argument("-c", "--clinical_input_file",
         required = True,
-        help = "Directory input files")
+        help = "Clinical input file")
+
+    arguments.add_argument("-n", "--ngs_dir",
+        required = True,
+        help = "Directory NGS files")
 
     arguments.add_argument("-o", "--output_dir",
         required = True,
@@ -185,11 +193,11 @@ if __name__ == '__main__':
         default = False,
         help = "Optional: If -m added, only create meta files (fast).")
 
-    arguments.add_argument("-c", "--only_clinical_files",
+    arguments.add_argument("-f", "--only_clinical_files",
         required = False,
         action = 'store_true',
         default = False,
         help = "Optional: If -c added, only clinical data files will be transformed.")
 
     args = parser.parse_args()
-    main(args.input_dir, args.output_dir, args.only_meta_files, args.only_clinical_files)
+    main(args.clinical_input_file, args.ngs_dir, args.output_dir, args.only_meta_files, args.only_clinical_files)
