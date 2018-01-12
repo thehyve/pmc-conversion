@@ -1,10 +1,11 @@
 import logging
 import os
+
 import luigi
-from git_commons import get_git_repo
-from sync import sync_dirs, is_dirs_in_sync
-from luigi_commons import BaseTask, ExternalProgramTask
-from codebook_formatting import codebook_formatting
+from .git_commons import get_git_repo
+from .sync import sync_dirs, is_dirs_in_sync
+from .luigi_commons import BaseTask, ExternalProgramTask
+from .codebook_formatting import codebook_formatting
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -21,7 +22,7 @@ class GlobalConfig(luigi.Config):
     load_logs_dir_name = luigi.Parameter(description='Path to the log files of the loading scripts.',
                                          default='load_logs')
 
-    transmart_copy_jar = luigi.Parameter('Path to transmart copy jar.')
+    transmart_copy_jar = luigi.Parameter(description='Path to transmart copy jar.')
     skinny_dir = luigi.Parameter(description="Skinny loader study directory.")
     study_id = luigi.Parameter(description="Id of the study to load.")
     PGHOST = luigi.Parameter(description="Configuration for transmart-copy.")
@@ -46,6 +47,10 @@ class GlobalConfig(luigi.Config):
 config = GlobalConfig()
 repo = get_git_repo(config.repo_root_dir)
 
+os.makedirs(config.input_data_dir, exist_ok=True)
+os.makedirs(config.staging_dir, exist_ok=True)
+os.makedirs(config.load_logs_dir, exist_ok=True)
+
 
 class UpdateDataFiles(BaseTask):
     """
@@ -60,7 +65,7 @@ class UpdateDataFiles(BaseTask):
         self.file_modifications = sync_dirs(config.drop_dir, config.input_data_dir)
 
     def complete(self):
-        return is_dirs_in_sync(config.drop_dir, config.input_data_dir)
+        return is_dirs_in_sync(config.drop_dir, config.input_data_dir) and os.path.exists(self.done_signal_file)
 
     def calc_done_signal(self):
         """
@@ -101,12 +106,11 @@ class FormatCodeBooks(BaseTask):
 
 
 class MergeClinicalData(ExternalProgramTask):
-    wd = luigi.Parameter('Working directory with the CSR transformation script', significant=False)
-    csr_transformation = luigi.Parameter('CSR transformation script name', significant=False)
-    csr_config = luigi.Parameter('CSR transformation config file', significant=False)
-    python_version = luigi.Parameter('Python command to use to execute', significant=False)
-    config_dir = luigi.Parameter('CSR transformation config dir', significant=False)
-
+    wd = luigi.Parameter(description='Working directory with the CSR transformation script', significant=False)
+    csr_transformation = luigi.Parameter(description='CSR transformation script name', significant=False)
+    csr_config = luigi.Parameter(description='CSR transformation config file', significant=False)
+    python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
+    config_dir = luigi.Parameter(description='CSR transformation config dir', significant=False)
 
     def requires(self):
         yield FormatCodeBooks()
@@ -117,11 +121,11 @@ class MergeClinicalData(ExternalProgramTask):
 
 
 class TransmartDataTransformation(ExternalProgramTask):
-    wd = luigi.Parameter('Working directory with the tranSMART transformation script', significant=False)
-    tm_transformation = luigi.Parameter('tranSMART data transformation script name', significant=False)
-    tm_config = luigi.Parameter('tranSMART data transformation config file', significant=False)
-    python_version = luigi.Parameter('Python command to use to execute', significant=False)
-    config_dir = luigi.Parameter('tranSMART transformation config dir', significant=False)
+    wd = luigi.Parameter(description='Working directory with the tranSMART transformation script', significant=False)
+    tm_transformation = luigi.Parameter(description='tranSMART data transformation script name', significant=False)
+    tm_config = luigi.Parameter(description='tranSMART data transformation config file', significant=False)
+    python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
+    config_dir = luigi.Parameter(description='tranSMART transformation config dir', significant=False)
 
     def requires(self):
         yield MergeClinicalData()
@@ -155,6 +159,7 @@ class GitAddStagingFilesAndCommit(BaseTask):
         repo.index.add([config.staging_dir])
         repo.index.commit(f'Add new input and transformed data.')
 
+
 class TransmartDataLoader(ExternalProgramTask):
     """
     Task to load data to tranSMART
@@ -169,6 +174,7 @@ class TransmartDataLoader(ExternalProgramTask):
         os.environ['PGUSER'] = config.PGUSER
         os.environ['PGPASSWORD'] = config.PGPASSWORD
 
+
 class DeleteTransmartStudyIfExists(TransmartDataLoader):
     stop_on_error = False
 
@@ -178,12 +184,14 @@ class DeleteTransmartStudyIfExists(TransmartDataLoader):
     def program_args(self):
         return ['java', '-jar', f'{config.transmart_copy_jar!r}', '--delete', f'{config.study_id!r}']
 
+
 class LoadTransmartStudy(TransmartDataLoader):
     def requires(self):
         yield DeleteTransmartStudyIfExists()
 
     def program_args(self):
         return ['java', '-jar', f'{config.transmart_copy_jar!r}', '-d', f'{config.skinny_dir!r}']
+
 
 class CbioportalDataLoader(BaseTask):
     """
@@ -195,6 +203,7 @@ class CbioportalDataLoader(BaseTask):
 
     def run(self):
         pass
+
 
 class GitCommitLoadResults(BaseTask):
     """
@@ -209,6 +218,7 @@ class GitCommitLoadResults(BaseTask):
         repo.index.add([config.load_logs_dir])
         repo.index.commit(f'Add load results.')
 
+
 class DataLoader(luigi.WrapperTask):
     """
     Wrapper task whose purpose it is to check whether any tasks need be rerun
@@ -216,17 +226,18 @@ class DataLoader(luigi.WrapperTask):
     """
 
     def requires(self):
-        return [ GitCommitLoadResults()
-        , CbioportalDataLoader()
-        , LoadTransmartStudy()
-        , DeleteTransmartStudyIfExists()
-        , GitAddStagingFilesAndCommit()
-        , CbioportalDataTransformation()
-        , TransmartDataTransformation()
-        , FormatCodeBooks()
-        , MergeClinicalData()
-        , GitAddRawFiles()
-        , UpdateDataFiles() ]
+        yield UpdateDataFiles()
+        yield GitAddRawFiles()
+        yield FormatCodeBooks()
+        yield MergeClinicalData()
+        yield TransmartDataTransformation()
+        yield CbioportalDataTransformation()
+        yield GitAddStagingFilesAndCommit()
+        yield DeleteTransmartStudyIfExists()
+        yield LoadTransmartStudy()
+        yield CbioportalDataLoader()
+        yield GitCommitLoadResults()
+
 
 if __name__ == '__main__':
     luigi.run()

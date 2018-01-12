@@ -1,18 +1,28 @@
-import luigi
-import os
-from checksum import read_sha1_file
 import logging
-import tempfile
+import os
 import subprocess
+import tempfile
+
+import luigi
 from luigi.contrib.external_program import ExternalProgramRunContext, ExternalProgramRunError
 
+from .checksum import read_sha1_file
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+
+def read_content(file) -> str:
+    with open(file, 'r') as f:
+        return f.read()
+
 def signal_files_matches(input_file, output_file):
     if os.path.exists(input_file) and os.path.exists(output_file):
-        return read_sha1_file(input_file) == read_sha1_file(output_file)
+        shain = read_content(input_file)
+        shaout = read_content(output_file)
+        match = shain == shaout
+        logger.debug('These files match: {} \t{}, {}'.format(match, input_file, output_file))
+        return match
     return False
 
 
@@ -56,7 +66,7 @@ class BaseTask(luigi.Task):
             for input_signal_file in self.input_signal_file:
                 if not signal_files_matches(input_signal_file, self.done_signal_file):
                     return False
-            return True
+            return os.path.exists(self.done_signal_file)
         else:
             return signal_files_matches(self.done_signal_file, self.input_signal_file)
 
@@ -86,9 +96,7 @@ class BaseTask(luigi.Task):
             f.write(self.calc_done_signal())
 
 
-
 class ExternalProgramTask(BaseTask):
-
     """
     Template task for running an external program in a subprocess
 

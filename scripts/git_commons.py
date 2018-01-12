@@ -1,5 +1,6 @@
-import git
 import os
+
+import git
 
 
 def get_git_repo(repo_dir):

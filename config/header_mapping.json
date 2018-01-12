@@ -26,7 +26,7 @@
     "IFCCOM": "IC_LINKING_EXT",
     "DTDEATH": "DEATH_DATE"
   },
-  "study_test.txt": {
+  "study.txt": {
     "Record Id": "INDIVIDUAL_ID",
     "Study_Id": "STUDY_ID",
     "individual_study_Id": "INDIVIDUAL_STUDY_ID"
