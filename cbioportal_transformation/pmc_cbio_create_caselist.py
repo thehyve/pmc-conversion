@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python3
 
 ### Code to create case lists
 ### Author: Sander Tan, The Hyve
@@ -21,15 +21,15 @@ def create_caselist(output_dir,
         os.mkdir(case_list_dir)
 
     ### Create contents
-    caselist_content = 'cancer_study_identifier: %s\n' % cancer_study_identifier
-    caselist_content = caselist_content + 'stable_id: %s\n' % stable_id
-    caselist_content = caselist_content + 'case_list_name: %s\n' % case_list_name
-    caselist_content = caselist_content + 'case_list_description: %s\n' % case_list_description
-    caselist_content = caselist_content + 'case_list_category: %s\n' % case_list_category
-    caselist_content = caselist_content + 'case_list_ids: %s\n' % case_list_ids
+    caselist_content = []
+    caselist_content.append('cancer_study_identifier: %s' % cancer_study_identifier)
+    caselist_content.append('stable_id: %s' % stable_id)
+    caselist_content.append('case_list_name: %s' % case_list_name)
+    caselist_content.append('case_list_description: %s' % case_list_description)
+    caselist_content.append('case_list_category: %s' % case_list_category)
+    caselist_content.append('case_list_ids: %s' % case_list_ids)
 
     ### Write file
-    case_output_file = open(os.path.join(case_list_dir, file_name), 'w')
-    case_output_file.write(caselist_content)
-    case_output_file.close()
+    with open(os.path.join(case_list_dir, file_name), 'w') as caselist_output_file:
+        caselist_output_file.write('\n'.join(caselist_content) + '\n')
     return

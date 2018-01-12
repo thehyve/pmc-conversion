@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 ### Code to transform clinical data
 ### Author: Sander Tan, The Hyve
@@ -151,6 +151,8 @@ def pmc_data_restructuring(clinical_data, clinical_type):
     biomaterial_data = pd.merge(biomaterial_data, biosource_data, how='left', on=['BIOSOURCE_ID'])
     biomaterial_data['Sample ID'] = biomaterial_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
 
+    # TODO: Remove sample IDs which are not in the data
+
     # In case of clinical sample data, return merged biomaterial dataframe
     return biomaterial_data
 
@@ -173,7 +175,7 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
 
     ## Remove empty columns
     clinical_data = remove_empty_columns(clinical_data)
-    
+
     ### Rename attributes before creating header
     ### These are the attribute names that will show up in cBioPortal UI
     clinical_data.rename(columns= RENAME_BEFORE_CREATING_HEADER_MAP, inplace = True)
@@ -235,7 +237,7 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     if not len(set(clinical_data.columns.tolist())) == len(clinical_data.columns.tolist()):
         print('Attribute names are not unique, not writing data_clinical. Rename them using the remap dictionary.')
         sys.exit(1)
-        
+
     ##############################
     ### Write output #############
     ##############################
@@ -250,14 +252,12 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     elif clinical_type == 'patient':
         meta_datatype = 'PATIENT_ATTRIBUTES'
     else:
-        print "Unknown clinical data type"
+        print("Unknown clinical data type")
         sys.exit(1)
 
     ### Create meta file
-    meta_content = pmc_cbio_create_metafile.create_meta_content(study_id, 'CLINICAL', meta_datatype, 'data_clinical_%s.txt' % clinical_type)
     meta_filename = os.path.join(output_dir, 'meta_clinical_patient.txt')
-    pmc_cbio_create_metafile.write_file(meta_content, meta_filename)
-
+    pmc_cbio_create_metafile.create_meta_content(meta_filename, study_id, 'CLINICAL', meta_datatype, 'data_clinical_%s.txt' % clinical_type)
     return
 
 
