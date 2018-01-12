@@ -142,16 +142,16 @@ class CbioportalDataTransformation(ExternalProgramTask):
     def requires(self):
         return MergeClinicalData()
 
-    # wd = '.'
-    # cbio_transformation_input_dir = luigi.Parameter(description='cBioPortal input directory', significant=False)
-    # cbio_transformation_output_dir = luigi.Parameter(description='cBioPortal output directory', significant=False)
-    # 
-    # def program_args(self):
-    #     return ['python cbioportal_transformation/pmc_cbio_wrapper.py',
-    #             '-i', self.cbio_transformation_input_dir,
-    #             '-o', self.cbio_transformation_output_dir]
-    def run(self):
-        pass
+    wd = '.'
+    cbio_transformation_clinical_input_file = luigi.Parameter(description='cBioPortal clinical input file', significant=False)
+    cbio_transformation_ngs_dir = luigi.Parameter(description='cBioPortal NGS file directory', significant=False)
+    cbio_transformation_output_dir = luigi.Parameter(description='cBioPortal output directory', significant=False)
+
+    def program_args(self):
+        return ['python cbioportal_transformation/pmc_cbio_wrapper.py',
+                '-c', self.cbio_transformation_clinical_input_file,
+                '-n', self.cbio_transformation_ngs_dir,
+                '-o', self.cbio_transformation_output_dir]
 
 class GitAddStagingFilesAndCommit(BaseTask):
     """
