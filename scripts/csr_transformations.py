@@ -5,6 +5,7 @@ import click
 import chardet
 import pandas as pd
 import configparser
+import collections
 
 
 class Config(object):
@@ -224,35 +225,26 @@ def build_csr_dataframe(file_dict, config):
     :return: Central Subject Registry as pandas Dataframe
     """
     check_msgs = []
-    individuals = merge_data_frames(df_dict=file_dict['individual'],
-                                    file_order=config.file_order,
-                                    id_columns='INDIVIDUAL_ID')
 
-    check_msgs += check_file_header(individuals.columns, config.file_headers['individual'], 'individual')
+    entity_to_columns = collections.OrderedDict()
+    entity_to_columns['individual'] = ['INDIVIDUAL_ID']
+    entity_to_columns['diagnosis'] = ['DIAGNOSIS_ID', 'INDIVIDUAL_ID']
+    entity_to_columns['study'] = ['STUDY_ID', 'INDIVIDUAL_ID']
+    entity_to_columns['biomaterial'] = ['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID']
+    entity_to_columns['biosource'] = ['BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID']
 
-    diagnosis = merge_data_frames(df_dict=file_dict['diagnosis'],
-                                  file_order=config.file_order,
-                                  id_columns=['DIAGNOSIS_ID', 'INDIVIDUAL_ID'])
+    entity_to_data_frames = collections.OrderedDict()
+    for entity, columns in entity_to_columns.items():
+        if entity not in file_dict:
+            raise ValueError('{} does not have a corresponding file.'.format(entity))
+        df = merge_data_frames(df_dict=file_dict[entity],
+                          file_order=config.file_order,
+                          id_columns=columns)
+        entity_to_data_frames[entity] = df
+        check_msgs += check_file_header(df.columns, config.file_headers[entity], entity)
 
-    check_msgs += check_file_header(diagnosis.columns, config.file_headers['diagnosis'], 'diagnosis')
-
-    studies = merge_data_frames(df_dict=file_dict['study'],
-                                file_order=config.file_order,
-                                id_columns=['STUDY_ID', 'INDIVIDUAL_ID'])
-    check_msgs += check_file_header(studies.columns, config.file_headers['study'], 'study')
-
-    biomaterials = merge_data_frames(df_dict=file_dict['biomaterial'],
-                                     file_order=config.file_order,
-                                     id_columns=['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID'])
-
-    biosources = merge_data_frames(df_dict=file_dict['biosource'],
-                                   file_order=config.file_order,
-                                   id_columns=['BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID'])
-    check_msgs += check_file_header(biosources.columns, config.file_headers['biosource'], 'biosource')
-
-    biomaterials = add_biosource_identifiers(biosources, biomaterials)
-    check_msgs += check_file_header(biomaterials.columns, config.file_headers['biomaterial'], 'biomaterial')
-
+    entity_to_data_frames['biomaterial'] = add_biosource_identifiers(entity_to_data_frames['biosource'], entity_to_data_frames['biomaterial'])
+    check_msgs += check_file_header(entity_to_data_frames['biomaterial'].columns, config.file_headers['biomaterial'], 'biomaterial')
 
     if check_msgs:
         raise MissingHeaderException('Missing headers for entities', print_errors(check_msgs))
@@ -265,7 +257,7 @@ def build_csr_dataframe(file_dict, config):
     # TODO: normal Y data point.
 
     # Concat all data starting with individual into the CSR dataframe, study, diagnosis, biosource and biomaterial
-    subject_registry = pd.concat([individuals, diagnosis, studies, biosources, biomaterials])
+    subject_registry = pd.concat(entity_to_data_frames.values())
 
     return subject_registry
 
