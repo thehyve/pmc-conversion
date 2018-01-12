@@ -54,6 +54,8 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
 
     ### Transform data files
     for study_file in study_files:
+        if study_file.endswith('sha1'):
+            continue
         file_type = study_file.split('.')[0]
         study_file_location = os.path.join(ngs_dir, study_file)
 

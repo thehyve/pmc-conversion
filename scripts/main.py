@@ -148,7 +148,7 @@ class CbioportalDataTransformation(ExternalProgramTask):
     cbio_transformation_output_dir = luigi.Parameter(description='cBioPortal output directory', significant=False)
 
     def program_args(self):
-        return ['python cbioportal_transformation/pmc_cbio_wrapper.py',
+        return ['python3 cbioportal_transformation/pmc_cbio_wrapper.py',
                 '-c', self.cbio_transformation_clinical_input_file,
                 '-n', self.cbio_transformation_ngs_dir,
                 '-o', self.cbio_transformation_output_dir]
