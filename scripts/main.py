@@ -82,9 +82,6 @@ class GitAddRawFiles(BaseTask):
     Task to add raw data files to git
     """
 
-    def requires(self):
-        return UpdateDataFiles()
-
     def run(self):
         repo.index.add([config.input_data_dir])
 
@@ -93,9 +90,6 @@ class FormatCodeBooks(BaseTask):
 
     cm_map = '/Users/wibopipping/Projects/PMC/pmc-conversion/config/codebook_mapping.json'
     output_dir = '/Users/wibopipping/Projects/PMC/csr_luigi_pipeline/intermediate'
-
-    def requires(self):
-        yield GitAddRawFiles()
 
     def run(self):
         for path, dir_, filenames in os.walk(config.input_data_dir):
@@ -112,10 +106,6 @@ class MergeClinicalData(ExternalProgramTask):
     python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
     config_dir = luigi.Parameter(description='CSR transformation config dir', significant=False)
 
-    def requires(self):
-        yield FormatCodeBooks()
-        # return GitAddRawFiles()
-
     def program_args(self):
         return [self.python_version, self.csr_transformation, self.csr_config, '--config_dir', self.config_dir]
 
@@ -127,20 +117,15 @@ class TransmartDataTransformation(ExternalProgramTask):
     python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
     config_dir = luigi.Parameter(description='tranSMART transformation config dir', significant=False)
 
-    def requires(self):
-        yield MergeClinicalData()
-
     def program_args(self):
         return [self.python_version, self.tm_transformation, self.tm_config, '--config_dir', self.config_dir]
+
 
 
 class CbioportalDataTransformation(ExternalProgramTask):
     """
     Task to transform data files for cBioPortal
     """
-
-    def requires(self):
-        return MergeClinicalData()
 
     # wd = '.'
     # cbio_transformation_input_dir = luigi.Parameter(description='cBioPortal input directory', significant=False)
@@ -153,14 +138,11 @@ class CbioportalDataTransformation(ExternalProgramTask):
     def run(self):
         pass
 
+
 class GitAddStagingFilesAndCommit(BaseTask):
     """
     Task to add transformed files to Git and commit
     """
-
-    def requires(self):
-        yield TransmartDataTransformation()
-        yield CbioportalDataTransformation()
 
     def run(self):
         repo.index.add([config.staging_dir])
@@ -185,17 +167,11 @@ class TransmartDataLoader(ExternalProgramTask):
 class DeleteTransmartStudyIfExists(TransmartDataLoader):
     stop_on_error = False
 
-    def requires(self):
-        yield GitAddStagingFilesAndCommit()
-
     def program_args(self):
         return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '--delete', '{!r}'.format(config.study_id)]
 
 
 class LoadTransmartStudy(TransmartDataLoader):
-    def requires(self):
-        yield DeleteTransmartStudyIfExists()
-
     def program_args(self):
         return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '-d', '{!r}'.format(config.skinny_dir)]
 
@@ -204,8 +180,6 @@ class CbioportalDataLoader(ExternalProgramTask):
     """
     Task to load data to cBioPortal
     """
-    def requires(self):
-        return GitAddStagingFilesAndCommit()
 
     # # Variables for importer
     # cbio_loader_input_dir = luigi.Parameter(description='cBioPortal staging file directory', significant=False)
@@ -247,13 +221,21 @@ class GitCommitLoadResults(BaseTask):
     Task to amend git commit results with load status
     """
 
-    def requires(self):
-        yield LoadTransmartStudy()
-        yield CbioportalDataLoader()
-
     def run(self):
         repo.index.add([config.load_logs_dir])
         repo.index.commit('Add load results.')
+
+
+class GitVersionTask(luigi.Task):
+    def run(self):
+        with open(self.output(), 'w') as f:
+            return f.write('version')
+
+    def complete(self):
+        return os.path.exists(self.output())
+
+    def output(self):
+        return os.path.join('.restore_version')
 
 
 class DataLoader(luigi.WrapperTask):
@@ -263,18 +245,55 @@ class DataLoader(luigi.WrapperTask):
     """
 
     def requires(self):
-        yield UpdateDataFiles()
-        yield GitAddRawFiles()
-        yield FormatCodeBooks()
-        yield MergeClinicalData()
-        yield TransmartDataTransformation()
-        yield CbioportalDataTransformation()
-        yield GitAddStagingFilesAndCommit()
-        yield DeleteTransmartStudyIfExists()
-        yield LoadTransmartStudy()
-        yield CbioportalDataLoader()
-        yield GitCommitLoadResults()
+        update_data_files = UpdateDataFiles()
+        update_data_files.required_tasks = []
+        yield update_data_files
+        git_add_raw_files = GitAddRawFiles()
+        git_add_raw_files.required_tasks = [update_data_files]
+        yield git_add_raw_files
+        format_condebook = FormatCodeBooks()
+        format_condebook.required_tasks = [git_add_raw_files]
+        yield format_condebook
+        merge_clinical_data = MergeClinicalData()
+        merge_clinical_data.required_tasks = [format_condebook]
+        yield merge_clinical_data
+        transmart_data_transformation = TransmartDataTransformation()
+        transmart_data_transformation.required_tasks = [merge_clinical_data]
+        yield transmart_data_transformation
+        cbioportal_data_transformation = CbioportalDataTransformation()
+        cbioportal_data_transformation.required_tasks = [transmart_data_transformation]
+        yield cbioportal_data_transformation
+        git_add_staging_files_and_commit = GitAddStagingFilesAndCommit()
+        git_add_staging_files_and_commit.required_tasks = [cbioportal_data_transformation, transmart_data_transformation]
+        yield git_add_staging_files_and_commit
+        delete_transmart_study_if_exists = DeleteTransmartStudyIfExists()
+        delete_transmart_study_if_exists.required_tasks = [git_add_staging_files_and_commit]
+        yield delete_transmart_study_if_exists
+        load_transmart_study = LoadTransmartStudy()
+        load_transmart_study.required_tasks = [delete_transmart_study_if_exists]
+        yield load_transmart_study
+        cbioportal_data_loader = CbioportalDataLoader()
+        cbioportal_data_loader.required_tasks = [load_transmart_study]
+        yield cbioportal_data_loader
+        git_commit_load_results = GitCommitLoadResults()
+        git_commit_load_results.required_tasks = [cbioportal_data_loader, load_transmart_study]
+        yield git_commit_load_results
 
+
+class LoadDataOnlyTask(luigi.WrapperTask):
+    def requires(self):
+        delete_transmart_study_if_exists = DeleteTransmartStudyIfExists()
+        delete_transmart_study_if_exists.required_tasks = [GitVersionTask()]
+        yield delete_transmart_study_if_exists
+        load_transmart_study = LoadTransmartStudy()
+        load_transmart_study.required_tasks = [delete_transmart_study_if_exists]
+        yield load_transmart_study
+        cbioportal_data_loader = CbioportalDataLoader()
+        cbioportal_data_loader.required_tasks = [load_transmart_study]
+        yield cbioportal_data_loader
+        git_commit_load_results = GitCommitLoadResults()
+        git_commit_load_results.required_tasks = [cbioportal_data_loader, load_transmart_study]
+        yield git_commit_load_results
 
 if __name__ == '__main__':
     luigi.run()
