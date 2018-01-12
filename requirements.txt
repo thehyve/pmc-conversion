@@ -5,3 +5,4 @@ python-daemon==2.1.2
 SQLAlchemy==1.1.15
 tornado==4.5.2
 gitpython==2.1.8
+click==6.7
