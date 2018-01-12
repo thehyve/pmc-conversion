@@ -134,7 +134,7 @@ class TransmartDataTransformation(ExternalProgramTask):
         return [self.python_version, self.tm_transformation, self.tm_config, '--config_dir', self.config_dir]
 
 
-class CbioportalDataTransformation(BaseTask):
+class CbioportalDataTransformation(ExternalProgramTask):
     """
     Task to transform data files for cBioPortal
     """
@@ -142,9 +142,16 @@ class CbioportalDataTransformation(BaseTask):
     def requires(self):
         return MergeClinicalData()
 
+    # wd = '.'
+    # cbio_transformation_input_dir = luigi.Parameter(description='cBioPortal input directory', significant=False)
+    # cbio_transformation_output_dir = luigi.Parameter(description='cBioPortal output directory', significant=False)
+    # 
+    # def program_args(self):
+    #     return ['python cbioportal_transformation/pmc_cbio_wrapper.py',
+    #             '-i', self.cbio_transformation_input_dir,
+    #             '-o', self.cbio_transformation_output_dir]
     def run(self):
         pass
-
 
 class GitAddStagingFilesAndCommit(BaseTask):
     """
@@ -193,13 +200,43 @@ class LoadTransmartStudy(TransmartDataLoader):
         return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '-d', '{!r}'.format(config.skinny_dir)]
 
 
-class CbioportalDataLoader(BaseTask):
+class CbioportalDataLoader(ExternalProgramTask):
     """
     Task to load data to cBioPortal
     """
-
     def requires(self):
         return GitAddStagingFilesAndCommit()
+
+    # # Variables for importer
+    # cbio_loader_input_dir = luigi.Parameter(description='cBioPortal staging file directory', significant=False)
+    # cbio_loader_docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
+    # 
+    # # Variables for validation
+    # cbio_loader_report_dir = luigi.Parameter(description='Validation report output directory', significant=False)
+    # cbio_loader_report_name = luigi.Parameter(description='Validation report name', significant=False)
+    # cbio_loader_portal_url = luigi.Parameter(description='URL to cBioPortal server', significant=False)
+
+    # This requires:
+    # 1. Docker installed
+    # 2. cbioportal image in Docker
+    # 3. A running cBioPortal instance
+    # 4. A running cBioPortal database
+    # def program_args(self):
+    #     # Build the command for importer only
+    #     cbio_loader_docker_command = 'docker run --rm --net=cbio-net -v %s:/study/ %s' \
+    #                                  % (self.cbio_loader_input_dir, self.cbio_loader_docker_image)
+    #     cbio_loader_python_command = 'python ' \
+    #                                  '/cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
+    #
+    #     # Build the command for validation and importer. TODO: Use this when we receive valid data
+    #     # cbio_loader_docker_command = 'docker run --rm --net=cbio-net -v %s:/study/ -v %s:/html_reports/ %s' \
+    #     #                              % (self.cbio_loader_input_dir, self.cbio_loader_report_dir,
+    #     #                                 self.cbio_loader_docker_image)
+    #     # cbio_loader_python_command = 'python ' \
+    #     #                              '/cbioportal/core/src/main/scripts/importer/metaImport.py -s /study/ -u %s ' \
+    #     #                              '-html /html_reports/%s.html -v -o ' \
+    #     #                              % (self.cbio_loader_portal_url, self.cbio_loader_report_name)
+    #     # return [cbio_loader_docker_command, cbio_loader_python_command]
 
     def run(self):
         pass
