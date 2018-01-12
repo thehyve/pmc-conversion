@@ -2,31 +2,38 @@ import os
 import json
 import click
 import chardet
+import tempfile
 
 @click.command()
 @click.argument('codebook_file', type=click.Path(exists=True))
 @click.argument('codebook_mapping', type=click.Path(exists=True))
 def main(codebook_file, codebook_mapping):
-    filename = os.path.abspath(codebook_file)
-    basename = os.path.basename(filename)
+    
+    file = os.path.abspath(codebook_file)
+    codebook_formatting(file, codebook_mapping)
+    
+
+def codebook_formatting(file, codebook_mapping, output_dir=tempfile.gettempdir()):
+    basename = os.path.basename(file)
 
     cm_file = os.path.abspath(codebook_mapping)
     with open(cm_file, 'r', encoding=get_encoding(cm_file)) as cm:
         codebook_type = json.loads(cm.read())
 
-    # TODO: come up with convention to provide output, overwrite file?
-    codebook_out = filename + '.json'
 
-    with open(filename, 'r', encoding=get_encoding(filename)) as file:
+    # TODO: come up with convention to provide output, overwrite file?
+    codebook_out = os.path.join(output_dir,basename+'.json')
+    print('codebook output: :', codebook_out)
+
+    with open(file, 'r', encoding=get_encoding(file)) as file:
         lines = file.readlines()
 
     # TODO: implement format checker
     if codebook_type[basename] == 'format1':
         codebook = process_br_codebook(lines)
-        print('here')
 
-    # with open(config.codebook_out,'w') as f:
-    print(f'Writing formatted {basename} to {basename}.json')
+    # TODO: add logger
+    #print(f'Writing formatted {basename} to {basename}.json')
     with open(codebook_out, 'w') as f:
         f.write(json.dumps(codebook))
 

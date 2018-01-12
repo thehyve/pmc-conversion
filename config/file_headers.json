@@ -45,5 +45,6 @@
       "SRC_BIOSOURCE_ID",
       "SRC_BIOMATERIAL_ID",
       "BIOMATERIAL_DATE",
-      "TYPE"]
+      "TYPE"
+    ]
 }

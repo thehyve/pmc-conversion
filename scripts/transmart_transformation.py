@@ -1,16 +1,16 @@
-import tmtk
-import pandas as pd
-import click
-import configparser
-import chardet
+import os
 import sys
+import tmtk
+import click
+import chardet
+import pandas as pd
+import configparser
 
 class Config(object):
 
     def __init__(self, config_file):
-        self.config_file = config_file.name
         self.config = configparser.ConfigParser()
-        self.config.read(self.config_file)
+        self.config.read(config_file)
 
         self.blueprint = self.config.get('DATA','blueprint_file')
         self.csr_data_file = self.config.get('DATA','csr_data_file')
@@ -24,10 +24,17 @@ class Config(object):
 
 
 @click.command()
-@click.argument('config_file', type=click.File('r'))
-def main(config_file):
+@click.argument('config_file', type=click.Path())
+@click.option('--config_dir', type=click.Path(exists=True))
+def main(config_file, config_dir):
+    if config_dir:
+        config = Config(os.path.join(config_dir, config_file))
+    else:
+        config = Config(config_file)
 
-    config = Config(config_file)
+    transmart_transformation(config)
+
+def transmart_transformation(config):
 
     df = pd.read_csv(config.csr_data_file, sep='\t', encoding=get_encoding(config.csr_data_file))
     df = add_modifiers(df)

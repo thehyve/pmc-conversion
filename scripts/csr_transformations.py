@@ -28,9 +28,8 @@ class Config(object):
                 list_ = [line.strip() for line in f]
             return list_
 
-        self.config_file = config_file.name
         self.config = configparser.ConfigParser()
-        self.config.read(self.config_file)
+        self.config.read(config_file)
         self.file_dir = self.config.get('GENERAL', 'file_dir')
         self.file_list = read_config_list_from_file('file_list_config')
         self.file_headers = read_config_dict_from_file('file_header_config')
@@ -39,13 +38,26 @@ class Config(object):
         self.file_order = read_config_list_from_file('file_order_config')
 
         self.output_file = self.config.get('OUTPUT', 'target_file')
+        self.output_dir = self.config.get('OUTPUT', 'target_dir')
 
 
 @click.command()
-@click.argument('config_file', type=click.File('r'))
-def main(config_file):
-    config = Config(config_file)
+@click.argument('config_file', type=click.Path())
+@click.option('--config_dir', type=click.Path(exists=True))
+def main(config_file, config_dir):
+    if config_dir:
+        config = Config(os.path.join(config_dir, config_file))
+    else:
+        config = Config(config_file)
     csr_transformation(config)
+
+
+class MissingHeaderException(Exception):
+    pass
+
+
+class IndividualIdentifierMissing(Exception):
+    pass
 
 
 def csr_transformation(config):
@@ -56,14 +68,12 @@ def csr_transformation(config):
     # - Check if all CSR headers are in the merged dataframe
     missing_header = [l for l in config.file_headers_list if l not in subject_registry.columns]
     if len(missing_header) > 0:
-        print('[ERROR] Missing columns from Subject Registry data model:\n', missing_header)
-        # TODO: temporarily disabled for testing
-        # sys.exit(9)
+        raise MissingHeaderException(
+            '[ERROR] Missing columns from Subject Registry data model:\n {}'.format(missing_header))
 
     subject_registry.to_csv(config.output_file, sep='\t', index=False)
     if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
-        print('[ERROR] Some individuals do not have a identifier')
-        # sys.exit(9)
+        raise IndividualIdentifierMissing('Some individuals do not have an identifier')
 
     sys.exit(0)
 
@@ -121,7 +131,7 @@ def determine_file_type(columns):
     else:
         # TODO: implement error messages
         # Fails if none of the key identifiers are present
-        print('\nI am not working! - No Key Identifier found: Individual, diagnosis, study, biosource or biomaterial\n')
+        print('I am not working! - No Key Identifier found: Individual, diagnosis, study, biosource or biomaterial')
         # sys.exit(9)
 
 
@@ -130,7 +140,6 @@ def check_file_header(file_header, expected_header, name):
     for column in expected_header:
         if column not in file_header:
             msgs.append('[ERROR] {0} header: expected {1} as a column but not found'.format(name, column))
-    # Returns a list of strings with file name and missing headers and error msg (again list of strings)
     return msgs
 
 
@@ -141,18 +150,6 @@ def check_file_list(files, expected_files):
             msgs.append('[ERROR] data file: {} expected but not found'.format(file))
 
     return msgs
-
-
-def print_errors(messages):
-    # TODO: Document function
-    # just a list of files for now, Don't start with blocks
-    if not messages:
-        print('No ERRORS found in the input files!!')
-    else:
-        print('--------- input file ERRORS ---------')
-        for msg in messages:
-            print(msg)
-        sys.exit(9)
 
 
 def merge_data_frames(df_dict, file_order, id_columns):
@@ -226,18 +223,23 @@ def build_csr_dataframe(file_dict, config):
     :param config: the config object
     :return: Central Subject Registry as pandas Dataframe
     """
-
+    check_msgs = []
     individuals = merge_data_frames(df_dict=file_dict['individual'],
                                     file_order=config.file_order,
                                     id_columns='INDIVIDUAL_ID')
+
+    check_msgs += check_file_header(individuals.columns, config.file_headers['individual'], 'individual')
 
     diagnosis = merge_data_frames(df_dict=file_dict['diagnosis'],
                                   file_order=config.file_order,
                                   id_columns=['DIAGNOSIS_ID', 'INDIVIDUAL_ID'])
 
+    check_msgs += check_file_header(diagnosis.columns, config.file_headers['diagnosis'], 'diagnosis')
+
     studies = merge_data_frames(df_dict=file_dict['study'],
                                 file_order=config.file_order,
                                 id_columns=['STUDY_ID', 'INDIVIDUAL_ID'])
+    check_msgs += check_file_header(studies.columns, config.file_headers['study'], 'study')
 
     biomaterials = merge_data_frames(df_dict=file_dict['biomaterial'],
                                      file_order=config.file_order,
@@ -246,8 +248,14 @@ def build_csr_dataframe(file_dict, config):
     biosources = merge_data_frames(df_dict=file_dict['biosource'],
                                    file_order=config.file_order,
                                    id_columns=['BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID'])
+    check_msgs += check_file_header(biosources.columns, config.file_headers['biosource'], 'biosource')
 
     biomaterials = add_biosource_identifiers(biosources, biomaterials)
+    check_msgs += check_file_header(biomaterials.columns, config.file_headers['biomaterial'], 'biomaterial')
+
+
+    if check_msgs:
+        raise MissingHeaderException('Missing headers for entities', print_errors(check_msgs))
 
     # TODO: ADD DEDUPLICATION ACROSS ENTITIES:
     # TODO: Add advanced deduplication for double values from for example individual and diagnosis.
@@ -272,11 +280,12 @@ def read_data_files(config):
     for path, dir_, filenames in os.walk(config.file_dir):
         for filename in filenames:
             working_dir = path.rsplit('/', 1)[1].upper()
-            if dir_ == [] and working_dir in ['EPD', 'LIMMS', 'STUDY'] and 'codebook' not in filename:
+            if dir_ == [] and working_dir in ['EPD', 'LIMMS',
+                                              'STUDY'] and 'codebook' not in filename and not filename.startswith('.'):
                 all_files += filename
                 file = os.path.join(path, filename)
 
-                codebook = check_for_codebook(filename, filenames, path)
+                codebook = check_for_codebook(filename, config.output_dir)
 
                 # Check if mapping for columns to CSR fields is present
                 if filename in config.header_mapping:
@@ -292,24 +301,34 @@ def read_data_files(config):
                 columns = df.columns
                 # Check if headers are present
                 file_type = determine_file_type(columns)
-                # TODO: extend the error checking and input config so files do not need all the data but together
-                # TODO: have a set of needed columns
-                error_messages = error_messages + (check_file_header(columns, config.file_headers[file_type], filename))
-
                 files_per_entity[file_type].update({filename: df})
 
     error_messages += check_file_list(all_files,
                                       config.file_list)  # TODO: is this step needed? Covered by checking CSR output?
     # Temporarily disabled
-    # print_errors(error_messages)
+    #if error_messages:
+    #    raise InputFilesIncomplete('{} Input files missing'.format(print_errors(error_messages)))
+
     return files_per_entity
 
 
-def check_for_codebook(filename, filenames, path):
+class InputFilesIncomplete(Exception):
+    pass
+
+
+def print_errors(messages):
+    # just a list of files for now, Don't start with blocks
+    print('--------- ERRORS ---------')
+    for msg in messages:
+        print(msg)
+    return len(messages)
+
+
+def check_for_codebook(filename, path):
     f_name, f_extension = filename.rsplit('.', 1)
-    code_file = f'{f_name}_codebook.{f_extension}.json'
-    if code_file in filenames:
-        with open(os.path.join(path, code_file),'r') as cf:
+    code_file = '{}_codebook.{}.json'.format(f_name, f_extension)
+    if code_file in os.listdir(path):
+        with open(os.path.join(path, code_file), 'r') as cf:
             codebook = json.loads(cf.read())
         return codebook
     else:
