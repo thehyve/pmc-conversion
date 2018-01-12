@@ -1,3 +1,6 @@
+[core]
+logging_conf_file=logging.cfg
+
 [task_history]
 db_connection = sqlite:///pmc-luigi-db.sqlite
 
