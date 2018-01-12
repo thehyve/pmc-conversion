@@ -157,7 +157,7 @@ class GitAddStagingFilesAndCommit(BaseTask):
 
     def run(self):
         repo.index.add([config.staging_dir])
-        repo.index.commit(f'Add new input and transformed data.')
+        repo.index.commit('Add new input and transformed data.')
 
 
 class TransmartDataLoader(ExternalProgramTask):
@@ -182,7 +182,7 @@ class DeleteTransmartStudyIfExists(TransmartDataLoader):
         yield GitAddStagingFilesAndCommit()
 
     def program_args(self):
-        return ['java', '-jar', f'{config.transmart_copy_jar!r}', '--delete', f'{config.study_id!r}']
+        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '--delete', '{!r}'.format(config.study_id)]
 
 
 class LoadTransmartStudy(TransmartDataLoader):
@@ -190,7 +190,7 @@ class LoadTransmartStudy(TransmartDataLoader):
         yield DeleteTransmartStudyIfExists()
 
     def program_args(self):
-        return ['java', '-jar', f'{config.transmart_copy_jar!r}', '-d', f'{config.skinny_dir!r}']
+        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '-d', '{!r}'.format(config.skinny_dir)]
 
 
 class CbioportalDataLoader(BaseTask):
@@ -216,7 +216,7 @@ class GitCommitLoadResults(BaseTask):
 
     def run(self):
         repo.index.add([config.load_logs_dir])
-        repo.index.commit(f'Add load results.')
+        repo.index.commit('Add load results.')
 
 
 class DataLoader(luigi.WrapperTask):

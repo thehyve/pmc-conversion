@@ -33,7 +33,7 @@ def codebook_formatting(file, codebook_mapping, output_dir=tempfile.gettempdir()
         codebook = process_br_codebook(lines)
 
     # TODO: add logger
-    #print(f'Writing formatted {basename} to {basename}.json')
+    #print('Writing formatted {} to {}.json').format(basename, basename)
     with open(codebook_out, 'w') as f:
         f.write(json.dumps(codebook))
 

@@ -21,7 +21,7 @@ def get_git_repo(repo_dir):
 
 def init_git_repo(repo_dir):
     os.makedirs(repo_dir, exist_ok=True)
-    print(f'Initializing git repository: {repo_dir}')
+    print('Initializing git repository: {}'.format(repo_dir))
     r = git.Repo.init(os.path.realpath(repo_dir))
     ignore_list = ['.done-*', '.DS_Store']
 

@@ -40,7 +40,7 @@ class BaseTask(luigi.Task):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.done_signal_filename = f'.done-{self.__class__.__name__}'
+        self.done_signal_filename = '.done-{}'.format(self.__class__.__name__)
 
     @property
     def input_signal_file(self):

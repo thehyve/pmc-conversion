@@ -43,14 +43,14 @@ def get_data_checksum_file_pairs(files):
     data_files, checksum_files = split_data_and_checksum_files(files)
     for data_file in data_files:
         if is_hiden_file(data_file):
-            logger.debug(f'Skip {data_file}')
+            logger.debug('Skip {}'.format(data_file))
             continue
         checksum_file = get_checksum_file(data_file)
         if checksum_file in checksum_files:
             checksum_files.remove(checksum_file)
             yield DataChecksumFilesPair(data_file, checksum_file)
         else:
-            raise FileNotFoundError(f'The data file {data_file} does not have corresponding checksum file.')
+            raise FileNotFoundError('The data file {} does not have corresponding checksum file.'.format(data_file))
     if checksum_files:
         checksum_files_csv = ', '.join(checksum_files)
         raise FileNotFoundError('The following checksum files does not have corresponding data file: '
@@ -66,12 +66,12 @@ def ensure_checksum_matches(data_checksum_files_pairs):
         if computed_checksum == read_sha1_file(pair.checksum_file):
             yield DataFileChecksumPair(pair.data_file, computed_checksum)
         else:
-            raise ValueError(f'Checksum for {pair.data_file} file does not match.')
+            raise ValueError('Checksum for {} file does not match.'.format(pair.data_file))
 
 
 def scan_files_checksums(dir):
     if not os.path.exists(dir):
-        raise NotADirectoryError(f'{dir} is not a directory.')
+        raise NotADirectoryError('{} is not a directory.'.format(dir))
     for root, _, files in os.walk(dir):
         for file in files:
             if not is_checksum_file(file) and not is_hiden_file(file):
@@ -95,7 +95,7 @@ def make_path_relative(parent_path, child_path):
             result = result[1:]
         return result
     else:
-        raise ValueError(f'{child_path} is not sub directory of the {parent_path}.')
+        raise ValueError('{} is not sub directory of the {}.'.format(child_path,parent_path))
 
 
 def get_checksum_pairs_set(dir):
@@ -114,14 +114,14 @@ FilesModifications = collections.namedtuple('FilesModifications', ['added', 'rem
 
 
 def sync_dirs(from_dir, to_dir):
-    logger.info(f'Check source ({from_dir}) directory consistency...')
+    logger.info('Check source ({}) directory consistency...'.format(from_dir))
     files_pairs = scan_data_checksum_files_pairs(from_dir)
     from_checksum_files = ensure_checksum_matches(files_pairs)
     from_dir_files = set()
     for file, checksum in from_checksum_files:
         from_dir_files.add(DataFileChecksumPair(make_path_relative(from_dir, file), checksum))
 
-    logger.info(f'Reading destination ({to_dir}) directory content to compare...')
+    logger.info('Reading destination ({}) directory content to compare...'.format(to_dir))
     to_dir_files = get_checksum_pairs_set(to_dir)
 
     if from_dir_files == to_dir_files:
@@ -132,17 +132,17 @@ def sync_dirs(from_dir, to_dir):
     remove_files = to_dir_files - from_dir_files
     add_files = from_dir_files - to_dir_files
 
-    logger.info(f'Start removing {len(remove_files)} files from the destination directory...')
+    logger.info('Start removing {} files from the destination directory...'.format(len(remove_files)))
     for remove_file in remove_files:
         remove_path = os.path.join(to_dir, remove_file.data_file)
-        logger.debug(f'Removing {remove_path} file.')
+        logger.debug('Removing {} file.'.format(remove_path))
         os.remove(remove_path)
 
-    logger.info(f'Start copying {len(add_files)} files from the source to destination directory...')
+    logger.info('Start copying {} files from the source to destination directory...'.format(len(add_files)))
     for add_file in add_files:
         src_path = os.path.join(from_dir, add_file.data_file)
         dst_path = os.path.join(to_dir, add_file.data_file)
-        logger.debug(f'Copying {src_path} file to {dst_path}.')
+        logger.debug('Copying {} file to {}.'.format(src_path, dst_path))
         os.makedirs(os.path.dirname(dst_path), exist_ok=True)
         copyfile(src_path, dst_path)
 
