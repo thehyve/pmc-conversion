@@ -45,6 +45,7 @@ wd = /projects/pmc/pmc-conversion/csr_transformation/
 csr_transformation = csr_transformations.py
 csr_config = test_config.config
 python_version = python3
+config_dir = <path_to_pmc-conversion>/config
 
 
 [TransmartDataTransformation]
@@ -52,4 +53,5 @@ wd = /projects/pmc/pmc-conversion/transmart_transformation/
 tm_transformation = transmart_transformation.py
 tm_config = test_config.config
 python_version = python3
+config_dir = <path_to_pmc-conversion>/config
 
