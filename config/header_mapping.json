@@ -1,0 +1,34 @@
+{
+  "br_test.txt": {
+    "CIDDIAG2": "DIAGNOSIS_ID",
+    "IDAABA_pseudo": "DIAGNOSIS_DATE",
+    "HOSPDIAG": "CENTER_TREATMENT",
+    "DIAGCD": "TUMOR_TYPE",
+    "PLOCCD": "TOPOGRAPHY",
+    "DIAGGRSTX": "TUMOR_STAGE",
+    "IDAA_PMC": "INDIVIDUAL_ID"
+  },
+  "br_test2.txt": {
+    "CIDDIAG2": "DIAGNOSIS_ID",
+    "IDAABA_pseudo": "DIAGNOSIS_DATE",
+    "HOSPDIAG": "CENTER_TREATMENT",
+    "DIAGCD": "TUMOR_TYPE",
+    "PLOCCD": "TOPOGRAPHY",
+    "DIAGGRSTX": "TUMOR_STAGE",
+    "IDAA_PMC": "INDIVIDUAL_ID"
+  },
+  "br_test_copy.txt": {
+    "DTOB_pseudo": "BIRTH_DATE",
+    "SEX": "GENDER",
+    "IFCDATR": "IC_TYPE",
+    "IFCGIV": "IC_DATA",
+    "IFCMAT": "IC_MATERIAL",
+    "IFCCOM": "IC_LINKING_EXT",
+    "DTDEATH": "DEATH_DATE"
+  },
+  "study.txt": {
+    "Record Id": "INDIVIDUAL_ID",
+    "Study_Id": "STUDY_ID",
+    "individual_study_Id": "INDIVIDUAL_STUDY_ID"
+  }
+}

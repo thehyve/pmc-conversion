@@ -140,5 +140,5 @@ dsc_output_dir/
 Thumbs.db
 luigi.cfg
 .done-*
-csr_transformation/csr_transformation.config
-transmart_transformation/transmart_transformation.config
+config/csr_transformation.config
+config/transmart_transformation.config

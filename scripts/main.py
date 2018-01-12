@@ -5,6 +5,7 @@ import luigi
 from .git_commons import get_git_repo
 from .sync import sync_dirs, is_dirs_in_sync
 from .luigi_commons import BaseTask, ExternalProgramTask
+from .codebook_formatting import codebook_formatting
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -64,7 +65,7 @@ class UpdateDataFiles(BaseTask):
         self.file_modifications = sync_dirs(config.drop_dir, config.input_data_dir)
 
     def complete(self):
-        return is_dirs_in_sync(config.drop_dir, config.input_data_dir)
+        return is_dirs_in_sync(config.drop_dir, config.input_data_dir) and os.path.exists(self.done_signal_file)
 
     def calc_done_signal(self):
         """
@@ -88,8 +89,20 @@ class GitAddRawFiles(BaseTask):
         repo.index.add([config.input_data_dir])
 
 
-class SubprocessException(Exception):
-    pass
+class FormatCodeBooks(BaseTask):
+
+    cm_map = '/Users/wibopipping/Projects/PMC/pmc-conversion/config/codebook_mapping.json'
+    output_dir = '/Users/wibopipping/Projects/PMC/csr_luigi_pipeline/intermediate'
+
+    def requires(self):
+        yield GitAddRawFiles()
+
+    def run(self):
+        for path, dir_, filenames in os.walk(config.input_data_dir):
+            codebooks = [file for file in filenames if 'codebook' in file]
+            for codebook in codebooks:
+                codebook_file = os.path.join(path,codebook)
+                codebook_formatting(codebook_file, self.cm_map, self.output_dir)
 
 
 class MergeClinicalData(ExternalProgramTask):
@@ -97,12 +110,14 @@ class MergeClinicalData(ExternalProgramTask):
     csr_transformation = luigi.Parameter(description='CSR transformation script name', significant=False)
     csr_config = luigi.Parameter(description='CSR transformation config file', significant=False)
     python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
+    config_dir = luigi.Parameter(description='CSR transformation config dir', significant=False)
 
     def requires(self):
-        return GitAddRawFiles()
+        yield FormatCodeBooks()
+        # return GitAddRawFiles()
 
     def program_args(self):
-        return [self.python_version, self.csr_transformation, self.csr_config]
+        return [self.python_version, self.csr_transformation, self.csr_config, '--config_dir', self.config_dir]
 
 
 class TransmartDataTransformation(ExternalProgramTask):
@@ -110,12 +125,13 @@ class TransmartDataTransformation(ExternalProgramTask):
     tm_transformation = luigi.Parameter(description='tranSMART data transformation script name', significant=False)
     tm_config = luigi.Parameter(description='tranSMART data transformation config file', significant=False)
     python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
+    config_dir = luigi.Parameter(description='tranSMART transformation config dir', significant=False)
 
     def requires(self):
         yield MergeClinicalData()
 
     def program_args(self):
-        return [self.python_version, self.tm_transformation, self.tm_config]
+        return [self.python_version, self.tm_transformation, self.tm_config, '--config_dir', self.config_dir]
 
 
 class CbioportalDataTransformation(BaseTask):
@@ -210,16 +226,17 @@ class DataLoader(luigi.WrapperTask):
     """
 
     def requires(self):
-        yield GitCommitLoadResults()
-        yield CbioportalDataLoader()
-        yield LoadTransmartStudy()
-        yield DeleteTransmartStudyIfExists()
-        yield GitAddStagingFilesAndCommit()
-        yield CbioportalDataTransformation()
-        yield TransmartDataTransformation()
-        yield MergeClinicalData()
-        yield GitAddRawFiles()
         yield UpdateDataFiles()
+        yield GitAddRawFiles()
+        yield FormatCodeBooks()
+        yield MergeClinicalData()
+        yield TransmartDataTransformation()
+        yield CbioportalDataTransformation()
+        yield GitAddStagingFilesAndCommit()
+        yield DeleteTransmartStudyIfExists()
+        yield LoadTransmartStudy()
+        yield CbioportalDataLoader()
+        yield GitCommitLoadResults()
 
 
 if __name__ == '__main__':

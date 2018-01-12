@@ -12,9 +12,17 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+def read_content(file) -> str:
+    with open(file, 'r') as f:
+        return f.read()
+
 def signal_files_matches(input_file, output_file):
     if os.path.exists(input_file) and os.path.exists(output_file):
-        return read_sha1_file(input_file) == read_sha1_file(output_file)
+        shain = read_content(input_file)
+        shaout = read_content(output_file)
+        match = shain == shaout
+        logger.debug('These files match: {} \t{}, {}'.format(match, input_file, output_file))
+        return match
     return False
 
 
