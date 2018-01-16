@@ -63,15 +63,16 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
         if study_file.split('.')[-1] == 'seg':
             print('Transforming segment data: %s' % study_file)
 
-            # TODO: Concatenate all these files into 1 file per study
+            # TODO: Merge possible multiple files per study, into 1 file per study
+            data_filename = os.path.join(output_dir, study_file)
+            copyfile(study_file_location, data_filename)
 
             ### Replace header in old file
-            with open(study_file_location) as segment_file:
+            with open(data_filename) as segment_file:
                 segment_lines = segment_file.readlines()
                 segment_lines[0] = 'ID	chrom	loc.start	loc.end	num.mark	seg.mean\n'
 
             ### Write new file
-            data_filename = os.path.join(output_dir, study_file)
             with open(data_filename, 'w') as segment_file:
                 segment_file.writelines(segment_lines)
 
@@ -83,7 +84,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
         elif study_file.split('.')[-1] == 'maf':
             print('Transforming mutation data: %s' % study_file)
 
-            # TODO: Concatenate all these files into 1 file per study
+            # TODO: Merge possible multiple files per study, into 1 file per study
             data_filename = os.path.join(output_dir, study_file)
             copyfile(study_file_location, data_filename)
 
@@ -100,18 +101,16 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
         elif 'data_by_genes' in study_file:
             print('Transforming continuous CNA data: %s' % study_file)
 
-            # TODO: Merge all these files into 1 file per study
+            # TODO: Merge possibly multiple files per study, into 1 file per study
             data_filename = os.path.join(output_dir, study_file)
+            copyfile(study_file_location, data_filename)
 
-            ### Extract the gene id and data columns
-            os.system("cut -f1-2,4- %s > %s" % (study_file_location, data_filename))
-
-            ### Rename column names
-            os.system("sed -i '' 's/Gene ID/Entrez_Gene_Id/' %s" % data_filename)
-            os.system("sed -i '' 's/Gene Symbol/Hugo_Symbol/' %s" % data_filename)
+            # Remove column and rename column names
+            cna_data = pd.read_csv(data_filename, sep='\t', na_values=[''], dtype= {'Gene ID': str})
+            cna_data.drop('Cytoband', axis=1, inplace=True)
+            cna_data.rename(columns={'Gene Symbol': 'Hugo_Symbol', 'Gene ID': 'Entrez_Gene_Id'}, inplace=True)
 
             ### Remove negative Entrez IDs. This can lead to incorrect mapping in cBioPortal
-            cna_data = pd.read_csv(data_filename, sep='\t', na_values=[''], dtype= {'Entrez_Gene_Id': str})
             for index, row in cna_data.iterrows():
                 if int(row['Entrez_Gene_Id']) < -1:
                     cna_data.loc[index, 'Entrez_Gene_Id'] = ''
@@ -129,18 +128,16 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
         elif 'thresholded.by_genes' in study_file:
             print('Transforming discrete CNA data: %s' % study_file)
 
-            # TODO: Merge all these files into 1 file per study
+            # TODO: Merge possibly multiple files per study, into 1 file per study
             data_filename = os.path.join(output_dir, study_file)
+            copyfile(study_file_location, data_filename)
 
-            ### Extract the gene id and data columns
-            os.system("cut -f1-2,4- %s > %s" % (study_file_location, data_filename))
-
-            ### Rename column names
-            os.system("sed -i '' 's/Locus ID/Entrez_Gene_Id/' %s" % data_filename)
-            os.system("sed -i '' 's/Gene Symbol/Hugo_Symbol/' %s" % data_filename)
+            # Remove column and rename column names
+            cna_data = pd.read_csv(data_filename, sep='\t', na_values=[''], dtype= {'Gene ID': str})
+            cna_data.drop('Cytoband', axis=1, inplace=True)
+            cna_data.rename(columns={'Gene Symbol': 'Hugo_Symbol', 'Locus ID': 'Entrez_Gene_Id'}, inplace=True)
 
             ### Remove negative Entrez IDs. This can lead to incorrect mapping in cBioPortal
-            cna_data = pd.read_csv(data_filename, sep='\t', na_values=[''], dtype= {'Entrez_Gene_Id': str})
             for index, row in cna_data.iterrows():
                 if int(row['Entrez_Gene_Id']) < -1:
                     cna_data.loc[index, 'Entrez_Gene_Id'] = ''
