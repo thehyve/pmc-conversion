@@ -3,9 +3,10 @@ import os
 
 import luigi
 from .git_commons import get_git_repo
-from .sync import sync_dirs, is_dirs_in_sync
+from .sync import sync_dirs, is_dirs_in_sync, get_checksum_pairs_set
 from .luigi_commons import BaseTask, ExternalProgramTask
 from .codebook_formatting import codebook_formatting
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -52,29 +53,29 @@ os.makedirs(config.staging_dir, exist_ok=True)
 os.makedirs(config.load_logs_dir, exist_ok=True)
 
 
+def calc_done_signal_content(file_checksum_pairs):
+    srt_file_checksum_pairs = sorted(file_checksum_pairs, key=lambda file_checksum_pair: file_checksum_pair.data_file)
+    return '\n'.join([file + ' ' + checksum for file, checksum in srt_file_checksum_pairs])
+
+
 class UpdateDataFiles(BaseTask):
     """
     Task to check whether new files are available
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.file_modifications = None
+    file_modifications = None
 
     def run(self):
         self.file_modifications = sync_dirs(config.drop_dir, config.input_data_dir)
 
     def complete(self):
-        return is_dirs_in_sync(config.drop_dir, config.input_data_dir) and os.path.exists(self.done_signal_file)
+        return self.file_modifications is not None
 
     def calc_done_signal(self):
         """
         :return: file with list of files and their checksums
         """
-        removed_files = sorted(self.file_modifications.removed, key=lambda removed_file: removed_file.data_file)
-        added_files = sorted(self.file_modifications.added, key=lambda added_file: added_file.data_file)
-        return os.linesep.join([' - ' + file + ' ' + checksum for file, checksum in removed_files] +
-                               [' + ' + file + ' ' + checksum for file, checksum in added_files])
+        return calc_done_signal_content(self.file_modifications.new_files)
 
 
 class GitAddRawFiles(BaseTask):
@@ -119,7 +120,6 @@ class TransmartDataTransformation(ExternalProgramTask):
 
     def program_args(self):
         return [self.python_version, self.tm_transformation, self.tm_config, '--config_dir', self.config_dir]
-
 
 
 class CbioportalDataTransformation(ExternalProgramTask):
@@ -226,25 +226,49 @@ class GitCommitLoadResults(BaseTask):
         repo.index.commit('Add load results.')
 
 
-class GitVersionTask(luigi.Task):
+class GitVersionTask(BaseTask):
+
+    commit_hexsha = luigi.Parameter(description='commit to come back to')
+    succeeded_once = False
+
     def run(self):
-        with open(self.output(), 'w') as f:
-            return f.write('version')
+        repo.head.reference = repo.commit(self.commit_hexsha)
+
+    def calc_done_signal(self):
+        return calc_done_signal_content(get_checksum_pairs_set(config.input_data_dir))
 
     def complete(self):
-        return os.path.exists(self.output())
+        if self.succeeded_once:
+            return True
+        else:
+            self.succeeded_once = repo.head.commit.hexsha == self.commit_hexsha
+        return self.succeeded_once
 
-    def output(self):
-        return os.path.join('.restore_version')
+
+def load_clinical_data_workflow(required_tasks):
+    delete_transmart_study_if_exists = DeleteTransmartStudyIfExists()
+    delete_transmart_study_if_exists.required_tasks = [required_tasks]
+    yield delete_transmart_study_if_exists
+    load_transmart_study = LoadTransmartStudy()
+    load_transmart_study.required_tasks = [delete_transmart_study_if_exists]
+    yield load_transmart_study
+    cbioportal_data_loader = CbioportalDataLoader()
+    cbioportal_data_loader.required_tasks = [required_tasks]
+    yield cbioportal_data_loader
+    git_commit_load_results = GitCommitLoadResults()
+    git_commit_load_results.required_tasks = [cbioportal_data_loader, load_transmart_study]
+    yield git_commit_load_results
 
 
-class DataLoader(luigi.WrapperTask):
+class LoadDataFromNewFilesTask(luigi.WrapperTask):
     """
     Wrapper task whose purpose it is to check whether any tasks need be rerun
     to perform an update and then do it.
     """
 
-    def requires(self):
+    @property
+    def tasks_dependency_tree(self):
+        logger.debug('Building workflow ...')
         update_data_files = UpdateDataFiles()
         update_data_files.required_tasks = []
         yield update_data_files
@@ -266,34 +290,34 @@ class DataLoader(luigi.WrapperTask):
         git_add_staging_files_and_commit = GitAddStagingFilesAndCommit()
         git_add_staging_files_and_commit.required_tasks = [cbioportal_data_transformation, transmart_data_transformation]
         yield git_add_staging_files_and_commit
-        delete_transmart_study_if_exists = DeleteTransmartStudyIfExists()
-        delete_transmart_study_if_exists.required_tasks = [git_add_staging_files_and_commit]
-        yield delete_transmart_study_if_exists
-        load_transmart_study = LoadTransmartStudy()
-        load_transmart_study.required_tasks = [delete_transmart_study_if_exists]
-        yield load_transmart_study
-        cbioportal_data_loader = CbioportalDataLoader()
-        cbioportal_data_loader.required_tasks = [load_transmart_study]
-        yield cbioportal_data_loader
-        git_commit_load_results = GitCommitLoadResults()
-        git_commit_load_results.required_tasks = [cbioportal_data_loader, load_transmart_study]
-        yield git_commit_load_results
+        for task in load_clinical_data_workflow(git_add_staging_files_and_commit):
+            yield task
 
-
-class LoadDataOnlyTask(luigi.WrapperTask):
     def requires(self):
-        delete_transmart_study_if_exists = DeleteTransmartStudyIfExists()
-        delete_transmart_study_if_exists.required_tasks = [GitVersionTask()]
-        yield delete_transmart_study_if_exists
-        load_transmart_study = LoadTransmartStudy()
-        load_transmart_study.required_tasks = [delete_transmart_study_if_exists]
-        yield load_transmart_study
-        cbioportal_data_loader = CbioportalDataLoader()
-        cbioportal_data_loader.required_tasks = [load_transmart_study]
-        yield cbioportal_data_loader
-        git_commit_load_results = GitCommitLoadResults()
-        git_commit_load_results.required_tasks = [cbioportal_data_loader, load_transmart_study]
-        yield git_commit_load_results
+        return self.tasks_dependency_tree
+
+
+class LoadDataFromHistoryTask(luigi.WrapperTask):
+
+    @property
+    def tasks_dependency_tree(self):
+        git_version = GitVersionTask()
+        yield git_version
+        for task in load_clinical_data_workflow(git_version):
+            yield task
+
+    def requires(self):
+        return self.tasks_dependency_tree
+
+    @classmethod
+    def remove_all_signal_files(cls):
+        for p in Path('.').glob('.done-*'):
+            logger.debug('Remove done signal file: {}'.format(p))
+            p.unlink()
+
+    def on_success(self):
+        # if we did not delete signal files loading new files would fail on data loading step.
+        self.remove_all_signal_files()
 
 if __name__ == '__main__':
     luigi.run()

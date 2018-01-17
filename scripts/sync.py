@@ -110,34 +110,49 @@ def is_dirs_in_sync(dir1, dir2):
     return get_checksum_pairs_set(dir1) == get_checksum_pairs_set(dir2)
 
 
-FilesModifications = collections.namedtuple('FilesModifications', ['added', 'removed'])
+class FilesModifications:
+    new_files = None
+    old_files = None
+
+    @property
+    def add_files(self):
+        return self.new_files - self.old_files
+
+    @property
+    def remove_files(self):
+        return self.old_files - self.new_files
+
+    @property
+    def no_changes(self):
+        return self.old_files == self.new_files
 
 
 def sync_dirs(from_dir, to_dir):
     logger.info('Check source ({}) directory consistency...'.format(from_dir))
     files_pairs = scan_data_checksum_files_pairs(from_dir)
     from_checksum_files = ensure_checksum_matches(files_pairs)
-    from_dir_files = set()
+    new_files = set()
     for file, checksum in from_checksum_files:
-        from_dir_files.add(DataFileChecksumPair(make_path_relative(from_dir, file), checksum))
+        new_files.add(DataFileChecksumPair(make_path_relative(from_dir, file), checksum))
 
+    file_modifications = FilesModifications()
+    file_modifications.new_files = new_files
     logger.info('Reading destination ({}) directory content to compare...'.format(to_dir))
-    to_dir_files = get_checksum_pairs_set(to_dir)
-
-    if from_dir_files == to_dir_files:
+    file_modifications.old_files = get_checksum_pairs_set(to_dir)
+    if file_modifications.no_changes:
         logger.info('No changes detected. Exit.')
-        return FilesModifications(set(), set())
+        return file_modifications
 
     logger.info('Differences detected. Start synchronising...')
-    remove_files = to_dir_files - from_dir_files
-    add_files = from_dir_files - to_dir_files
 
+    remove_files = file_modifications.remove_files
     logger.info('Start removing {} files from the destination directory...'.format(len(remove_files)))
     for remove_file in remove_files:
         remove_path = os.path.join(to_dir, remove_file.data_file)
         logger.debug('Removing {} file.'.format(remove_path))
         os.remove(remove_path)
 
+    add_files = file_modifications.add_files
     logger.info('Start copying {} files from the source to destination directory...'.format(len(add_files)))
     for add_file in add_files:
         src_path = os.path.join(from_dir, add_file.data_file)
@@ -146,7 +161,11 @@ def sync_dirs(from_dir, to_dir):
         os.makedirs(os.path.dirname(dst_path), exist_ok=True)
         copyfile(src_path, dst_path)
 
-    return FilesModifications(add_files, remove_files)
+    logger.info('Double checking whether we copied exactly the same content as we expected.')
+    if not file_modifications.new_files == get_checksum_pairs_set(to_dir):
+        raise ValueError('It seems like source directory files have changed while their copying.')
+
+    return file_modifications
 
 
 if __name__ == "__main__":

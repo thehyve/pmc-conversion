@@ -16,16 +16,27 @@ def read_content(file) -> str:
 
 
 def signal_files_matches(input_file, output_file):
-    if os.path.exists(input_file) and os.path.exists(output_file):
-        shain = read_content(input_file)
-        shaout = read_content(output_file)
-        match = shain == shaout
-        logger.debug('These files match: {} \t{}, {}'.format(match, input_file, output_file))
-        return match
-    return False
+    if not os.path.exists(input_file):
+        logger.debug('Input file does not exist {}. Hence files do not match.'.format(input_file))
+        return False
+    if not os.path.exists(output_file):
+        logger.debug('Output file does not exist {}. Hence files do not match.'.format(output_file))
+        return False
+    shain = read_content(input_file)
+    shaout = read_content(output_file)
+    match = shain == shaout
+    logger.debug('These files match: {} \t{}, {}'.format(match, input_file, output_file))
+    return match
 
 
-class BaseTask(luigi.Task):
+class DynamicDependenciesTask(luigi.Task):
+    required_tasks = []
+
+    def requires(self):
+        return self.required_tasks
+
+
+class BaseTask(DynamicDependenciesTask):
     """
     Provides the basis for a task based on a input_signal_file with a hash identifier
     and a done_signal_file. A task is considered completed when the input signal is identical

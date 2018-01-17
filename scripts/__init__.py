@@ -1,2 +1,2 @@
-from .main import DataLoader
-from .main import LoadDataOnlyTask
+from .main import LoadDataFromNewFilesTask
+from .main import LoadDataFromHistoryTask
