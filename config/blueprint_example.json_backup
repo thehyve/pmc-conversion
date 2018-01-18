@@ -17,6 +17,7 @@
     "path": "Patient_information",
     "label": "Date of Birth",
     "metadata_tags": {},
+    "data_type": "DATE",
     "word_map": {}
   },
   "TAXONOMY": {
@@ -30,7 +31,8 @@
     "path": "Patient_information",
     "label": "Date of Death",
     "metadata_tags": {},
-    "word_map": {}
+    "word_map": {},
+    "data_type": "DATE"
   },
   "IC_TYPE": {
     "path": "Patient_information+Informed_consent",
@@ -50,12 +52,14 @@
     "path": "Patient_information+Informed_consent",
     "label": "Date informed Consent given",
     "metadata_tags": {},
-    "word_map": {}
+    "word_map": {},
+    "data_type": "DATE"
   },
   "IC_WITHDRAWN_DATE": {
     "path": "Patient_information+Informed_consent",
     "label": "Date informed Consent withdrawn",
     "metadata_tags": {},
+    "data_type": "DATE",
     "word_map": {}
   },
   "IC_MATERIAL": {
@@ -167,7 +171,8 @@
     "path": "Diagnosis information",
     "label": "Date of Diagnosis",
     "metadata_tags": {},
-    "word_map": {}
+    "word_map": {},
+    "data_type": "DATE"
   },
   "CENTER_TREATMENT": {
     "path": "Diagnosis information",
@@ -208,7 +213,8 @@
     "path": "Biosource information",
     "label": "Date of biosource",
     "metadata_tags": {},
-    "word_map": {}
+    "word_map": {},
+    "data_type": "DATE"
   },
   "DISEASE_STATUS": {
     "path": "Biosource information",
@@ -242,7 +248,8 @@
     "path": "Biomaterial information",
     "label": "Date of biomaterial",
     "metadata_tags": {},
-    "word_map": {}
+    "word_map": {},
+    "data_type": "DATE"
   },
   "TYPE": {
     "path": "Biomaterial information",

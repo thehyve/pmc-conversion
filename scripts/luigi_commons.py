@@ -21,7 +21,7 @@ def signal_files_matches(input_file, output_file):
         shain = read_content(input_file)
         shaout = read_content(output_file)
         match = shain == shaout
-        logger.debug('These files match: {} \t{}, {}'.format(match, input_file, output_file))
+        logger.debug('These files match: {} - {}, {}'.format(match, input_file, output_file))
         return match
     return False
 
@@ -111,6 +111,7 @@ class ExternalProgramTask(BaseTask):
     """
 
     stop_on_error = True
+    wd = '.'
 
     def program_args(self):
         """

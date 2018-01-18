@@ -21,10 +21,20 @@ class GlobalConfig(luigi.Config):
                                        default='staging')
     load_logs_dir_name = luigi.Parameter(description='Path to the log files of the loading scripts.',
                                          default='load_logs')
+    intermediate_file_dir = luigi.Parameter(description='Path to the repo to store the intermediate data products')
+
+    config_json_dir = luigi.Parameter(description='Folder with mapping files in JSON format')
+
+    python = luigi.Parameter(description='Python version to use when executing ExternalProgram Tasks',
+                             default='python3')
+
+    csr_data_file = luigi.Parameter(description='Combined clinical data for the Central subject registry')
 
     transmart_copy_jar = luigi.Parameter(description='Path to transmart copy jar.')
-    skinny_dir = luigi.Parameter(description="Skinny loader study directory.")
     study_id = luigi.Parameter(description="Id of the study to load.")
+    top_node = luigi.Parameter(description='Topnode of the study to load')
+    security_required = luigi.Parameter(description='Either True or False, TranSMART study should be private?')
+
     PGHOST = luigi.Parameter(description="Configuration for transmart-copy.")
     PGPORT = luigi.Parameter(description="Configuration for transmart-copy.")
     PGDATABASE = luigi.Parameter(description="Configuration for transmart-copy.")
@@ -50,6 +60,7 @@ repo = get_git_repo(config.repo_root_dir)
 os.makedirs(config.input_data_dir, exist_ok=True)
 os.makedirs(config.staging_dir, exist_ok=True)
 os.makedirs(config.load_logs_dir, exist_ok=True)
+os.makedirs(config.intermediate_file_dir, exist_ok=True)
 
 
 class UpdateDataFiles(BaseTask):
@@ -90,9 +101,7 @@ class GitAddRawFiles(BaseTask):
 
 
 class FormatCodeBooks(BaseTask):
-
     cm_map = '/Users/wibopipping/Projects/PMC/pmc-conversion/config/codebook_mapping.json'
-    output_dir = '/Users/wibopipping/Projects/PMC/csr_luigi_pipeline/intermediate'
 
     def requires(self):
         yield GitAddRawFiles()
@@ -101,38 +110,68 @@ class FormatCodeBooks(BaseTask):
         for path, dir_, filenames in os.walk(config.input_data_dir):
             codebooks = [file for file in filenames if 'codebook' in file]
             for codebook in codebooks:
-                codebook_file = os.path.join(path,codebook)
-                codebook_formatting(codebook_file, self.cm_map, self.output_dir)
+                codebook_file = os.path.join(path, codebook)
+                codebook_formatting(codebook_file, self.cm_map, config.intermediate_file_dir)
 
 
 class MergeClinicalData(ExternalProgramTask):
-    wd = luigi.Parameter(description='Working directory with the CSR transformation script', significant=False)
+
+    wd = os.path.join(os.getcwd(), 'scripts')
+
     csr_transformation = luigi.Parameter(description='CSR transformation script name', significant=False)
-    csr_config = luigi.Parameter(description='CSR transformation config file', significant=False)
-    python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
-    config_dir = luigi.Parameter(description='CSR transformation config dir', significant=False)
+    data_model = luigi.Parameter(description='JSON file with the columns per entity', significant=False)
+    file_list = luigi.Parameter(description='Flat text file with an ordered list of expected files', significant=False)
+    file_headers = luigi.Parameter(description='JSON file with a list of columns per data file', significant=False,
+                                   default=None)
+    columns_to_csr = luigi.Parameter(
+        description='Data file columns mapped to expected fields in the central subject registry', significant=False)
 
     def requires(self):
         yield FormatCodeBooks()
-        # return GitAddRawFiles()
 
     def program_args(self):
-        return [self.python_version, self.csr_transformation, self.csr_config, '--config_dir', self.config_dir]
+        if self.file_headers:
+            return [config.python, self.csr_transformation,
+                '--input_dir', config.input_data_dir,
+                '--output_dir', config.intermediate_file_dir,
+                '--config_dir', config.config_json_dir,
+                '--data_model', self.data_model,
+                '--file_list', self.file_list,
+                '--columns_to_csr', self.columns_to_csr,
+                '--output_filename', config.csr_data_file,
+                '--file_headers', self.file_headers]
+        else:
+            return [config.python, self.csr_transformation,
+                '--input_dir', config.input_data_dir,
+                '--output_dir', config.intermediate_file_dir,
+                '--config_dir', config.config_json_dir,
+                '--data_model', self.data_model,
+                '--file_list', self.file_list,
+                '--columns_to_csr', self.columns_to_csr,
+                '--output_filename', self.output_filename]
 
 
 class TransmartDataTransformation(ExternalProgramTask):
-    wd = luigi.Parameter(description='Working directory with the tranSMART transformation script', significant=False)
+
+    wd = os.path.join(os.getcwd(), 'scripts')
+
     tm_transformation = luigi.Parameter(description='tranSMART data transformation script name', significant=False)
-    tm_config = luigi.Parameter(description='tranSMART data transformation config file', significant=False)
-    python_version = luigi.Parameter(description='Python command to use to execute', significant=False)
-    config_dir = luigi.Parameter(description='tranSMART transformation config dir', significant=False)
+    blueprint = luigi.Parameter(description='Blueprint file to map the data to the tranSMART ontology')
+    modifiers = luigi.Parameter(description='Modifiers used by tranSMART')
 
     def requires(self):
         yield MergeClinicalData()
 
     def program_args(self):
-        return [self.python_version, self.tm_transformation, self.tm_config, '--config_dir', self.config_dir]
-
+        return [config.python, self.tm_transformation,
+                '--csr_data_file', os.path.join(config.intermediate_file_dir, config.csr_data_file),
+                '--output_dir', config.staging_dir,
+                '--config_dir', config.config_json_dir,
+                '--blueprint', self.blueprint,
+                '--modifiers', self.modifiers,
+                '--study_id', config.study_id,
+                '--top_node', '{!r}'.format(config.top_node),
+                '--security_required',config.security_required]
 
 class CbioportalDataTransformation(ExternalProgramTask):
     """
@@ -142,16 +181,19 @@ class CbioportalDataTransformation(ExternalProgramTask):
     def requires(self):
         return MergeClinicalData()
 
-    wd = '.'
-    cbio_transformation_clinical_input_file = luigi.Parameter(description='cBioPortal clinical input file', significant=False)
-    cbio_transformation_ngs_dir = luigi.Parameter(description='cBioPortal NGS file directory', significant=False)
-    cbio_transformation_output_dir = luigi.Parameter(description='cBioPortal output directory', significant=False)
+    # wd = '.'
+    # cbio_transformation_clinical_input_file = luigi.Parameter(description='cBioPortal clinical input file', significant=False)
+    # cbio_transformation_ngs_dir = luigi.Parameter(description='cBioPortal NGS file directory', significant=False)
+    # cbio_transformation_output_dir = luigi.Parameter(description='cBioPortal output directory', significant=False)
+    #
+    # def program_args(self):
+    #     return ['python3 cbioportal_transformation/pmc_cbio_wrapper.py',
+    #             '-c', self.cbio_transformation_clinical_input_file,
+    #             '-n', self.cbio_transformation_ngs_dir,
+    #             '-o', self.cbio_transformation_output_dir]
+    def run(self):
+        pass
 
-    def program_args(self):
-        return ['python3 cbioportal_transformation/pmc_cbio_wrapper.py',
-                '-c', self.cbio_transformation_clinical_input_file,
-                '-n', self.cbio_transformation_ngs_dir,
-                '-o', self.cbio_transformation_output_dir]
 
 class GitAddStagingFilesAndCommit(BaseTask):
     """
@@ -197,13 +239,14 @@ class LoadTransmartStudy(TransmartDataLoader):
         yield DeleteTransmartStudyIfExists()
 
     def program_args(self):
-        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '-d', '{!r}'.format(config.skinny_dir)]
+        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '-d', '{!r}'.format(config.staging_dir)]
 
 
 class CbioportalDataLoader(ExternalProgramTask):
     """
     Task to load data to cBioPortal
     """
+
     def requires(self):
         return GitAddStagingFilesAndCommit()
 
