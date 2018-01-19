@@ -69,13 +69,20 @@ modifiers = example_modifiers.txt
 
 
 [CbioportalDataTransformation]
-cbio_transformation_clinical_input_file = /Users/sander/Data/Project_Princess/clinical_testdata.tsv
-cbio_transformation_ngs_dir = test_data/dropzone/NGS
-cbio_transformation_output_dir = intermediate/cbioportal_staging_files/
+clinical_input_file = test_data/intermediate/clinical_testdata.tsv
+ngs_dir = test_data/dropzone/NGS
+output_dir = test_data/intermediate/cbioportal_staging_files/
 
-[CbioportalDataLoader]
-cbio_loader_input_dir = intermediate/cbioportal_staging_files/
-cbio_loader_report_dir = intermediate/
-cbio_loader_report_name = report_pmc
-cbio_loader_portal_url = http://cbioportal:8080/cbioportal
-cbio_loader_docker_image = cbioportal-hg38:1.10.2
+
+[CbioportalDataValidation]
+input_dir = /Users/sander/Data/Project_Princess/05_Pipeline/test_data/intermediate/cbioportal_staging_files/
+db_info_dir = /Users/sander/Data/Project_Princess/05_Pipeline/test_data/cbioportal_db_info/
+report_dir = /Users/sander/Data/Project_Princess/05_Pipeline/test_data/intermediate/
+report_name = report_pmc
+docker_image = cbioportal-hg38:1.10.2
+
+
+[CbioportalDataLoading]
+input_dir = /Users/sander/Data/Project_Princess/05_Pipeline/test_data/intermediate/cbioportal_staging_files/
+docker_image = cbioportal-hg38:1.10.2
+
