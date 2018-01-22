@@ -16,8 +16,12 @@ repo_root_dir=/projects/pmc/data
 input_data_dir_name=input_data
 staging_dir_name=staging
 load_logs_dir_name=load_logs
-intermediate_file_dir=<path_to>/pmc-conversion/test_data/intermediate
 config_json_dir= <path_to>/pmc-conversion/config
+
+# intermediate files
+intermediate_file_dir=<path_to>/pmc-conversion/test_data/intermediate
+csr_data_file = csr_transformation_data.tsv
+
 
 # Recommended version > python3.6
 python=python3
