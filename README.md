@@ -55,10 +55,17 @@ $ luigid
 
 ```
 
-To start the pipeline run point to the _scripts_ module and start :
+To start the pipeline:
 
 ``` bash
-$ python -m luigi --module scripts DataLoader
+$ ./load_if_new_files.sh
+
+```
+
+To load data version from the git history:
+
+``` bash
+$ ./load_data_version.sh <sha1 hash of the commit>
 
 ```
 
@@ -66,5 +73,5 @@ The pipeline creates files with identifiers in several subdirectories. These fil
 all start with `.done-*` and if you remove them the pipeline will rerun all tasks. E.g:
 
 ``` bash
-$ find . -iname ".done-*" -exec rm {} +
+$ ./remove_done_files.sh
 ```
