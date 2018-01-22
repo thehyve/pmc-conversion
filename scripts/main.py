@@ -168,9 +168,6 @@ class CbioportalDataTransformation(ExternalProgramTask):
     Task to transform data files for cBioPortal
     """
 
-    # def requires(self):
-    #     return MergeClinicalData()
-
     clinical_input_file = luigi.Parameter(description='cBioPortal clinical input file', significant=False)
     ngs_dir = luigi.Parameter(description='cBioPortal NGS file directory', significant=False)
     output_dir = luigi.Parameter(description='cBioPortal output directory', significant=False)
@@ -180,7 +177,6 @@ class CbioportalDataTransformation(ExternalProgramTask):
                 '-c', self.clinical_input_file,
                 '-n', self.ngs_dir,
                 '-o', self.output_dir]
-
 
 
 class GitAddStagingFilesAndCommit(BaseTask):
@@ -265,9 +261,6 @@ class CbioportalDataLoading(ExternalProgramTask):
     4. A running cBioPortal instance
     5. A running cBioPortal database
     """
-
-    def requires(self):
-        return CbioportalDataValidation()
 
     # Variables for importer
     input_dir = luigi.Parameter(description='cBioPortal staging file directory', significant=False)

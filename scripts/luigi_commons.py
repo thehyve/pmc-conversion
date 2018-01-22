@@ -51,10 +51,6 @@ class BaseTask(DynamicDependenciesTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.done_signal_filename = '.done-{}'.format(self.__class__.__name__)
-        self.required_tasks = []
-
-    def requires(self):
-        return self.required_tasks
 
     @property
     def input_signal_file(self):
