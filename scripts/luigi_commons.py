@@ -163,6 +163,10 @@ class ExternalProgramTask(BaseTask):
                 proc.wait()
             success = proc.returncode == 0
 
+            if not success:
+                if self.task_family == 'CbioportalDataValidation' and proc.returncode == 3:
+                    success = True
+
             stdout = self._clean_output_file(tmp_stdout)
             stderr = self._clean_output_file(tmp_stderr)
 
