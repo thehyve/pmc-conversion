@@ -6,8 +6,6 @@ import tempfile
 import luigi
 from luigi.contrib.external_program import ExternalProgramRunContext, ExternalProgramRunError
 
-from .checksum import read_sha1_file
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -16,17 +14,29 @@ def read_content(file) -> str:
     with open(file, 'r') as f:
         return f.read()
 
+
 def signal_files_matches(input_file, output_file):
-    if os.path.exists(input_file) and os.path.exists(output_file):
-        shain = read_content(input_file)
-        shaout = read_content(output_file)
-        match = shain == shaout
-        logger.debug('These files match: {} - {}, {}'.format(match, input_file, output_file))
-        return match
-    return False
+    if not os.path.exists(input_file):
+        logger.debug('Input file does not exist {}. Hence files do not match.'.format(input_file))
+        return False
+    if not os.path.exists(output_file):
+        logger.debug('Output file does not exist {}. Hence files do not match.'.format(output_file))
+        return False
+    shain = read_content(input_file)
+    shaout = read_content(output_file)
+    match = shain == shaout
+    logger.debug('These files match: {} - {}, {}'.format(match, input_file, output_file))
+    return match
 
 
-class BaseTask(luigi.Task):
+class DynamicDependenciesTask(luigi.Task):
+    required_tasks = []
+
+    def requires(self):
+        return self.required_tasks
+
+
+class BaseTask(DynamicDependenciesTask):
     """
     Provides the basis for a task based on a input_signal_file with a hash identifier
     and a done_signal_file. A task is considered completed when the input signal is identical
@@ -41,6 +51,10 @@ class BaseTask(luigi.Task):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.done_signal_filename = '.done-{}'.format(self.__class__.__name__)
+        self.required_tasks = []
+
+    def requires(self):
+        return self.required_tasks
 
     @property
     def input_signal_file(self):
@@ -50,6 +64,7 @@ class BaseTask(luigi.Task):
     def done_signal_file(self):
         """ Full path filename that is written to when task is finished successfully. """
         if not self.input_signal_file:
+            logger.debug('No input signal file specified. Create done signal file in the current directory.')
             return self.done_signal_filename
 
         if isinstance(self.input_signal_file, list):
