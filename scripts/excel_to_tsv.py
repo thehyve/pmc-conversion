@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from collections import Counter
 
 import click
 import pandas as pd
@@ -45,7 +46,7 @@ def check_arguments(source_dir, target_dir):
         logging.info('Created new directory at: {}'.format(target_dir))
 
 
-def source_files_to_csv(source_files, target_dir):
+def source_files_to_csv(source_files, target_dir, file_name_counter=Counter()):
     for file in source_files:
         logging.info('Opening file: {}'.format(os.path.basename(file)))
 
@@ -54,9 +55,14 @@ def source_files_to_csv(source_files, target_dir):
         logging.info('Sheets present: {}'.format(list(df_dict.keys())))
 
         for sheet_name, df in df_dict.items():
-            logging.info(sheet_name)
-            #TODO define output names
-            #TODO write to csv (index=False)
+            file_name_counter[sheet_name] += 1
+            output_file_name = sheet_name
+            if file_name_counter[sheet_name] > 1:
+                logging.warning('Occurrence {0} of sheet name "{1}"'.format(file_name_counter[sheet_name], sheet_name))
+                output_file_name += '_' + str(file_name_counter[sheet_name])
+            target_path = os.path.join(target_dir, output_file_name+'.tsv')
+            logging.info('Writing file at: {}'.format(target_path))
+            df.to_csv(target_path, sep='\t', index=False, header=False)
 
 
 @click.command()
@@ -79,7 +85,7 @@ def main(source_dir, target_dir, log_type):
     # Validate encoding and header fields of each source file
     source_files_to_csv(source_files, target_dir)
 
-    logging.info('Validation complete')
+    logging.info('Excel to tsv conversion complete')
 
 
 if __name__ == "__main__":
