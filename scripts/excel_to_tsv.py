@@ -6,7 +6,7 @@ from collections import Counter
 import click
 import pandas as pd
 
-ALLOWED_FILE_TYPES = ['.xls', '.xlsx']
+ALLOWED_FILE_TYPES = {'.xls', '.xlsx'}
 
 
 def configure_logging(log_type):

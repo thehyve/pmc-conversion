@@ -7,7 +7,7 @@ import chardet
 import click
 import pandas as pd
 
-ALLOWED_ENCODINGS = ['utf-8', 'ascii']
+ALLOWED_ENCODINGS = {'utf-8', 'ascii'}
 
 
 def configure_logging(log_type):
