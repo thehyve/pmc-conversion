@@ -62,7 +62,7 @@ unhandled_exception=40
 csr_transformation = csr_transformations.py
 data_model = data_model.json
 file_list = file_list.txt
-file_headers =
+file_headers = file_headers.json
 columns_to_csr = columns_to_csr.json
 
 
