@@ -58,6 +58,10 @@ scheduling_error=35
 unhandled_exception=40
 
 
+[FormatCodeBooks]
+cm_map_file = codebook_mapping.json
+
+
 [MergeClinicalData]
 csr_transformation = csr_transformations.py
 data_model = data_model.json

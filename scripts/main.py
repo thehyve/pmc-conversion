@@ -98,14 +98,16 @@ class GitAddRawFiles(BaseTask):
 
 
 class FormatCodeBooks(BaseTask):
-    cm_map = '/Users/wibopipping/Projects/PMC/pmc-conversion/config/codebook_mapping.json'
+    cm_map_file = luigi.Parameter(description='Codebook mapping file', significant=False)
 
     def run(self):
+        cm_map = os.path.join(config.config_json_dir, self.cm_map_file)
+
         for path, dir_, filenames in os.walk(config.input_data_dir):
             codebooks = [file for file in filenames if 'codebook' in file]
             for codebook in codebooks:
                 codebook_file = os.path.join(path, codebook)
-                codebook_formatting(codebook_file, self.cm_map, config.intermediate_file_dir)
+                codebook_formatting(codebook_file, cm_map, config.intermediate_file_dir)
 
 
 class MergeClinicalData(ExternalProgramTask):
