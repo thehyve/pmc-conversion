@@ -151,6 +151,9 @@ def pmc_data_restructuring(clinical_data, clinical_type):
     biomaterial_data = pd.merge(biomaterial_data, biosource_data, how='left', on=['BIOSOURCE_ID'])
     biomaterial_data['Sample ID'] = biomaterial_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
 
+    # Drop patient specific columns
+    biomaterial_data.drop('IDAA', axis = 1, inplace = True)
+
     # TODO: Remove sample IDs which are not in the data
 
     # In case of clinical sample data, return merged biomaterial dataframe
@@ -256,7 +259,7 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
         sys.exit(1)
 
     ### Create meta file
-    meta_filename = os.path.join(output_dir, 'meta_clinical_patient.txt')
+    meta_filename = os.path.join(output_dir, 'meta_clinical_%s.txt' % clinical_type)
     pmc_cbio_create_metafile.create_meta_content(meta_filename, study_id, 'CLINICAL', meta_datatype, 'data_clinical_%s.txt' % clinical_type)
     return
 

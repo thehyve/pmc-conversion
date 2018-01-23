@@ -142,3 +142,4 @@ luigi.cfg
 .done-*
 config/csr_transformation.config
 config/transmart_transformation.config
+luigi-state.pickle

@@ -25,7 +25,7 @@ def signal_files_matches(input_file, output_file):
     shain = read_content(input_file)
     shaout = read_content(output_file)
     match = shain == shaout
-    logger.debug('These files match: {} \t{}, {}'.format(match, input_file, output_file))
+    logger.debug('These files match: {} - {}, {}'.format(match, input_file, output_file))
     return match
 
 
@@ -51,10 +51,6 @@ class BaseTask(DynamicDependenciesTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.done_signal_filename = '.done-{}'.format(self.__class__.__name__)
-        self.required_tasks = []
-
-    def requires(self):
-        return self.required_tasks
 
     @property
     def input_signal_file(self):
@@ -126,6 +122,8 @@ class ExternalProgramTask(BaseTask):
     """
 
     stop_on_error = True
+    wd = '.'
+    success_codes = [0]
 
     def program_args(self):
         """
@@ -175,7 +173,8 @@ class ExternalProgramTask(BaseTask):
         try:
             with ExternalProgramRunContext(proc):
                 proc.wait()
-            success = proc.returncode == 0
+
+            success = proc.returncode in self.success_codes
 
             stdout = self._clean_output_file(tmp_stdout)
             stderr = self._clean_output_file(tmp_stderr)

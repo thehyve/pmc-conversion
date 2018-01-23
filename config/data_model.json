@@ -1,5 +1,5 @@
 {
-  "individual_data.txt":
+  "individual":
     ["INDIVIDUAL_ID",
       "GENDER",
       "BIRTH_DATE",
@@ -14,14 +14,14 @@
       "IC_LINKING_EXT",
       "REPORT_HER_SUSC",
       "REPORT_INC_FINDINGS"],
-  "study_data.txt":
+  "study":
     ["STUDY_ID",
       "ACRONYM",
       "TITLE",
       "DATADICTIONARY",
       "INDIVIDUAL_ID",
       "INDIVIDUAL_STUDY_ID"],
-  "diagnosis_data.txt":
+  "diagnosis":
     ["DIAGNOSIS_ID",
       "INDIVIDUAL_ID",
       "TUMOR_TYPE",
@@ -30,7 +30,7 @@
       "TUMOR_STAGE",
       "DIAGNOSIS_DATE",
       "CENTER_TREATMENT"],
-  "biosource_data.txt":
+  "biosource":
     ["BIOSOURCE_ID",
       "BIOSOURCE_DEDICATED",
       "INDIVIDUAL_ID",
@@ -40,10 +40,11 @@
       "BIOSOURCE_DATE",
       "DISEASE_STATUS",
       "TUMOR_PERCENTAGE"],
-  "biomaterial_data.txt":
+  "biomaterial":
     ["BIOMATERIAL_ID",
       "SRC_BIOSOURCE_ID",
       "SRC_BIOMATERIAL_ID",
       "BIOMATERIAL_DATE",
-      "TYPE"]
+      "TYPE"
+    ]
 }

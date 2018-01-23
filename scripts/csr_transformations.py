@@ -3,54 +3,9 @@ import sys
 import json
 import click
 import chardet
-import pandas as pd
-import configparser
 import collections
-
-
-class Config(object):
-    """A config object containing all information needed to transform the input data to the Central Subject Registry
-
-    Attributes:
-        config_file: The name of the config file passed as input to the script
-        file_list: A list of files that is expected as input
-        file_headers: A dict with files from the file list as keys and the expected headers for each file as a list.
-
-    """
-
-    def __init__(self, config_file):
-        def read_config_dict_from_file(config_item):
-            with open(self.config.get('GENERAL', config_item)) as f:
-                dict_ = json.loads(f.read())
-            return dict_
-
-        def read_config_list_from_file(config_item):
-            with open(self.config.get('GENERAL', config_item)) as f:
-                list_ = [line.strip() for line in f]
-            return list_
-
-        self.config = configparser.ConfigParser()
-        self.config.read(config_file)
-        self.file_dir = self.config.get('GENERAL', 'file_dir')
-        self.file_list = read_config_list_from_file('file_list_config')
-        self.file_headers = read_config_dict_from_file('file_header_config')
-        self.file_headers_list = sum(self.file_headers.values(), [])
-        self.header_mapping = read_config_dict_from_file('header_mapping_config')
-        self.file_order = read_config_list_from_file('file_order_config')
-
-        self.output_file = self.config.get('OUTPUT', 'target_file')
-        self.output_dir = self.config.get('OUTPUT', 'target_dir')
-
-
-@click.command()
-@click.argument('config_file', type=click.Path())
-@click.option('--config_dir', type=click.Path(exists=True))
-def main(config_file, config_dir):
-    if config_dir:
-        config = Config(os.path.join(config_dir, config_file))
-    else:
-        config = Config(config_file)
-    csr_transformation(config)
+import pandas as pd
+from click import UsageError
 
 
 class MissingHeaderException(Exception):
@@ -61,22 +16,69 @@ class IndividualIdentifierMissing(Exception):
     pass
 
 
-def csr_transformation(config):
-    files_per_entity = read_data_files(config)
+@click.command()
+@click.option('--input_dir', type=click.Path(exists=True))  # file_dir
+@click.option('--output_dir', type=click.Path(exists=True))  # target_dir
+@click.option('--config_dir', type=click.Path(exists=True))
+@click.option('--data_model', default=None)  # file_header_config
+@click.option('--file_list', default=None)  # file_list_config, file_order_config
+@click.option('--file_headers', default=None)  # Correct file headers per file
+@click.option('--columns_to_csr', default=None)  # header_mapping_config
+@click.option('--output_filename', default='csv_data_transformation.tsv')  # target_file
+def main(input_dir, output_dir, config_dir, data_model,
+         file_list, file_headers, columns_to_csr, output_filename):
+    ## Check which params need to be set
+    if not (config_dir or data_model or file_list or columns_to_csr):
+        # TODO: provide which variable was not provided
+        raise UsageError('Missing input arguments')
 
-    subject_registry = build_csr_dataframe(files_per_entity, config)
+    with open(os.path.join(config_dir, file_list), 'r') as f:
+        expected_files = [line.strip() for line in f]
+
+    csr_data_model = read_dict_from_file(filename=data_model, path=config_dir)
+    expected_file_headers = read_dict_from_file(filename=file_headers, path=config_dir)
+    columns_to_csr_map = read_dict_from_file(filename=columns_to_csr, path=config_dir)
+
+    output_file = os.path.join(output_dir, output_filename)
+
+    files_per_entity = read_data_files(input_dir=input_dir,
+                                       output_dir=output_dir,
+                                       columns_to_csr=columns_to_csr_map,
+                                       file_list=expected_files)
+
+    subject_registry = build_csr_dataframe(file_dict=files_per_entity,
+                                           file_list=expected_files,
+                                           csr_data_model=csr_data_model)
 
     # - Check if all CSR headers are in the merged dataframe
-    missing_header = [l for l in config.file_headers_list if l not in subject_registry.columns]
+
+    csr_expected_header = []
+    for key in csr_data_model:
+        csr_expected_header += list(csr_data_model[key])
+
+    missing_header = [l for l in csr_expected_header if l not in subject_registry.columns]
     if len(missing_header) > 0:
         raise MissingHeaderException(
             '[ERROR] Missing columns from Subject Registry data model:\n {}'.format(missing_header))
 
-    subject_registry.to_csv(config.output_file, sep='\t', index=False)
+    subject_registry.to_csv(output_file, sep='\t', index=False)
     if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
         raise IndividualIdentifierMissing('Some individuals do not have an identifier')
 
     sys.exit(0)
+
+
+def read_dict_from_file(filename, path=None):
+    if filename:
+        file = os.path.join(path, filename)
+        if os.path.exists(file):
+            with open(file, 'r') as f:
+                dict_ = json.loads(f.read())
+            return dict_
+        else:
+            return None
+    else:
+        return None
 
 
 def get_encoding(file_name):
@@ -213,7 +215,7 @@ def add_biosource_identifiers(biosource, biomaterial, biosource_merge_on='BIOSOU
     return df
 
 
-def build_csr_dataframe(file_dict, config):
+def build_csr_dataframe(file_dict, file_list, csr_data_model):
     """Takes the complete data dictionary with all of the read input files. Merges the data per entity type and adds
      INDIVIDUAL_ID and DIAGNOSIS_ID to the biomaterial entity. Data duplication is taken care of within entities
 
@@ -221,7 +223,8 @@ def build_csr_dataframe(file_dict, config):
      pandas Dataframe using pandas concat()
 
     :param file_dict: dictionary with all the files to be merged
-    :param config: the config object
+    :param file_list: an ordered list of expected files
+    :param csr_data_model: dictionary with the csr_data_model description
     :return: Central Subject Registry as pandas Dataframe
     """
     check_msgs = []
@@ -236,15 +239,17 @@ def build_csr_dataframe(file_dict, config):
     entity_to_data_frames = collections.OrderedDict()
     for entity, columns in entity_to_columns.items():
         if entity not in file_dict:
-            raise ValueError('{} does not have a corresponding file.'.format(entity))
+            raise ValueError('Missing entity: {} does not have a corresponding file.'.format(entity))
         df = merge_data_frames(df_dict=file_dict[entity],
-                          file_order=config.file_order,
-                          id_columns=columns)
+                               file_order=file_list,
+                               id_columns=columns)
         entity_to_data_frames[entity] = df
-        check_msgs += check_file_header(df.columns, config.file_headers[entity], entity)
+        check_msgs += check_file_header(df.columns, csr_data_model[entity], entity)
 
-    entity_to_data_frames['biomaterial'] = add_biosource_identifiers(entity_to_data_frames['biosource'], entity_to_data_frames['biomaterial'])
-    check_msgs += check_file_header(entity_to_data_frames['biomaterial'].columns, config.file_headers['biomaterial'], 'biomaterial')
+    entity_to_data_frames['biomaterial'] = add_biosource_identifiers(entity_to_data_frames['biosource'],
+                                                                     entity_to_data_frames['biomaterial'])
+    check_msgs += check_file_header(entity_to_data_frames['biomaterial'].columns, csr_data_model['biomaterial'],
+                                    'biomaterial')
 
     if check_msgs:
         raise MissingHeaderException('Missing headers for entities', print_errors(check_msgs))
@@ -262,14 +267,14 @@ def build_csr_dataframe(file_dict, config):
     return subject_registry
 
 
-def read_data_files(config):
+def read_data_files(input_dir, output_dir, columns_to_csr, file_list):
     error_messages = []  # TODO: implement python logger?
 
     # Input is taken in per entity.
     files_per_entity = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
     all_files = []
     # Assumption is that all the files are in EPD, LIMMS or STUDY folders.
-    for path, dir_, filenames in os.walk(config.file_dir):
+    for path, dir_, filenames in os.walk(input_dir):
         for filename in filenames:
             working_dir = path.rsplit('/', 1)[1].upper()
             if dir_ == [] and working_dir in ['EPD', 'LIMMS',
@@ -277,11 +282,11 @@ def read_data_files(config):
                 all_files += filename
                 file = os.path.join(path, filename)
 
-                codebook = check_for_codebook(filename, config.output_dir)
+                codebook = check_for_codebook(filename, output_dir)
 
                 # Check if mapping for columns to CSR fields is present
-                if filename in config.header_mapping:
-                    header_map = config.header_mapping[filename]
+                if filename in columns_to_csr:
+                    header_map = columns_to_csr[filename]
                 else:
                     header_map = None
 
@@ -296,9 +301,9 @@ def read_data_files(config):
                 files_per_entity[file_type].update({filename: df})
 
     error_messages += check_file_list(all_files,
-                                      config.file_list)  # TODO: is this step needed? Covered by checking CSR output?
+                                      file_list)  # TODO: is this step needed? Covered by checking CSR output?
     # Temporarily disabled
-    #if error_messages:
+    # if error_messages:
     #    raise InputFilesIncomplete('{} Input files missing'.format(print_errors(error_messages)))
 
     return files_per_entity
