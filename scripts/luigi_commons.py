@@ -123,6 +123,7 @@ class ExternalProgramTask(BaseTask):
 
     stop_on_error = True
     wd = '.'
+    success_codes = [0]
 
     def program_args(self):
         """
@@ -172,11 +173,8 @@ class ExternalProgramTask(BaseTask):
         try:
             with ExternalProgramRunContext(proc):
                 proc.wait()
-            success = proc.returncode == 0
 
-            if not success:
-                if self.task_family == 'CbioportalDataValidation' and proc.returncode == 3:
-                    success = True
+            success = proc.returncode in self.success_codes
 
             stdout = self._clean_output_file(tmp_stdout)
             stderr = self._clean_output_file(tmp_stderr)

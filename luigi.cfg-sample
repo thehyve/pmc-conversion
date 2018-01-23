@@ -79,14 +79,13 @@ output_dir = test_data/intermediate/cbioportal_staging_files/
 
 
 [CbioportalDataValidation]
-input_dir = /Users/sander/Data/Project_Princess/05_Pipeline/test_data/intermediate/cbioportal_staging_files/
-db_info_dir = /Users/sander/Data/Project_Princess/05_Pipeline/test_data/cbioportal_db_info/
-report_dir = /Users/sander/Data/Project_Princess/05_Pipeline/test_data/intermediate/
+input_dir = test_data/intermediate/cbioportal_staging_files/
+db_info_dir = test_data/cbioportal_db_info/
+report_dir = test_data/intermediate/
 report_name = report_pmc
 docker_image = cbioportal-hg38:1.10.2
 
 
 [CbioportalDataLoading]
-input_dir = /Users/sander/Data/Project_Princess/05_Pipeline/test_data/intermediate/cbioportal_staging_files/
+input_dir = test_data/intermediate/cbioportal_staging_files/
 docker_image = cbioportal-hg38:1.10.2
-

@@ -11,7 +11,6 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-
 class GlobalConfig(luigi.Config):
     drop_dir = luigi.Parameter(description='Directory files gets uploaded to.')
 
@@ -237,7 +236,16 @@ class CbioportalDataValidation(ExternalProgramTask):
     db_info_dir = luigi.Parameter(description='cBioPortal info directory', significant=False)
     report_name = luigi.Parameter(description='Validation report name', significant=False)
 
+    # Success codes for validation
+    success_codes = [0, 3]
+
     def program_args(self):
+
+        # Docker requires a full path for mounting a directory
+        self.input_dir = os.path.join(os.getcwd(), self.input_dir)
+        self.report_dir = os.path.join(os.getcwd(), self.report_dir)
+        self.db_info_dir = os.path.join(os.getcwd(), self.db_info_dir)
+
         # Build the command for validation
         docker_command = 'docker run --rm --net=cbio-net -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
                          '-v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
@@ -267,6 +275,10 @@ class CbioportalDataLoading(ExternalProgramTask):
     docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
 
     def program_args(self):
+
+        # Docker requires a full path for mounting a directory
+        self.input_dir = os.path.join(os.getcwd(), self.input_dir)
+
         # Build the command for importer only
         docker_command = 'docker run --rm --net=cbio-net -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
                          % (self.input_dir, self.docker_image)
