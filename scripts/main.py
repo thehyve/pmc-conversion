@@ -173,7 +173,7 @@ class CbioportalDataTransformation(ExternalProgramTask):
 
     def program_args(self):
 
-        clinical_input_file = os.path.join(config.intermediate_file_dir, 'clinical_testdata.tsv')
+        clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
         ngs_dir = os.path.join(config.drop_dir, 'NGS')
         output_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files')
 
