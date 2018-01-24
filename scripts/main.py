@@ -235,10 +235,10 @@ class CbioportalDataValidation(ExternalProgramTask):
     # Set specific docker image
     docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
 
-    def program_args(self):
-        # Success codes for validation
-        success_codes = [0, 3]
+    # Success codes for validation
+    success_codes = [0, 3]
 
+    def program_args(self):
         # Directory and file names for validation
         input_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files')
         report_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_report_files')
@@ -246,7 +246,7 @@ class CbioportalDataValidation(ExternalProgramTask):
         report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
 
         # Build the command for validation
-        docker_command = 'docker run --rm --net=cbio-net -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
+        docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
                          '-v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
                          % (input_dir, db_info_dir, report_dir, self.docker_image)
 
@@ -281,7 +281,7 @@ class CbioportalDataLoading(ExternalProgramTask):
         input_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files')
 
         # Build the command for importer only
-        docker_command = 'docker run --rm --net=cbio-net -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
+        docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
                          % (input_dir, self.docker_image)
         python_command = 'python /cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
 
