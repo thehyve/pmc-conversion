@@ -353,17 +353,17 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         git_add_raw_files = GitAddRawFiles()
         git_add_raw_files.required_tasks = [update_data_files]
         yield git_add_raw_files
-        format_condebook = FormatCodeBooks()
-        format_condebook.required_tasks = [git_add_raw_files]
-        yield format_condebook
+        format_codebook = FormatCodeBooks()
+        format_codebook.required_tasks = [git_add_raw_files]
+        yield format_codebook
         merge_clinical_data = MergeClinicalData()
-        merge_clinical_data.required_tasks = [format_condebook]
+        merge_clinical_data.required_tasks = [format_codebook]
         yield merge_clinical_data
         transmart_data_transformation = TransmartDataTransformation()
         transmart_data_transformation.required_tasks = [merge_clinical_data]
         yield transmart_data_transformation
         cbioportal_data_transformation = CbioportalDataTransformation()
-        cbioportal_data_transformation.required_tasks = [transmart_data_transformation]
+        cbioportal_data_transformation.required_tasks = [merge_clinical_data]
         yield cbioportal_data_transformation
         git_add_staging_files_and_commit = GitAddStagingFilesAndCommit()
         git_add_staging_files_and_commit.required_tasks = [cbioportal_data_transformation, transmart_data_transformation]
