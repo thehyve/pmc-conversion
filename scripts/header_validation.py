@@ -28,19 +28,8 @@ def configure_logging(log_type):
 
 
 def read_json_dictionary(path):
-    logging.info('Collecting properties form JSON file: {}'.format(path))
+    logging.info('Collecting properties from JSON file: {}'.format(path))
     file_prop_dict = json.load(open(path))
-    #for filename, header_fields in file_prop_dict.items():
-    #    logging.info('Expected file "{0}" has mandatory fields: {1}'.format(filename, header_fields))
-    return file_prop_dict
-
-
-def get_required_header_fields(header_file):
-    logging.info('Collecting mandatory header fields.')
-    file_prop_dict = json.load(open(header_file))
-    # Make sure all header fields are uppercase
-    file_prop_dict = {filename: {field.upper() for field in fields} for filename, fields in file_prop_dict.items()}
-
     return file_prop_dict
 
 
@@ -93,16 +82,24 @@ def check_date_fields(file_prop_dict, filename, file_header_fields, df):
             logging.info('Checking ({0}/{1}) available date fields: {2}'.format(*args))
             for col in date_cols_present:
                 expected_date_format = file_prop_dict[filename]['date_format']
-                pd.to_datetime(df[col], format=expected_date_format)
+                try:
+                    pd.to_datetime(df[col], format=expected_date_format)
+                except ValueError:
+                    args = (filename, col, expected_date_format)
+                    logging.error('Incorrect date format for {0} in field {1}, expected {2}'.format(*args))
+                    logging.error(df[col])
+                    continue
+            logging.info('Date format checking complete.')
         else:
             logging.error('None of the expected date fields were present in: {}'.format(filename))
     else:
-        logging.info('{} doesn\'t have any expected date fields to check'.format(filename))
+        logging.info('There are no expected date fields to check.')
 
 
 def validate_source_files(file_prop_dict, source_files):
     for path in source_files:
         filename = os.path.basename(path)
+        logging.info('-' * 80)
         logging.info('Checking file: {}'.format(filename))
 
         # Check file is not empty
@@ -121,22 +118,23 @@ def validate_source_files(file_prop_dict, source_files):
         try:
             df = pd.read_csv(path, sep=None, engine='python', dtype='object')
         except ValueError:  # Catches far from everything
-            logging.error('Could not read file: {}. Is it a valid data frame?'.format(path))
+            logging.error('Could not read file: {}. Is it a valid data frame?'.format(filename))
             continue
         else:
-            file_header_fields = {field.upper() for field in df.columns}
+            df.columns = [field.upper() for field in df.columns]
+            file_header_fields = set(df.columns)
         logging.info('Detected fields: {}'.format(file_header_fields))
 
+        # Check mandatory header fields are present
         required_header_fields = {field.upper() for field in file_prop_dict[filename]['headers']}
         if not required_header_fields.issubset(file_header_fields):
             missing = required_header_fields - file_header_fields
-            logging.error('{0} is missing mandatory header fields: {1}'.format(path, missing))
+            logging.error('{0} is missing mandatory header fields: {1}'.format(filename, missing))
         else:
-            logging.info('All mandatory header fields found for: {}'.format(path))
+            logging.info('All mandatory header fields are present.')
 
         # Check date format
         check_date_fields(file_prop_dict, filename, file_header_fields, df)
-
 
 
 @click.command()
@@ -163,7 +161,7 @@ def main(source_dir, properties_file, log_type):
     # Validate encoding and header fields of each source file
     validate_source_files(file_prop_dict, source_files)
 
-    logging.info('Validation complete')
+    logging.info('Validation complete.')
 
 
 if __name__ == "__main__":
