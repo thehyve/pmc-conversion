@@ -87,7 +87,6 @@ def check_date_fields(file_prop_dict, filename, file_header_fields, df):
                 except ValueError:
                     args = (filename, col, expected_date_format)
                     logging.error('Incorrect date format for {0} in field {1}, expected {2}'.format(*args))
-                    logging.error(df[col])
                     continue
             logging.info('Date format checking complete.')
         else:
