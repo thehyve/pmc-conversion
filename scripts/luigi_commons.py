@@ -60,7 +60,7 @@ class BaseTask(DynamicDependenciesTask):
     def done_signal_file(self):
         """ Full path filename that is written to when task is finished successfully. """
         if not self.input_signal_file:
-            logger.debug('No input signal file specified. Create done signal file in the current directory.')
+            # logger.debug('No input signal file specified. Create done signal file in the current directory.')
             return self.done_signal_filename
 
         if isinstance(self.input_signal_file, list):
