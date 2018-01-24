@@ -1,49 +1,103 @@
 {
-  "individual_data.txt":
-    ["INDIVIDUAL_ID",
-      "GENDER",
-      "BIRTH_DATE",
-      "TAXONOMY",
-      "DEATH_DATE",
-      "IC_TYPE",
-      "IC_VERSION",
-      "IC_GIVE_DATE",
-      "IC_WITHDRAWN_DATE",
-      "IC_MATERIAL",
-      "IC_DATA",
-      "IC_LINKING_EXT",
-      "REPORT_HER_SUSC",
-      "REPORT_INC_FINDINGS"],
-  "study_data.txt":
-    ["STUDY_ID",
+  "br_test.txt": {
+      "headers": ["INDIVIDUAL_ID",
+        "CID",
+        "IDAABA_pseudo",
+        "CIDDIAG2",
+        "HOSPDIAG",
+        "DIAGCD",
+        "PLOCCD",
+        "DIAGGRSTX",
+        "TREATMENT_PROTOCOL"],
+      "date_format": "%d/%m/%y",
+      "date_columns": ["IDAABA_pseudo"]
+      },
+  "br_test2.txt":
+    {
+      "headers": ["INDIVIDUAL_ID",
+        "CID",
+        "IDAABA_pseudo",
+        "CIDDIAG2",
+        "HOSPDIAG",
+        "DIAGCD",
+        "PLOCCD",
+        "DIAGGRSTX",
+        "TREATMENT_PROTOCOL"],
+      "date_format": "%d/%m/%y",
+      "date_columns": ["IDAABA_pseudo"]
+      },
+  "br_test_copy.txt":
+    {
+      "headers": [
+        "INDIVIDUAL_ID",
+        "DTOB_pseudo",
+        "SEX",
+        "IFCDATR",
+        "IFCGIV",
+        "IFCMAT",
+        "IFCCOM",
+        "IFCREF",
+        "IFCREF",
+        "DTDEATH",
+        "TAXONOMY",
+        "IC_VERSION",
+        "IC_withdrawn_date",
+        "REPORT_HER_SUSC",
+        "REPORT_INC_FINDINGS",
+        "IC_GIVE_DATE"
+        ],
+      "date_format": "%d/%m/%y",
+      "date_columns": ["DTOB_pseudo","DTDEATH","IC_GIVE_DATE"]
+      },
+  "extra_file.txt":
+    {
+      "headers": ["INDIVIDUAL_ID",
+        "CID",
+        "IDAABA_pseudo",
+        "CIDDIAG2",
+        "HOSPDIAG",
+        "DIAGCD",
+        "PLOCCD",
+        "DIAGGRSTX"],
+      "date_format": "%d/%M/%y",
+      "date_columns": ["IDAABA_pseudo"]
+      },
+  "biomaterial_test.txt":{
+      "headers":["biomaterial_id",
+        "src_biosource_id",
+        "SRC_BIOMATERIAL_ID",
+        "BIOMATERIAL_DATE",
+        "TYPE"],
+      "date_format":"%d/%m/%y",
+      "date_columns":["BIOMATERIAL_DATE"]
+    },
+  "biomaterial_test2.txt":{
+      "headers":["biomaterial_id",
+        "src_biosource_id",
+        "TEST2",
+        "NO_DATA"]
+    },
+    "biosource_test.txt":{
+      "headers":["biosource_id",
+        "individual_id",
+        "src_biosource_id",
+        "tissue",
+        "description",
+        "biosource_dedicated",
+        "diagnosis_id",
+        "biosource_date",
+        "disease_status",
+        "tumor_percentage"],
+      "date_format":"%d/%m/%y",
+      "date_columns":["biosource_date"]
+    },
+  "study.txt":{
+      "headers":["RECORD ID",
+      "STUDY_ID",
+      "INDIVIDUAL_STUDY_ID",
       "ACRONYM",
       "TITLE",
-      "DATADICTIONARY",
-      "INDIVIDUAL_ID",
-      "INDIVIDUAL_STUDY_ID"],
-  "diagnosis_data.txt":
-    ["DIAGNOSIS_ID",
-      "INDIVIDUAL_ID",
-      "TUMOR_TYPE",
-      "TOPOGRAPHY",
-      "TREATMENT_PROTOCOL",
-      "TUMOR_STAGE",
-      "DIAGNOSIS_DATE",
-      "CENTER_TREATMENT"],
-  "biosource_data.txt":
-    ["BIOSOURCE_ID",
-      "BIOSOURCE_DEDICATED",
-      "INDIVIDUAL_ID",
-      "DIAGNOSIS_ID",
-      "SRC_BIOSOURCE_ID",
-      "TISSUE",
-      "BIOSOURCE_DATE",
-      "DISEASE_STATUS",
-      "TUMOR_PERCENTAGE"],
-  "biomaterial_data.txt":
-    ["BIOMATERIAL_ID",
-      "SRC_BIOSOURCE_ID",
-      "SRC_BIOMATERIAL_ID",
-      "BIOMATERIAL_DATE",
-      "TYPE"]
+      "DESCRIPTION",
+      "DATADICTIONARY"]
+    }
 }
