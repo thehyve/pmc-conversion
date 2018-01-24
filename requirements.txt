@@ -6,3 +6,6 @@ SQLAlchemy==1.1.15
 tornado==4.5.2
 gitpython==2.1.8
 click==6.7
+pandas>=0.22.0
+chardet>=3.0.4
+tmtk==0.4.1.dev2

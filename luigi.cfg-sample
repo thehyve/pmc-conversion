@@ -1,33 +1,51 @@
 [core]
 logging_conf_file=logging.cfg
 
+
 [task_history]
 db_connection = sqlite:///pmc-luigi-db.sqlite
+
 
 [scheduler]
 record_task_history = True
 state_path = luigi-state.pickle
 
 [GlobalConfig]
-drop_dir=/data/drop_dir
+drop_dir=<path_to>/test_data/dropzone
 repo_root_dir=/projects/pmc/data
 input_data_dir_name=input_data
 staging_dir_name=staging
 load_logs_dir_name=load_logs
+config_json_dir= <path_to>/pmc-conversion/config
 
+# intermediate files
+intermediate_file_dir=<path_to>/pmc-conversion/test_data/intermediate
+csr_data_file = csr_transformation_data.tsv
+
+
+# Recommended version > python3.6
+python=python3
+
+# TranSMART study settings
 transmart_copy_jar = /transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
-skinny_dir = /projects/pmc/csr_luigi_study
-study_id = CSR_STUDY_2
-#Some environment variables you can set here
+study_id = CSR_STUDY
+top_node = \Private Studies\CSR Study\
+# security_required: Y or N
+security_required = Y
+
+
+# TranSMART database
 PGHOST = localhost
 PGPORT = 5432
 PGDATABASE = transmart
 PGUSER = tm_cz
 PGPASSWORD = tm_cz
 
+
 [resources]
 # Resources are used to limit the number of concurrent tasks
 transmart_loader = 1
+
 
 [retcode]
 # The following return codes are the recommended exit codes for Luigi
@@ -40,29 +58,28 @@ scheduling_error=35
 unhandled_exception=40
 
 
+[FormatCodeBooks]
+cm_map_file = codebook_mapping.json
+
+
 [MergeClinicalData]
-wd = /projects/pmc/pmc-conversion/csr_transformation/
 csr_transformation = csr_transformations.py
-csr_config = test_config.config
-python_version = python3
-config_dir = <path_to_pmc-conversion>/config
+data_model = data_model.json
+file_list = file_list.txt
+file_headers = file_headers.json
+columns_to_csr = columns_to_csr.json
 
 
 [TransmartDataTransformation]
-wd = /projects/pmc/pmc-conversion/transmart_transformation/
 tm_transformation = transmart_transformation.py
-tm_config = test_config.config
-python_version = python3
-config_dir = <path_to_pmc-conversion>/config
+blueprint = blueprint_example.json
+modifiers = example_modifiers.txt
 
-[CbioportalDataTransformation]
-cbio_transformation_clinical_input_file = /Users/sander/Data/Project_Princess/clinical_testdata.tsv
-cbio_transformation_ngs_dir = test_data/dropzone/NGS
-cbio_transformation_output_dir = intermediate/cbioportal_staging_files/
 
-[CbioportalDataLoader]
-cbio_loader_input_dir = intermediate/cbioportal_staging_files/
-cbio_loader_report_dir = intermediate/
-cbio_loader_report_name = report_pmc
-cbio_loader_portal_url = http://cbioportal:8080/cbioportal
-cbio_loader_docker_image = cbioportal-hg38:1.10.2
+[CbioportalDataValidation]
+docker_image = cbioportal-hg38:1.10.2
+
+
+[CbioportalDataLoading]
+docker_image = cbioportal-hg38:1.10.2
+server_name = pmc-cbioportal-test
