@@ -27,21 +27,44 @@ def configure_logging(log_type):
         logging.getLogger('').addHandler(log_file)
 
 
+def read_json_dictionary(path):
+    logging.info('Collecting properties form JSON file: {}'.format(path))
+    file_prop_dict = json.load(open(path))
+    #for filename, header_fields in file_prop_dict.items():
+    #    logging.info('Expected file "{0}" has mandatory fields: {1}'.format(filename, header_fields))
+    return file_prop_dict
+
+
 def get_required_header_fields(header_file):
-    data = json.load(open(header_file))
-    required_header_fields = set(data['mandatory_columns'])
-    required_header_fields = {field.upper() for field in required_header_fields}
-    logging.info('Expected fields: {}'.format(required_header_fields))
-    return required_header_fields
+    logging.info('Collecting mandatory header fields.')
+    file_prop_dict = json.load(open(header_file))
+    # Make sure all header fields are uppercase
+    file_prop_dict = {filename: {field.upper() for field in fields} for filename, fields in file_prop_dict.items()}
+
+    return file_prop_dict
 
 
-def get_source_files(path):
-    logging.info('Collecting source files')
-    source_files = [os.path.join(path, file) for file in os.listdir(path)]
-    source_files = [path for path in source_files if os.path.isfile(path) and
-                    not os.path.basename(path).startswith('.') and '~$' not in path]
-    logging.info('Source files: {}'.format([os.path.basename(file) for file in source_files]))
-    return source_files
+def get_source_files(path, file_prop_dict):
+    logging.info('Collecting source files.')
+    expected_files = set(file_prop_dict.keys())
+    source_paths = {os.path.join(path, file) for file in os.listdir(path)}
+    source_paths = {path for path in source_paths if os.path.isfile(path) and
+                    not os.path.basename(path).startswith('.') and '~$' not in path}
+
+    source_files = {os.path.basename(path) for path in source_paths}
+    valid_files = expected_files.intersection(source_files)
+
+    if expected_files != valid_files:
+        missing = expected_files - source_files
+        logging.error('({0}/{1}) expected files were not found: {2}'.format(len(missing), len(expected_files), missing))
+    else:
+        logging.info('All expected files were found in the source folder.')
+
+    additional_files = source_files - expected_files
+    if additional_files:
+        logging.warning('Additional files were found; these will be ignored: {}'.format(additional_files))
+
+    return {sp for sp in source_paths if os.path.basename(sp) in valid_files}
 
 
 def get_encoding(file_name):
@@ -60,59 +83,85 @@ def check_arguments(source_dir, header_file):
         sys.exit(1)
 
 
-def validate_source_files(required_header_fields, source_files):
-    for file in source_files:
-        logging.info('Checking file: {}'.format(os.path.basename(file)))
+def check_date_fields(file_prop_dict, filename, file_header_fields, df):
+    expected_date_fields = file_prop_dict[filename].get('date_columns')
+    expected_date_fields = {field.upper() for field in expected_date_fields} if expected_date_fields else None
+    if expected_date_fields:
+        date_cols_present = {field for field in file_header_fields if field in expected_date_fields}
+        if date_cols_present:
+            args = (len(date_cols_present), len(expected_date_fields), date_cols_present)
+            logging.info('Checking ({0}/{1}) available date fields: {2}'.format(*args))
+            for col in date_cols_present:
+                expected_date_format = file_prop_dict[filename]['date_format']
+                pd.to_datetime(df[col], format=expected_date_format)
+        else:
+            logging.error('None of the expected date fields were present in: {}'.format(filename))
+    else:
+        logging.info('{} doesn\'t have any expected date fields to check'.format(filename))
 
-        if os.stat(file).st_size == 0:
-            logging.error('File is empty: {}'.format(file))
+
+def validate_source_files(file_prop_dict, source_files):
+    for path in source_files:
+        filename = os.path.basename(path)
+        logging.info('Checking file: {}'.format(filename))
+
+        # Check file is not empty
+        if os.stat(path).st_size == 0:
+            logging.error('File is empty: {}'.format(filename))
             continue
 
-        encoding = get_encoding(file)
+        # Check encoding
+        encoding = get_encoding(path)
         if encoding not in ALLOWED_ENCODINGS:
             logging.error('Invalid file encoding ({0}) detected for: {1}. Must be {2}.'.format(encoding,
-                          file, '/'.join(ALLOWED_ENCODINGS)))
+                          filename, '/'.join(ALLOWED_ENCODINGS)))
             continue
 
+        # Try to read the file as df
         try:
-            file_header_fields = set(pd.read_csv(file, nrows=1, sep=None, engine='python').columns)
+            df = pd.read_csv(path, sep=None, engine='python', dtype='object')
         except ValueError:  # Catches far from everything
-            logging.error('Could not read file: {}. Is it a valid data frame?'.format(file))
+            logging.error('Could not read file: {}. Is it a valid data frame?'.format(path))
             continue
         else:
-            file_header_fields = {field.upper() for field in file_header_fields}
+            file_header_fields = {field.upper() for field in df.columns}
         logging.info('Detected fields: {}'.format(file_header_fields))
 
+        required_header_fields = {field.upper() for field in file_prop_dict[filename]['headers']}
         if not required_header_fields.issubset(file_header_fields):
             missing = required_header_fields - file_header_fields
-            logging.error('{0} is missing mandatory header fields: {1}'.format(file, missing))
+            logging.error('{0} is missing mandatory header fields: {1}'.format(path, missing))
         else:
-            logging.info('Validation successful.')
+            logging.info('All mandatory header fields found for: {}'.format(path))
+
+        # Check date format
+        check_date_fields(file_prop_dict, filename, file_header_fields, df)
+
 
 
 @click.command()
 @click.argument('source_dir', type=click.Path(exists=True))
-@click.argument('header_file', type=click.Path(exists=True))
+@click.argument('properties_file', type=click.Path(exists=True))
 @click.option('-l', '--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
               help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
-def main(source_dir, header_file, log_type):
+def main(source_dir, properties_file, log_type):
     """1. SOURCE_DIR path to the folder containing the source files.
     All files in this folder will be checked for encoding and the required header fields.\n
-    2. HEADER_FILE path to json file that provides the required header fields.
+    2. PROPERTIES_FILE path to json file that provides the required properties per file.
     A copy of this file can be found at:\n
-    \tpmc-conversion/config/mandatory_columns.json"""
+    \tpmc-conversion/config/file_headers.json"""
     configure_logging(log_type)
     logging.info('Source folder: {}'.format(source_dir))
-    logging.info('Header file: {}'.format(header_file))
+    logging.info('Properties file: {}'.format(properties_file))
 
     # check provided arguments
-    check_arguments(source_dir, header_file)
-    # Collect mandatory header fields from json file
-    required_header_fields = get_required_header_fields(header_file)
+    check_arguments(source_dir, properties_file)
+    # Collect expected file properties from json file
+    file_prop_dict = read_json_dictionary(properties_file)
     # Collect all source files
-    source_files = get_source_files(source_dir)
+    source_files = get_source_files(source_dir, file_prop_dict)
     # Validate encoding and header fields of each source file
-    validate_source_files(required_header_fields, source_files)
+    validate_source_files(file_prop_dict, source_files)
 
     logging.info('Validation complete')
 
