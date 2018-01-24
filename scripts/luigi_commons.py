@@ -50,7 +50,7 @@ class BaseTask(DynamicDependenciesTask):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.done_signal_filename = '.done-{}'.format(self.__class__.__name__)
+        self.done_signal_filename = '.done-{}'.format(self.task_id)
 
     @property
     def input_signal_file(self):
@@ -60,7 +60,6 @@ class BaseTask(DynamicDependenciesTask):
     def done_signal_file(self):
         """ Full path filename that is written to when task is finished successfully. """
         if not self.input_signal_file:
-            # logger.debug('No input signal file specified. Create done signal file in the current directory.')
             return self.done_signal_filename
 
         if isinstance(self.input_signal_file, list):
@@ -88,6 +87,10 @@ class BaseTask(DynamicDependenciesTask):
 
         :return: some identifier (sha1 hash)
         """
+
+        if not self.input_signal_file:
+            return ''
+
         if isinstance(self.input_signal_file, list):
             input_signal_file = self.input_signal_file[0]
         else:
@@ -107,6 +110,11 @@ class BaseTask(DynamicDependenciesTask):
             f.write(self.calc_done_signal())
 
 
+def file_text_content_wo_nl(file):
+    with open(file, 'r', encoding='utf-8') as f:
+        return ''.join(f.readlines())
+
+
 class ExternalProgramTask(BaseTask):
     """
     Template task for running an external program in a subprocess
@@ -124,6 +132,7 @@ class ExternalProgramTask(BaseTask):
     stop_on_error = True
     wd = '.'
     success_codes = [0]
+    std_out_err_dir = None
 
     def program_args(self):
         """
@@ -151,44 +160,42 @@ class ExternalProgramTask(BaseTask):
         """
         return True
 
-    def _clean_output_file(self, file_object):
-        file_object.seek(0)
-        return ''.join(map(lambda s: s.decode('utf-8'), file_object.readlines()))
-
     def run(self):
         args = list(map(str, self.program_args()))
 
+        if not self.std_out_err_dir:
+            self.std_out_err_dir = tempfile.mkdtemp()
+
         logger.info('Running command: %s', ' '.join(args))
-        tmp_stdout, tmp_stderr = tempfile.TemporaryFile(), tempfile.TemporaryFile()
+        stdout_path = os.path.join(self.std_out_err_dir, 'stdout')
+        stderr_path = os.path.join(self.std_out_err_dir, 'stderr')
         env = self.program_environment()
-        proc = subprocess.Popen(
-            ' '.join(args),
-            env=env,
-            cwd=self.wd,
-            stdout=tmp_stdout,
-            stderr=tmp_stderr,
-            shell=True
-        )
 
-        try:
-            with ExternalProgramRunContext(proc):
-                proc.wait()
+        with open(stdout_path, mode='w') as stdout, open(stderr_path, mode='w') as stderr:
+            proc = subprocess.Popen(
+                ' '.join(args),
+                env=env,
+                cwd=self.wd,
+                stdout=stdout,
+                stderr=stderr,
+                shell=True
+            )
 
-            success = proc.returncode in self.success_codes
+        with ExternalProgramRunContext(proc):
+            proc.wait()
 
-            stdout = self._clean_output_file(tmp_stdout)
-            stderr = self._clean_output_file(tmp_stderr)
+        success = proc.returncode in self.success_codes
 
-            if stdout:
-                logger.info('Program stdout:\n{}'.format(stdout))
-            if stderr:
-                if self.always_log_stderr or not success:
-                    logger.info('Program stderr:\n{}'.format(stderr))
+        stdout = file_text_content_wo_nl(stdout_path)
+        stderr = file_text_content_wo_nl(stderr_path)
 
-            if not success and self.stop_on_error:
-                raise ExternalProgramRunError(
-                    'Program failed with return code={}:'.format(proc.returncode),
-                    args, env=env, stdout=stdout, stderr=stderr)
-        finally:
-            tmp_stderr.close()
-            tmp_stdout.close()
+        if stdout:
+            logger.info('Program stdout:\n{}'.format(stdout))
+        if stderr:
+            if self.always_log_stderr or not success:
+                logger.info('Program stderr:\n{}'.format(stderr))
+
+        if not success and self.stop_on_error:
+            raise ExternalProgramRunError(
+                'Program failed with return code={}:'.format(proc.returncode), args, env=env, stdout=stdout,
+                stderr=stderr)
