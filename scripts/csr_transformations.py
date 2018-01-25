@@ -25,7 +25,7 @@ class IndividualIdentifierMissing(Exception):
 @click.option('--file_list', default=None)  # file_list_config, file_order_config
 @click.option('--file_headers', default=None)  # Correct file headers per file
 @click.option('--columns_to_csr', default=None)  # header_mapping_config
-@click.option('--output_filename', default='csv_data_transformation.tsv')  # target_file
+@click.option('--output_filename', default='csr_data_transformation.tsv')  # target_file
 @click.option('--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
               help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
 def main(input_dir, output_dir, config_dir, data_model,
@@ -54,7 +54,8 @@ def main(input_dir, output_dir, config_dir, data_model,
     files_per_entity = read_data_files(input_dir=input_dir,
                                        output_dir=output_dir,
                                        columns_to_csr=columns_to_csr_map,
-                                       file_list=expected_files)
+                                       file_list=expected_files,
+                                       file_headers=expected_file_headers)
 
     subject_registry = build_csr_dataframe(file_dict=files_per_entity,
                                            file_list=expected_files,
@@ -71,6 +72,7 @@ def main(input_dir, output_dir, config_dir, data_model,
         raise MissingHeaderException(
             '[ERROR] Missing columns from Subject Registry data model:\n {}'.format(missing_header))
 
+    logging.info('Writing CSR data to {}'.format(output_file))
     subject_registry.to_csv(output_file, sep='\t', index=False)
     if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
         raise IndividualIdentifierMissing('Some individuals do not have an identifier')
@@ -121,8 +123,8 @@ def input_file_to_df(file_name, encoding, seperator='\t', column_mapping=None, c
     # TODO: write check to see if the df values are all captured in the codebook (check file headers)
     if codebook:
         df.replace(codebook, inplace=True)
-    if column_mapping:
-        df.columns = apply_header_map(df.columns, column_mapping)
+    # if column_mapping:
+    #     df.columns = apply_header_map(df.columns, column_mapping)
     return df
 
 
@@ -290,7 +292,7 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     return subject_registry
 
 
-def read_data_files(input_dir, output_dir, columns_to_csr, file_list):
+def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_headers):
         # Input is taken in per entity.
     files_per_entity = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
 
@@ -307,13 +309,18 @@ def read_data_files(input_dir, output_dir, columns_to_csr, file_list):
 
                 codebook = check_for_codebook(filename, output_dir)
 
-                # Check if mapping for columns to CSR fields is present
-                header_map = columns_to_csr[filename] if filename in columns_to_csr else None
-
                 # Read data from file and create a
                 # pandas DataFrame. If a header mapping is provided the columns
                 # are mapped before the DataFrame is returned
-                df = input_file_to_df(file, get_encoding(file), column_mapping=header_map, codebook=codebook)
+                df = input_file_to_df(file, get_encoding(file), codebook=codebook)
+
+                ## Update date format
+                set_date_fields(df, file_headers, filename)
+
+                # Check if mapping for columns to CSR fields is present
+                header_map = columns_to_csr[filename] if filename in columns_to_csr else None
+                if header_map:
+                    df.columns = apply_header_map(df.columns, header_map)
 
                 columns = df.columns
                 # Check if headers are present
@@ -325,6 +332,24 @@ def read_data_files(input_dir, output_dir, columns_to_csr, file_list):
     check_file_list(files_found)
 
     return files_per_entity
+
+
+def set_date_fields(df, file_prop_dict, filename):
+    date_fields = file_prop_dict[filename].get('date_columns')
+    date_fields = [field.upper() for field in date_fields] if date_fields else None
+
+    if date_fields:
+        expected_date_format = file_prop_dict[filename].get('date_format')
+        logging.info('Setting date fields for {}'.format(filename))
+        for col in date_fields:
+            try:
+                df[col] = pd.to_datetime(df[col], format=expected_date_format).dt.strftime('%Y-%m-%d')
+            except ValueError:
+                args = (filename, col, expected_date_format)
+                logging.error('Incorrect date format for {0} in field {1}, expected {2}'.format(*args))
+                continue
+    else:
+        logging.info('There are no expected date fields to check for {}'.format(filename))
 
 
 class InputFilesIncomplete(Exception):
