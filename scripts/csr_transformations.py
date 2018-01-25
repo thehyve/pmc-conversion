@@ -9,6 +9,8 @@ import pandas as pd
 from click import UsageError
 
 
+PK_COLUMNS = {'INDIVIDUAL_ID', 'DIAGNOSIS_ID', 'STUDY_ID', 'BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID', 'BIOSOURCE_ID'}
+
 class MissingHeaderException(Exception):
     pass
 
@@ -22,19 +24,19 @@ class IndividualIdentifierMissing(Exception):
 @click.option('--output_dir', type=click.Path(exists=True))  # target_dir
 @click.option('--config_dir', type=click.Path(exists=True))
 @click.option('--data_model', default=None)  # file_header_config
-@click.option('--file_list', default=None)  # file_list_config, file_order_config
+@click.option('--column_priority', default=None)  # JSON file indicating file priority per column
 @click.option('--file_headers', default=None)  # Correct file headers per file
 @click.option('--columns_to_csr', default=None)  # header_mapping_config
 @click.option('--output_filename', default='csv_data_transformation.tsv')  # target_file
 @click.option('--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
               help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
 def main(input_dir, output_dir, config_dir, data_model,
-         file_list, file_headers, columns_to_csr, output_filename, log_type):
+         column_priority, file_headers, columns_to_csr, output_filename, log_type):
 
     configure_logging(log_type)
 
     ## Check which params need to be set
-    mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--file_list': file_list,
+    mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--column_priority': column_priority,
                  '--columns_to_csr': columns_to_csr, '--file_headers': file_headers}
     if not all(mandatory.values()):
         for option_name, option_value in mandatory.items():
@@ -42,12 +44,27 @@ def main(input_dir, output_dir, config_dir, data_model,
                 logging.error('Input argument missing: {}'.format(option_name))
         raise UsageError('Missing input arguments')
 
-    with open(os.path.join(config_dir, file_list), 'r') as f:
-        expected_files = [line.strip() for line in f]
 
     csr_data_model = read_dict_from_file(filename=data_model, path=config_dir)
-    expected_file_headers = read_dict_from_file(filename=file_headers, path=config_dir)
+    file_prop_dict = read_dict_from_file(filename=file_headers, path=config_dir)
     columns_to_csr_map = read_dict_from_file(filename=columns_to_csr, path=config_dir)
+    columns_to_csr_map = {k: {k.upper(): v.upper() for k, v in vals.items()} for k, vals in columns_to_csr_map.items()}
+    column_prio_dict = read_dict_from_file(filename=column_priority, path=config_dir)
+    column_prio_dict = {k.upper(): files for k, files in column_prio_dict.items()}
+
+    # TODO: insert validation from validation script
+
+    # TODO prio mapping
+    col_file_dict = get_overlapping_columns(file_prop_dict, columns_to_csr_map)
+    check_column_prio(column_prio_dict, col_file_dict)
+
+    #with open('../config/column_priority.json', 'w') as fp:
+    #    json.dump(col_file_dict, fp)
+    sys.exit(1)
+
+    # TODO Check priority dict is valid
+
+    expected_files = file_prop_dict.keys()
 
     output_file = os.path.join(output_dir, output_filename)
 
@@ -76,6 +93,56 @@ def main(input_dir, output_dir, config_dir, data_model,
         raise IndividualIdentifierMissing('Some individuals do not have an identifier')
 
     sys.exit(0)
+
+
+def get_overlapping_columns(file_prop_dict, columns_to_csr_map):
+    col_file_dict = dict()
+    for filename in file_prop_dict:
+        colname_dict = columns_to_csr_map[filename] if filename in columns_to_csr_map else None
+        for colname in file_prop_dict[filename]['headers']:
+            colname = colname.upper()
+            if colname in PK_COLUMNS:
+                continue
+            if colname_dict and colname in colname_dict:
+                colname = colname_dict[colname]
+            if colname not in col_file_dict:
+                col_file_dict[colname] = [filename]
+            else:
+                col_file_dict[colname].append(filename)
+
+    # Remove all columns that occur in only one file
+    col_file_dict = {colname: filenames for colname, filenames in col_file_dict.items() if len(filenames) > 1}
+    return col_file_dict
+
+
+def check_column_prio(column_prio_dict, col_file_dict):
+    """Compare the priority definition from column_priority.json with what was found in file_headers.json and log
+    all mismatches."""
+    missing_in_priority = set(col_file_dict.keys()) - set(column_prio_dict.keys())
+    missing_in_file_headers = set(column_prio_dict.keys()) - set(col_file_dict.keys())
+
+    # Column name missing entirely
+    if missing_in_priority:
+        for col in missing_in_priority:
+            logging.error(('"{0}" column occurs in multiple data files: {1}, but no priority is '
+                           'defined.'.format(col, col_file_dict[col])))
+
+    if missing_in_file_headers:
+        for col in missing_in_file_headers:
+            logging.warning('Priority is defined for "{0}", but it not present in file_headers.json'.format(col))
+
+    # Present but incomplete or too much priority provided
+    shared_columns = set(column_prio_dict.keys()).intersection(set(col_file_dict.keys()))
+    for col in shared_columns:
+        files_missing_in_prio = [filename for filename in col_file_dict[col] if filename not in column_prio_dict[col]]
+        files_only_in_prio = [filename for filename in column_prio_dict[col] if filename not in col_file_dict[col]]
+        if files_missing_in_prio:
+            logging.error(('Incomplete priority provided for column "{0}". It occurs in files: {1}, but priority '
+                           'found only for files: {2}').format(col, col_file_dict[col], column_prio_dict[col]))
+
+        if files_only_in_prio:
+            logging.warning(('Provided priority for column "{0}" contains more files than present in '
+                             'file_headers.json. Priority files not used: {1}').format(col, files_only_in_prio))
 
 
 def configure_logging(log_type):
@@ -266,7 +333,7 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
         check_msgs += check_file_header(df.columns, csr_data_model[entity], entity)
 
     if missing_entities:
-        logging.error('Missing data for one or more entities, cannot continue')
+        logging.error('Missing data for one or more entities, cannot continue.')
         sys.exit(1)
 
     entity_to_data_frames['biomaterial'] = add_biosource_identifiers(entity_to_data_frames['biosource'],
