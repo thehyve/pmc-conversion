@@ -161,6 +161,8 @@ def main(source_dir, properties_file, log_type):
     validate_source_files(file_prop_dict, source_files)
 
     logging.info('Validation complete.')
+    logging.info('-' * 80)
+    logging.info('-' * 80)
 
 
 if __name__ == "__main__":
