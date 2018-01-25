@@ -4,6 +4,7 @@ import json
 import click
 import chardet
 import collections
+import logging
 import pandas as pd
 from click import UsageError
 
@@ -25,11 +26,20 @@ class IndividualIdentifierMissing(Exception):
 @click.option('--file_headers', default=None)  # Correct file headers per file
 @click.option('--columns_to_csr', default=None)  # header_mapping_config
 @click.option('--output_filename', default='csv_data_transformation.tsv')  # target_file
+@click.option('--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
+              help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
 def main(input_dir, output_dir, config_dir, data_model,
-         file_list, file_headers, columns_to_csr, output_filename):
+         file_list, file_headers, columns_to_csr, output_filename, log_type):
+
+    configure_logging(log_type)
+
     ## Check which params need to be set
-    if not (config_dir or data_model or file_list or columns_to_csr):
-        # TODO: provide which variable was not provided
+    mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--file_list': file_list,
+                 '--columns_to_csr': columns_to_csr, '--file_headers': file_headers}
+    if not all(mandatory.values()):
+        for option_name, option_value in mandatory.items():
+            if not option_value:
+                logging.error('Input argument missing: {}'.format(option_name))
         raise UsageError('Missing input arguments')
 
     with open(os.path.join(config_dir, file_list), 'r') as f:
@@ -68,6 +78,23 @@ def main(input_dir, output_dir, config_dir, data_model,
     sys.exit(0)
 
 
+def configure_logging(log_type):
+    log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', '%d-%m-%y %H:%M:%S')
+    logging.getLogger().setLevel(logging.INFO)
+
+    # Add console handler
+    if log_type in ['console', 'both']:
+        console = logging.StreamHandler()
+        console.setFormatter(log_format)
+        logging.getLogger('').addHandler(console)
+
+    # Add file handler
+    if log_type in ['file', 'both']:
+        log_file = logging.FileHandler('validation.log')
+        log_file.setFormatter(log_format)
+        logging.getLogger('').addHandler(log_file)
+
+
 def read_dict_from_file(filename, path=None):
     if filename:
         file = os.path.join(path, filename)
@@ -75,10 +102,7 @@ def read_dict_from_file(filename, path=None):
             with open(file, 'r') as f:
                 dict_ = json.loads(f.read())
             return dict_
-        else:
-            return None
-    else:
-        return None
+    return None
 
 
 def get_encoding(file_name):
@@ -94,7 +118,7 @@ def input_file_to_df(file_name, encoding, seperator='\t', column_mapping=None, c
      If a codebook was specified it will be applied before the column mapping"""
     df = pd.read_csv(file_name, sep=seperator, encoding=encoding, dtype=object)
     df.columns = map(lambda x: str(x).upper(), df.columns)
-    # TODO: write check to see if the df values are all captured in the codebook
+    # TODO: write check to see if the df values are all captured in the codebook (check file headers)
     if codebook:
         df.replace(codebook, inplace=True)
     if column_mapping:
@@ -115,12 +139,8 @@ def apply_header_map(df_columns, header):
     return new_header
 
 
-def determine_file_type(columns):
-    """Based on pandas DataFrame columns determine the type of entity to assign to the dataframe.
-
-    :param columns:
-    :return:
-    """
+def determine_file_type(columns, filename):
+    """Based on pandas DataFrame columns determine the type of entity to assign to the dataframe."""
     if 'BIOMATERIAL_ID' in columns:
         return 'biomaterial'
     if 'BIOSOURCE_ID' in columns:
@@ -132,10 +152,8 @@ def determine_file_type(columns):
     if 'INDIVIDUAL_ID' in columns:
         return 'individual'
     else:
-        # TODO: implement error messages
-        # Fails if none of the key identifiers are present
-        print('I am not working! - No Key Identifier found: Individual, diagnosis, study, biosource or biomaterial')
-        # sys.exit(9)
+        logging.error('No key identifier found (individual, diagnosis, study, biosource, '
+                      'biomaterial) in {}'.format(filename))
 
 
 def check_file_header(file_header, expected_header, name):
@@ -146,13 +164,10 @@ def check_file_header(file_header, expected_header, name):
     return msgs
 
 
-def check_file_list(files, expected_files):
-    msgs = []
-    for file in expected_files:
-        if file not in files:
-            msgs.append('[ERROR] data file: {} expected but not found'.format(file))
-
-    return msgs
+def check_file_list(files_found):
+    for filename, found in files_found.items():
+        if not found:
+            logging.error('Data file: {} expected but not found in source folder.'.format(filename))
 
 
 def merge_data_frames(df_dict, file_order, id_columns):
@@ -236,15 +251,23 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     entity_to_columns['biomaterial'] = ['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID']
     entity_to_columns['biosource'] = ['BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID']
 
+    missing_entities = False
+
     entity_to_data_frames = collections.OrderedDict()
     for entity, columns in entity_to_columns.items():
-        if entity not in file_dict:
-            raise ValueError('Missing entity: {} does not have a corresponding file.'.format(entity))
+        if not file_dict[entity]:
+            logging.error('Missing data for entity: {} does not have a corresponding file.'.format(entity))
+            missing_entities = True
+            continue
         df = merge_data_frames(df_dict=file_dict[entity],
                                file_order=file_list,
                                id_columns=columns)
         entity_to_data_frames[entity] = df
         check_msgs += check_file_header(df.columns, csr_data_model[entity], entity)
+
+    if missing_entities:
+        logging.error('Missing data for one or more entities, cannot continue')
+        sys.exit(1)
 
     entity_to_data_frames['biomaterial'] = add_biosource_identifiers(entity_to_data_frames['biosource'],
                                                                      entity_to_data_frames['biomaterial'])
@@ -268,43 +291,38 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
 
 
 def read_data_files(input_dir, output_dir, columns_to_csr, file_list):
-    error_messages = []  # TODO: implement python logger?
-
-    # Input is taken in per entity.
+        # Input is taken in per entity.
     files_per_entity = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
-    all_files = []
+
+    files_found = {filename: False for filename in file_list}
     # Assumption is that all the files are in EPD, LIMMS or STUDY folders.
     for path, dir_, filenames in os.walk(input_dir):
         for filename in filenames:
-            working_dir = path.rsplit('/', 1)[1].upper()
-            if dir_ == [] and working_dir in ['EPD', 'LIMMS',
-                                              'STUDY'] and 'codebook' not in filename and not filename.startswith('.'):
-                all_files += filename
+            working_dir = os.path.basename(path).upper()
+            if working_dir in ['EPD', 'LIMMS', 'STUDY'] and 'codebook' not in filename and not filename.startswith('.'):
                 file = os.path.join(path, filename)
+
+                if filename in files_found:
+                    files_found[filename] = True
 
                 codebook = check_for_codebook(filename, output_dir)
 
                 # Check if mapping for columns to CSR fields is present
-                if filename in columns_to_csr:
-                    header_map = columns_to_csr[filename]
-                else:
-                    header_map = None
+                header_map = columns_to_csr[filename] if filename in columns_to_csr else None
 
                 # Read data from file and create a
-                #  pandas DataFrame. If a header mapping is provided the columns
+                # pandas DataFrame. If a header mapping is provided the columns
                 # are mapped before the DataFrame is returned
                 df = input_file_to_df(file, get_encoding(file), column_mapping=header_map, codebook=codebook)
 
                 columns = df.columns
                 # Check if headers are present
-                file_type = determine_file_type(columns)
+                file_type = determine_file_type(columns, filename)
+                if not file_type:
+                    continue
                 files_per_entity[file_type].update({filename: df})
 
-    error_messages += check_file_list(all_files,
-                                      file_list)  # TODO: is this step needed? Covered by checking CSR output?
-    # Temporarily disabled
-    # if error_messages:
-    #    raise InputFilesIncomplete('{} Input files missing'.format(print_errors(error_messages)))
+    check_file_list(files_found)
 
     return files_per_entity
 
