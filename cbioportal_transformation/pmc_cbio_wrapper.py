@@ -8,11 +8,12 @@ sys.dont_write_bytecode = True
 
 import os
 import argparse
+import gzip
 import pmc_cbio_transform_clinical
 import pmc_cbio_create_metafile
 import pmc_cbio_create_caselist
 import pandas as pd
-from shutil import copyfile
+import shutil
 
 
 ### Define study properties
@@ -65,7 +66,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
 
             # TODO: Merge possible multiple files per study, into 1 file per study
             data_filename = os.path.join(output_dir, study_file)
-            copyfile(study_file_location, data_filename)
+            shutil.copyfile(study_file_location, data_filename)
 
             ### Replace header in old file
             with open(data_filename) as segment_file:
@@ -81,19 +82,25 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
             pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier = STUDY_ID, genetic_alteration_type = 'COPY_NUMBER_ALTERATION', datatype = 'SEG', reference_genome_id = 'hg38', description = 'Segment data', data_filename = study_file)
 
         ### Mutation data
-        elif study_file.split('.')[-1] == 'maf':
+        elif study_file.split('.')[-2:] == ['maf', 'gz']:
             print('Transforming mutation data: %s' % study_file)
 
+            print(study_file_location)
             # TODO: Merge possible multiple files per study, into 1 file per study
-            data_filename = os.path.join(output_dir, study_file)
-            copyfile(study_file_location, data_filename)
+            output_file_location = os.path.join(output_dir, study_file).strip('.gz')
+            output_file = study_file.strip('.gz')
+
+            # Unzip MAF file
+            with gzip.open(study_file_location, 'rb') as f_in:
+                with open(output_file_location, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
 
             ### Create meta file
             meta_filename = os.path.join(output_dir, 'meta_mutations.txt')
-            pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier = STUDY_ID, genetic_alteration_type = 'MUTATION_EXTENDED', datatype = 'MAF', stable_id = 'mutations', show_profile_in_analysis_tab = 'true', profile_name = 'Mutations', profile_description = 'Mutation data', data_filename = study_file, variant_classification_filter = '', swissprot_identifier = 'accession')
+            pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier = STUDY_ID, genetic_alteration_type = 'MUTATION_EXTENDED', datatype = 'MAF', stable_id = 'mutations', show_profile_in_analysis_tab = 'true', profile_name = 'Mutations', profile_description = 'Mutation data', data_filename = output_file, variant_classification_filter = '', swissprot_identifier = 'accession')
 
             ### Create case list
-            mutation_data = pd.read_csv(data_filename, sep='\t', dtype= {'Tumor_Sample_Barcode': str}, usecols = ['Tumor_Sample_Barcode'], skiprows = 1)
+            mutation_data = pd.read_csv(output_file_location, sep='\t', dtype= {'Tumor_Sample_Barcode': str}, usecols = ['Tumor_Sample_Barcode'], skiprows = 1)
             mutation_samples = mutation_data['Tumor_Sample_Barcode'].unique().tolist()
             pmc_cbio_create_caselist.create_caselist(output_dir = output_dir, file_name = 'cases_sequenced.txt', cancer_study_identifier = STUDY_ID, stable_id = '%s_sequenced' % STUDY_ID, case_list_name = 'Sequenced samples', case_list_description = 'All sequenced samples', case_list_category = 'all_cases_with_mutation_data', case_list_ids = "\t".join(mutation_samples))
 
@@ -102,11 +109,11 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
             print('Transforming continuous CNA data: %s' % study_file)
 
             # TODO: Merge possibly multiple files per study, into 1 file per study
-            data_filename = os.path.join(output_dir, study_file)
-            copyfile(study_file_location, data_filename)
+            data_file_location = os.path.join(output_dir, study_file)
+            shutil.copyfile(study_file_location, data_file_location)
 
             # Remove column and rename column names
-            cna_data = pd.read_csv(data_filename, sep='\t', na_values=[''], dtype= {'Gene ID': str})
+            cna_data = pd.read_csv(data_file_location, sep='\t', na_values=[''], dtype= {'Gene ID': str})
             cna_data.drop('Cytoband', axis=1, inplace=True)
             cna_data.rename(columns={'Gene Symbol': 'Hugo_Symbol', 'Gene ID': 'Entrez_Gene_Id'}, inplace=True)
 
@@ -114,7 +121,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
             for index, row in cna_data.iterrows():
                 if int(row['Entrez_Gene_Id']) < -1:
                     cna_data.loc[index, 'Entrez_Gene_Id'] = ''
-            cna_data.to_csv(data_filename, sep='\t', index=False, header=True)
+            cna_data.to_csv(data_file_location, sep='\t', index=False, header=True)
 
             ### Create meta file
             meta_filename = os.path.join(output_dir, 'meta_cna_continuous.txt')
@@ -129,11 +136,11 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
             print('Transforming discrete CNA data: %s' % study_file)
 
             # TODO: Merge possibly multiple files per study, into 1 file per study
-            data_filename = os.path.join(output_dir, study_file)
-            copyfile(study_file_location, data_filename)
+            data_file_location = os.path.join(output_dir, study_file)
+            shutil.copyfile(study_file_location, data_file_location)
 
             # Remove column and rename column names
-            cna_data = pd.read_csv(data_filename, sep='\t', na_values=[''], dtype= {'Gene ID': str})
+            cna_data = pd.read_csv(data_file_location, sep='\t', na_values=[''], dtype= {'Gene ID': str})
             cna_data.drop('Cytoband', axis=1, inplace=True)
             cna_data.rename(columns={'Gene Symbol': 'Hugo_Symbol', 'Locus ID': 'Entrez_Gene_Id'}, inplace=True)
 
@@ -141,7 +148,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
             for index, row in cna_data.iterrows():
                 if int(row['Entrez_Gene_Id']) < -1:
                     cna_data.loc[index, 'Entrez_Gene_Id'] = ''
-            cna_data.to_csv(data_filename, sep='\t', index=False, header=True)
+            cna_data.to_csv(data_file_location, sep='\t', index=False, header=True)
 
             ### Create meta file
             meta_filename = os.path.join(output_dir, 'meta_cna_discrete.txt')
