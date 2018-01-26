@@ -39,7 +39,8 @@ def main(input_dir, output_dir, config_dir, data_model,
 
     # Check which params need to be set
     mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--column_priority': column_priority,
-                 '--columns_to_csr': columns_to_csr, '--file_headers': file_headers}
+                 '--columns_to_csr': columns_to_csr, '--file_headers': file_headers, '--input_dir': input_dir,
+                 '--output_dir': output_dir}
     if not all(mandatory.values()):
         for option_name, option_value in mandatory.items():
             if not option_value:
@@ -84,13 +85,15 @@ def main(input_dir, output_dir, config_dir, data_model,
 
     missing_header = [l for l in csr_expected_header if l not in subject_registry.columns]
     if len(missing_header) > 0:
-        raise MissingHeaderException(
-            '[ERROR] Missing columns from Subject Registry data model:\n {}'.format(missing_header))
+        logging.error('Missing columns from Subject Registry data model:\n {}'.format(missing_header))
+        sys.exit(1)
+
+    if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
+        logging.error('Some individuals do not have an identifier')
+        sys.exit(1)
 
     logging.info('Writing CSR data to {}'.format(output_file))
     subject_registry.to_csv(output_file, sep='\t', index=False)
-    if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
-        raise IndividualIdentifierMissing('Some individuals do not have an identifier')
 
     sys.exit(0)
 
@@ -163,13 +166,14 @@ def configure_logging(log_type, level=logging.WARNING):
 
 
 def read_dict_from_file(filename, path=None):
-    if filename:
-        file = os.path.join(path, filename)
-        if os.path.exists(file):
-            with open(file, 'r') as f:
-                dict_ = json.loads(f.read())
-            return dict_
-    return None
+    file = os.path.join(path, filename)
+    if os.path.exists(file):
+        with open(file, 'r') as f:
+            dict_ = json.loads(f.read())
+        return dict_
+    else:
+        logging.error('Config file: {} - not found. Aborting'.format(file))
+        sys.exit(1)
 
 
 def get_encoding(file_name):
@@ -179,11 +183,11 @@ def get_encoding(file_name):
     return file_encoding.lower()
 
 
-def input_file_to_df(file_name, encoding, seperator='\t', column_mapping=None, codebook=None):
+def input_file_to_df(file_name, encoding, seperator=None, column_mapping=None, codebook=None):
     """Read in a DataFrame from a plain text file. Columns are cast to uppercase.
      If a column_mapping is specified the columns will also be tried to map.
      If a codebook was specified it will be applied before the column mapping"""
-    df = pd.read_csv(file_name, sep=seperator, encoding=encoding, dtype=object)
+    df = pd.read_csv(file_name, sep=seperator, encoding=encoding, dtype=object, engine="python")
     df.columns = map(lambda x: str(x).upper(), df.columns)
     # TODO: write check to see if the df values are all captured in the codebook (check file headers)
     if codebook:
@@ -366,7 +370,7 @@ def validate_source_file(file_prop_dict, path):
     required_header_fields = {field.upper() for field in file_prop_dict[filename]['headers']}
     if not required_header_fields.issubset(file_header_fields):
         missing = required_header_fields - file_header_fields
-        logging.error('{0} is missing mandatory header fields: {1}'.format(filename, missing))
+        logging.warning('{0} is missing mandatory header fields: {1}'.format(filename, missing))
 
 
 def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_headers):
