@@ -9,6 +9,7 @@ import pandas as pd
 from click import UsageError
 
 
+ALLOWED_ENCODINGS = {'utf-8', 'ascii'}
 PK_COLUMNS = {'INDIVIDUAL_ID', 'DIAGNOSIS_ID', 'STUDY_ID', 'BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID', 'BIOSOURCE_ID'}
 
 
@@ -196,12 +197,7 @@ def apply_header_map(df_columns, header):
     """Generate a new header for a pandas Dataframe using either the column name or the mapped column name if provided
     in the header object. Returns uppercased column names from the header"""
     header_upper = {k.upper(): v.upper() for k, v in header.items()}
-    new_header = []
-    for i in df_columns:
-        if i in header_upper:
-            new_header.append(header_upper[i])
-        else:
-            new_header.append(i)
+    new_header = [header_upper[col] if col in header_upper else col for col in df_columns]
     return new_header
 
 
@@ -343,8 +339,40 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     return subject_registry
 
 
+def validate_source_file(file_prop_dict, path):
+    filename = os.path.basename(path)
+
+    # Check file is not empty
+    if os.stat(path).st_size == 0:
+        logging.error('File is empty: {}'.format(filename))
+        return
+
+    # Check encoding
+    encoding = get_encoding(path)
+    if encoding not in ALLOWED_ENCODINGS:
+        logging.error('Invalid file encoding ({0}) detected for: {1}. Must be {2}.'.format(encoding,
+                      filename, '/'.join(ALLOWED_ENCODINGS)))
+        return
+
+    # Try to read the file as df
+    try:
+        df = pd.read_csv(path, sep=None, engine='python', dtype='object')
+    except ValueError:  # Catches far from everything
+        logging.error('Could not read file: {}. Is it a valid data frame?'.format(filename))
+        return
+    else:
+        df.columns = [field.upper() for field in df.columns]
+        file_header_fields = set(df.columns)
+
+    # Check mandatory header fields are present
+    required_header_fields = {field.upper() for field in file_prop_dict[filename]['headers']}
+    if not required_header_fields.issubset(file_header_fields):
+        missing = required_header_fields - file_header_fields
+        logging.error('{0} is missing mandatory header fields: {1}'.format(filename, missing))
+
+
 def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_headers):
-        # Input is taken in per entity.
+    # Input is taken in per entity.
     files_per_entity = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
 
     files_found = {filename: False for filename in file_list}
@@ -357,6 +385,8 @@ def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_heade
 
                 if filename in files_found:
                     files_found[filename] = True
+
+                validate_source_file(file_headers, file)
 
                 codebook = check_for_codebook(filename, output_dir)
 
