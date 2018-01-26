@@ -56,7 +56,8 @@
     "date_columns": [
       "DTOB_pseudo",
       "DTDEATH",
-      "IC_GIVE_DATE"
+      "IC_GIVE_DATE",
+      "IC_WITHDRAWN_DATE"
     ]
   },
   "extra_file.txt": {
