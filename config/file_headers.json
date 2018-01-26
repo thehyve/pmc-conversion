@@ -47,7 +47,7 @@
         "IC_GIVE_DATE"
         ],
       "date_format": "%d/%m/%y",
-      "date_columns": ["DTOB_pseudo","DTDEATH","IC_GIVE_DATE"]
+      "date_columns": ["DTOB_pseudo","DTDEATH","IC_GIVE_DATE","IC_WITHDRAWN_DATE"]
       },
   "extra_file.txt":
     {
