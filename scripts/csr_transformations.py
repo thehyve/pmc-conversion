@@ -328,8 +328,6 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     entity_to_data_frames['biomaterial'] = add_biosource_identifiers(entity_to_data_frames['biosource'],
                                                                      entity_to_data_frames['biomaterial'])
 
-    # TODO incorporate header validation form validation script
-
     # TODO: ADD DEDUPLICATION ACROSS ENTITIES:
     # TODO: Add advanced deduplication for double values from for example individual and diagnosis.
     # TODO: idea to capture this in a config file where per column for the CSR the main source is described.
@@ -394,7 +392,8 @@ def set_date_fields(df, file_prop_dict, filename):
         logging.info('Setting date fields for {}'.format(filename))
         for col in date_fields:
             try:
-                df[col] = pd.to_datetime(df[col], format=expected_date_format).dt.strftime('%Y-%m-%d')
+                #df[col] = pd.to_datetime(df[col], format=expected_date_format).dt.strftime('%Y-%m-%d').astype(object)
+                df[col] = df[col].apply(get_date_as_string,args=(expected_date_format,))
             except ValueError:
                 args = (filename, col, expected_date_format)
                 logging.error('Incorrect date format for {0} in field {1}, expected {2}'.format(*args))
@@ -402,6 +401,12 @@ def set_date_fields(df, file_prop_dict, filename):
     else:
         logging.info('There are no expected date fields to check for {}'.format(filename))
 
+
+def get_date_as_string(item, dateformat, str_format='%Y-%m-%d'):
+    if pd.isnull(item):
+        return pd.np.nan
+    else:
+        return pd.datetime.strptime(item, dateformat).strftime(str_format)
 
 class InputFilesIncomplete(Exception):
     pass
