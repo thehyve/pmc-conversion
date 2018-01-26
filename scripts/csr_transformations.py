@@ -11,6 +11,7 @@ from click import UsageError
 
 PK_COLUMNS = {'INDIVIDUAL_ID', 'DIAGNOSIS_ID', 'STUDY_ID', 'BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID', 'BIOSOURCE_ID'}
 
+
 class MissingHeaderException(Exception):
     pass
 
@@ -35,7 +36,7 @@ def main(input_dir, output_dir, config_dir, data_model,
 
     configure_logging(log_type)
 
-    ## Check which params need to be set
+    # Check which params need to be set
     mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--column_priority': column_priority,
                  '--columns_to_csr': columns_to_csr, '--file_headers': file_headers}
     if not all(mandatory.values()):
@@ -43,7 +44,6 @@ def main(input_dir, output_dir, config_dir, data_model,
             if not option_value:
                 logging.error('Input argument missing: {}'.format(option_name))
         raise UsageError('Missing input arguments')
-
 
     csr_data_model = read_dict_from_file(filename=data_model, path=config_dir)
     file_prop_dict = read_dict_from_file(filename=file_headers, path=config_dir)
@@ -54,15 +54,12 @@ def main(input_dir, output_dir, config_dir, data_model,
 
     # TODO: insert validation from validation script
 
-    # TODO prio mapping
     col_file_dict = get_overlapping_columns(file_prop_dict, columns_to_csr_map)
     check_column_prio(column_prio_dict, col_file_dict)
 
+    # write priority as constructed from file_headers.json
     #with open('../config/column_priority.json', 'w') as fp:
     #    json.dump(col_file_dict, fp)
-    sys.exit(1)
-
-    # TODO Check priority dict is valid
 
     expected_files = file_prop_dict.keys()
 
@@ -72,7 +69,7 @@ def main(input_dir, output_dir, config_dir, data_model,
                                        output_dir=output_dir,
                                        columns_to_csr=columns_to_csr_map,
                                        file_list=expected_files,
-                                       file_headers=expected_file_headers)
+                                       file_headers=file_prop_dict)
 
     subject_registry = build_csr_dataframe(file_dict=files_per_entity,
                                            file_list=expected_files,
@@ -133,7 +130,7 @@ def check_column_prio(column_prio_dict, col_file_dict):
         for col in missing_in_file_headers:
             logging.warning('Priority is defined for "{0}", but it not present in file_headers.json'.format(col))
 
-    # Present but incomplete or too much priority provided
+    # Priority present, but incomplete or unknown priority provided
     shared_columns = set(column_prio_dict.keys()).intersection(set(col_file_dict.keys()))
     for col in shared_columns:
         files_missing_in_prio = [filename for filename in col_file_dict[col] if filename not in column_prio_dict[col]]
@@ -147,9 +144,9 @@ def check_column_prio(column_prio_dict, col_file_dict):
                              'file_headers.json. Priority files not used: {1}').format(col, files_only_in_prio))
 
 
-def configure_logging(log_type):
+def configure_logging(log_type, level=logging.WARNING):
     log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', '%d-%m-%y %H:%M:%S')
-    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(level)
 
     # Add console handler
     if log_type in ['console', 'both']:
@@ -221,16 +218,8 @@ def determine_file_type(columns, filename):
     if 'INDIVIDUAL_ID' in columns:
         return 'individual'
     else:
-        logging.error('No key identifier found (individual, diagnosis, study, biosource, '
-                      'biomaterial) in {}'.format(filename))
-
-
-def check_file_header(file_header, expected_header, name):
-    msgs = []
-    for column in expected_header:
-        if column not in file_header:
-            msgs.append('[ERROR] {0} header: expected {1} as a column but not found'.format(name, column))
-    return msgs
+        logging.error(('No key identifier found (individual, diagnosis, study, biosource, '
+                      'biomaterial) in {}'.format(filename)))
 
 
 def check_file_list(files_found):
@@ -311,7 +300,6 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     :param csr_data_model: dictionary with the csr_data_model description
     :return: Central Subject Registry as pandas Dataframe
     """
-    check_msgs = []
 
     entity_to_columns = collections.OrderedDict()
     entity_to_columns['individual'] = ['INDIVIDUAL_ID']
@@ -332,7 +320,6 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
                                file_order=file_list,
                                id_columns=columns)
         entity_to_data_frames[entity] = df
-        check_msgs += check_file_header(df.columns, csr_data_model[entity], entity)
 
     if missing_entities:
         logging.error('Missing data for one or more entities, cannot continue.')
@@ -340,11 +327,8 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
 
     entity_to_data_frames['biomaterial'] = add_biosource_identifiers(entity_to_data_frames['biosource'],
                                                                      entity_to_data_frames['biomaterial'])
-    check_msgs += check_file_header(entity_to_data_frames['biomaterial'].columns, csr_data_model['biomaterial'],
-                                    'biomaterial')
 
-    if check_msgs:
-        raise MissingHeaderException('Missing headers for entities', print_errors(check_msgs))
+    # TODO incorporate header validation form validation script
 
     # TODO: ADD DEDUPLICATION ACROSS ENTITIES:
     # TODO: Add advanced deduplication for double values from for example individual and diagnosis.
