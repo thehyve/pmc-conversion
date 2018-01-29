@@ -2,6 +2,7 @@ import logging
 import os
 
 import luigi
+import time
 from .git_commons import get_git_repo
 from .sync import sync_dirs, is_dirs_in_sync, get_checksum_pairs_set
 from .luigi_commons import BaseTask, ExternalProgramTask
@@ -61,7 +62,8 @@ os.makedirs(config.input_data_dir, exist_ok=True)
 os.makedirs(config.staging_dir, exist_ok=True)
 os.makedirs(config.load_logs_dir, exist_ok=True)
 os.makedirs(config.intermediate_file_dir, exist_ok=True)
-
+os.makedirs(os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files'), exist_ok=True)
+os.makedirs(os.path.join(config.intermediate_file_dir, 'cbioportal_report_files'), exist_ok=True)
 
 def calc_done_signal_content(file_checksum_pairs):
     srt_file_checksum_pairs = sorted(file_checksum_pairs, key=lambda file_checksum_pair: file_checksum_pair.data_file)
@@ -169,15 +171,16 @@ class CbioportalDataTransformation(ExternalProgramTask):
     Task to transform data files for cBioPortal
     """
 
-    clinical_input_file = luigi.Parameter(description='cBioPortal clinical input file', significant=False)
-    ngs_dir = luigi.Parameter(description='cBioPortal NGS file directory', significant=False)
-    output_dir = luigi.Parameter(description='cBioPortal output directory', significant=False)
-
     def program_args(self):
+
+        clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
+        ngs_dir = os.path.join(config.drop_dir, 'NGS')
+        output_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files')
+
         return ['python3 cbioportal_transformation/pmc_cbio_wrapper.py',
-                '-c', self.clinical_input_file,
-                '-n', self.ngs_dir,
-                '-o', self.output_dir]
+                '-c', clinical_input_file,
+                '-n', ngs_dir,
+                '-o', output_dir]
 
 
 class GitAddStagingFilesAndCommit(BaseTask):
@@ -229,34 +232,28 @@ class CbioportalDataValidation(ExternalProgramTask):
     5. A running cBioPortal database
     """
 
-    # Variables for importer
-    input_dir = luigi.Parameter(description='cBioPortal staging file directory', significant=False)
+    # Set specific docker image
     docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
-
-    # Variables for validation
-    report_dir = luigi.Parameter(description='Validation report output directory', significant=False)
-    db_info_dir = luigi.Parameter(description='cBioPortal info directory', significant=False)
-    report_name = luigi.Parameter(description='Validation report name', significant=False)
 
     # Success codes for validation
     success_codes = [0, 3]
 
     def program_args(self):
-
-        # Docker requires a full path for mounting a directory
-        self.input_dir = os.path.join(os.getcwd(), self.input_dir)
-        self.report_dir = os.path.join(os.getcwd(), self.report_dir)
-        self.db_info_dir = os.path.join(os.getcwd(), self.db_info_dir)
+        # Directory and file names for validation
+        input_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files')
+        report_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_report_files')
+        db_info_dir = os.path.join(config.config_json_dir, 'cbioportal_db_info')
+        report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
 
         # Build the command for validation
-        docker_command = 'docker run --rm --net=cbio-net -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
+        docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
                          '-v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
-                         % (self.input_dir, self.db_info_dir, self.report_dir, self.docker_image)
+                         % (input_dir, db_info_dir, report_dir, self.docker_image)
 
         python_command = 'python /cbioportal/core/src/main/scripts/importer/validateData.py -s /study/ ' \
                          '-P /cbioportal/src/main/resources/portal.properties ' \
-                         '-p /cbioportal_db_info -html /html_reports/%s.html -v' \
-                         % self.report_name
+                         '-p /cbioportal_db_info -html /html_reports/%s -v' \
+                         % report_name
         return [docker_command, python_command]
 
 
@@ -272,22 +269,27 @@ class CbioportalDataLoading(ExternalProgramTask):
     5. A running cBioPortal database
     """
 
-    # Variables for importer
-    input_dir = luigi.Parameter(description='cBioPortal staging file directory', significant=False)
+    # Variables
     docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
+    server_name = luigi.Parameter(description='Server on which pipeline is running. If running docker locally, leave '
+                                              'empty. PMC servers: pmc-cbioportal-test | '
+                                              'pmc-cbioportal-acc | pmc-cbioportal-prod', significant=False)
 
     def program_args(self):
 
-        # Docker requires a full path for mounting a directory
-        self.input_dir = os.path.join(os.getcwd(), self.input_dir)
+        # Directory and file names for validation
+        input_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files')
 
         # Build the command for importer only
-        docker_command = 'docker run --rm --net=cbio-net -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
-                         % (self.input_dir, self.docker_image)
+        docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
+                         % (input_dir, self.docker_image)
         python_command = 'python /cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
 
-        # This should be an ssh command to restart the cBioPortal container on the cBioPortal server
-        restart_command = ''
+        # Check if cBioPortal is running locally or on other server
+        if self.server_name == "":
+            restart_command = "; docker restart cbioportal"
+        else:
+            restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
         return [docker_command, python_command, restart_command]
 
 

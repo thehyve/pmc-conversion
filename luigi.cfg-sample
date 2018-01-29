@@ -29,7 +29,7 @@ python=python3
 # TranSMART study settings
 transmart_copy_jar = /transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
 study_id = CSR_STUDY
-top_node = \Private Studies\CSR Study\
+top_node = \Central Subject Registry\
 # security_required: Y or N
 security_required = Y
 
@@ -76,20 +76,10 @@ blueprint = blueprint_example.json
 modifiers = example_modifiers.txt
 
 
-[CbioportalDataTransformation]
-clinical_input_file = test_data/intermediate/clinical_testdata.tsv
-ngs_dir = test_data/dropzone/NGS
-output_dir = test_data/intermediate/cbioportal_staging_files/
-
-
 [CbioportalDataValidation]
-input_dir = test_data/intermediate/cbioportal_staging_files/
-db_info_dir = test_data/cbioportal_db_info/
-report_dir = test_data/intermediate/
-report_name = report_pmc
 docker_image = cbioportal-hg38:1.10.2
 
 
 [CbioportalDataLoading]
-input_dir = test_data/intermediate/cbioportal_staging_files/
 docker_image = cbioportal-hg38:1.10.2
+server_name = pmc-cbioportal-test

@@ -1,0 +1,6 @@
+RECORD ID	STUDY_ID	INDIVIDUAL_STUDY_ID	ACRONYM	TITLE	DESCRIPTION	DATADICTIONARY
+PMCID000AAA	PMCST002AAA	ID001	TS01	Test study 01	Study for testing	reference 01
+PMCID000AAA	PMCST005AAA	ID001	TS02	Test study 02	Another study for testing	reference 02
+PMCID000BAA	PMCST002AAA	ID002	TS01	Test study 01	Study for testing	reference 01
+PMCID000AAC	PMCST002AAA	ID003	TS01	Test study 01	Study for testing	reference 01
+PMCID000AAC	PMCST007AAA	ID003	TS03	Test study 03	Yet another study for testing	reference 03
