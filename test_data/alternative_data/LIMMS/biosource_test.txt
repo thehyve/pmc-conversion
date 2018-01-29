@@ -1,0 +1,13 @@
+biosource_id	label	individual_id	src_biosource_id	tissue	description	biosource_dedicated	diagnosis_id	biosource_date	disease_status	tumor_percentage
+PMCBS000AAA	NBL	PMCID000AAA		nerve	neuroblastoma	Yes	14706		terminal	5
+PMCBS000AAB	NBL_normal	PMCID000AAA		nerve	tumor surrounding normal nerve tissue	Yes	14706		T4	10
+PMCBS000ABA	RMS	PMCID000AAA		muscle	rhadomyosarcoma	No	14706		C9	60
+PMCBS000ABB	RMS_normal	PMCID000AAA		muscle	tumor surrounding normal muscle tissue	No	14706		3s	24
+PMCBS000BAA	NBL	PMCID000BAA		skin	neuroblastoma	Unknown	17141			25
+PMCBS000BAB	normal	PMCID000BAA		skin	peripheral blood	Yes	17141		T4	86
+PMCBS000BAC	RMS	PMCID000BAA		skin	rhadomyosarcoma	No	17141		T4	32
+PMCBS000BBA	NBL_org	PMCID000BAA	PMCBS000BAA	skin	neuroblastoma organoid	Yes	17141		T4	46
+PMCBS000ACA	NBL_org_pdx	PMCID000AAM	PMCBS000ABA	skin	neuroblastoma organoid pdx		18000		C9	0
+PMCBS000BCA	NBL_org_pdx_2	PMCID000BAA	PMCBS000BBA	skin	test	No information	17141		C9	3
+PMCBS000AAN	NA12878	PMCID000AAW		bottle	Colon Carcinoma	Yes	56790	24/01/18	Tumor	80
+PMCBS000AAO	NA12878	PMCID000AAW		bottle	Normal tissue	Yes	56790	24/01/18	Normal	0

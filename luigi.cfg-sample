@@ -29,7 +29,7 @@ python=python3
 # TranSMART study settings
 transmart_copy_jar = /transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
 study_id = CSR_STUDY
-top_node = \Private Studies\CSR Study\
+top_node = \Central Subject Registry\
 # security_required: Y or N
 security_required = Y
 
