@@ -35,12 +35,12 @@ def read_json_dictionary(path):
 
 def get_source_files(path, file_prop_dict):
     logging.info('Collecting source files.')
-    expected_files = set(file_prop_dict.keys())
     source_paths = {os.path.join(path, file) for file in os.listdir(path)}
     source_paths = {path for path in source_paths if os.path.isfile(path) and
                     not os.path.basename(path).startswith('.') and '~$' not in path}
 
     source_files = {os.path.basename(path) for path in source_paths}
+    expected_files = set(file_prop_dict.keys())
     valid_files = expected_files.intersection(source_files)
 
     if expected_files != valid_files:
@@ -63,11 +63,8 @@ def get_encoding(file_name):
     return file_encoding.lower() if file_encoding else None
 
 
-def check_arguments(source_dir, header_file):
-    if not os.path.isdir(source_dir):
-        logging.error("Provided SOURCE_DIR is not a directory: {}".format(source_dir))
-        sys.exit(1)
-    if not os.path.isfile(header_file) or os.path.splitext(header_file)[1].lower() != '.json':
+def check_arguments(header_file):
+    if not os.path.splitext(header_file)[1].lower() != '.json':
         logging.error("Provided HEADER_FILE is not a valid json file: {}".format(header_file))
         sys.exit(1)
 
@@ -137,8 +134,8 @@ def validate_source_files(file_prop_dict, source_files):
 
 
 @click.command()
-@click.argument('source_dir', type=click.Path(exists=True))
-@click.argument('properties_file', type=click.Path(exists=True))
+@click.argument('source_dir', type=click.Path(exists=True, file_okay=False, readable=True))
+@click.argument('properties_file', type=click.Path(exists=True, dir_okay=False, readable=True))
 @click.option('-l', '--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
               help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
 def main(source_dir, properties_file, log_type):
@@ -152,7 +149,7 @@ def main(source_dir, properties_file, log_type):
     logging.info('Properties file: {}'.format(properties_file))
 
     # check provided arguments
-    check_arguments(source_dir, properties_file)
+    check_arguments(properties_file)
     # Collect expected file properties from json file
     file_prop_dict = read_json_dictionary(properties_file)
     # Collect all source files

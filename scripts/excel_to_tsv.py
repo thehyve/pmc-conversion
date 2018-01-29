@@ -36,10 +36,7 @@ def get_source_files(path):
     return source_files
 
 
-def check_arguments(source_dir, target_dir):
-    if not os.path.isdir(source_dir):
-        logging.error("Provided SOURCE_DIR is not a directory: {}".format(source_dir))
-        sys.exit(1)
+def check_arguments(target_dir):
     if not os.path.exists(target_dir):
         logging.info('Target directory does not exist, trying to create it.')
         os.makedirs(target_dir)
@@ -66,8 +63,8 @@ def source_files_to_csv(source_files, target_dir, file_name_counter=Counter()):
 
 
 @click.command()
-@click.argument('source_dir', type=click.Path(exists=True))
-@click.argument('target_dir', type=click.Path())
+@click.argument('source_dir', type=click.Path(exists=True, file_okay=False, readable=True))
+@click.argument('target_dir', type=click.Path(writable=True))
 @click.option('-l', '--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
               help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
 def main(source_dir, target_dir, log_type):
@@ -79,7 +76,7 @@ def main(source_dir, target_dir, log_type):
     logging.info('Target folder: {}'.format(target_dir))
 
     # check provided arguments
-    check_arguments(source_dir, target_dir)
+    check_arguments(target_dir)
     # Collect all source files
     source_files = get_source_files(source_dir)
     # Validate encoding and header fields of each source file
