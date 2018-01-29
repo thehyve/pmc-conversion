@@ -256,6 +256,9 @@ class CbioportalDataValidation(ExternalProgramTask):
                          % report_name
         return [docker_command, python_command]
 
+    def run(self):
+        pass
+
 
 class CbioportalDataLoading(ExternalProgramTask):
     """
@@ -291,6 +294,9 @@ class CbioportalDataLoading(ExternalProgramTask):
         else:
             restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
         return [docker_command, python_command, restart_command]
+
+    def run(self):
+        pass
 
 
 class GitCommitLoadResults(BaseTask):
