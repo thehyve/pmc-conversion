@@ -157,7 +157,7 @@ class TransmartDataTransformation(ExternalProgramTask):
     def program_args(self):
         return [config.python, self.tm_transformation,
                 '--csr_data_file', os.path.join(config.intermediate_file_dir, config.csr_data_file),
-                '--output_dir', config.staging_dir,
+                '--output_dir', os.path.join(config.staging_dir,'transmart'),
                 '--config_dir', config.config_json_dir,
                 '--blueprint', self.blueprint,
                 '--modifiers', self.modifiers,
@@ -217,7 +217,8 @@ class DeleteTransmartStudyIfExists(TransmartDataLoader):
 
 class LoadTransmartStudy(TransmartDataLoader):
     def program_args(self):
-        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '-d', '{!r}'.format(config.staging_dir)]
+        transmart_dir = os.path.join(config.staging_dir, 'transmart')
+        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '-d', '{!r}'.format(transmart_dir)]
 
 
 class CbioportalDataValidation(ExternalProgramTask):
