@@ -218,19 +218,11 @@ class TransmartDataLoader(ExternalProgramTask):
         os.environ['PGPASSWORD'] = config.PGPASSWORD
 
 
-class DeleteTransmartStudyIfExists(TransmartDataLoader):
-    stop_on_error = False
-    std_out_err_dir = config.transmart_load_logs_dir
-
-    def program_args(self):
-        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '--delete', '{!r}'.format(config.study_id)]
-
-
 class LoadTransmartStudy(TransmartDataLoader):
     std_out_err_dir = config.transmart_load_logs_dir
 
     def program_args(self):
-        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '-d', '{!r}'.format(config.transmart_staging_dir)]
+        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '--re-upload', '{!r}'.format(config.transmart_staging_dir)]
 
 
 class CbioportalDataValidation(ExternalProgramTask):
@@ -357,11 +349,8 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
                                       commit_message='Add transmart data.')
         commit_transmart_staging.required_tasks = [transmart_data_transformation]
         yield commit_transmart_staging
-        delete_transmart_study_if_exists = DeleteTransmartStudyIfExists()
-        delete_transmart_study_if_exists.required_tasks = [commit_transmart_staging]
-        yield delete_transmart_study_if_exists
         load_transmart_study = LoadTransmartStudy()
-        load_transmart_study.required_tasks = [delete_transmart_study_if_exists]
+        load_transmart_study.required_tasks = [commit_transmart_staging]
         yield load_transmart_study
         commit_transmart_load_logs = GitCommit(directory_to_add=config.transmart_load_logs_dir,
                                         commit_message='Add transmart loading log.')
@@ -389,16 +378,6 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
     def requires(self):
         return self.tasks_dependency_tree
 
-
-# TODO Remove the task when study deletion and load will be one task
-class LoadTransmartDataFromHistoryTask(luigi.Task):
-
-    def run(self):
-        delete_transmart_study_if_exists = DeleteTransmartStudyIfExists()
-        yield delete_transmart_study_if_exists
-        load_transmart_study = LoadTransmartStudy()
-        load_transmart_study.required_tasks = [delete_transmart_study_if_exists]
-        yield load_transmart_study
 
 if __name__ == '__main__':
     luigi.run()
