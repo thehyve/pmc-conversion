@@ -175,7 +175,7 @@ class CbioportalDataTransformation(ExternalProgramTask):
 
         clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
         ngs_dir = os.path.join(config.drop_dir, 'NGS')
-        output_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files')
+        output_dir = os.path.join(config.staging_dir, 'cbioportal_staging_files')
 
         return ['python3 cbioportal_transformation/pmc_cbio_wrapper.py',
                 '-c', clinical_input_file,
@@ -241,8 +241,8 @@ class CbioportalDataValidation(ExternalProgramTask):
 
     def program_args(self):
         # Directory and file names for validation
-        input_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files')
-        report_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_report_files')
+        input_dir = os.path.join(config.staging_dir, 'cbioportal_staging_files')
+        report_dir = os.path.join(config.load_logs_dir, 'cbioportal_report_files')
         db_info_dir = os.path.join(config.config_json_dir, 'cbioportal_db_info')
         report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
 
@@ -279,7 +279,7 @@ class CbioportalDataLoading(ExternalProgramTask):
     def program_args(self):
 
         # Directory and file names for validation
-        input_dir = os.path.join(config.intermediate_file_dir, 'cbioportal_staging_files')
+        input_dir = os.path.join(config.staging_dir, 'cbioportal_staging_files')
 
         # Build the command for importer only
         docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
