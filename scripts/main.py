@@ -225,7 +225,7 @@ class LoadTransmartStudy(TransmartDataLoader):
 from .transmart_api_calls import TransmartApiCalls
 
 
-class TransmartApiCalls(BaseTask):
+class TransmartApiTask(BaseTask):
     transmart_url = luigi.Parameter(description='Url of the tranSMART instance', significant=False)
     transmart_username = luigi.Parameter(description='Username for an admin account', significant=False)
     transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
@@ -374,11 +374,11 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         load_transmart_study = LoadTransmartStudy()
         load_transmart_study.required_tasks = [commit_transmart_staging]
         yield load_transmart_study
-        transmart_api_calls = TransmartApiCalls()
-        transmart_api_calls.required_tasks = [load_transmart_study]
+        transmart_api_task = TransmartApiTask()
+        transmart_api_task.required_tasks = [load_transmart_study]
         commit_transmart_load_logs = GitCommit(directory_to_add=config.transmart_load_logs_dir,
                                                commit_message='Add transmart loading log.')
-        commit_transmart_load_logs.required_tasks = [transmart_api_calls]
+        commit_transmart_load_logs.required_tasks = [transmart_api_task]
         yield commit_transmart_load_logs
 
         cbioportal_data_transformation = CbioportalDataTransformation()

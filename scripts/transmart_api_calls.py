@@ -8,7 +8,7 @@ import requests
 class TransmartApiException(Exception):
     pass
 
-class TransmartApiCalls:
+class TransmartApiCalls(object):
 
     def __init__(self, url, username, password, rebuild_timeout):
         self.url = url
