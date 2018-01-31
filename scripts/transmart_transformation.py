@@ -8,7 +8,7 @@ import pandas as pd
 
 @click.command()
 @click.option('--csr_data_file', type=click.Path(exists=True))
-@click.option('--output_dir', type=click.Path())
+@click.option('--output_dir', type=click.Path(exists=True))
 @click.option('--config_dir', type=click.Path(exists=True))
 @click.option('--blueprint')
 @click.option('--modifiers')
@@ -17,10 +17,7 @@ import pandas as pd
 @click.option('--security_required')
 def main(csr_data_file, output_dir, config_dir, blueprint, modifiers, study_id, top_node, security_required):
 
-    if not os.path.exists(config_dir):
-        os.makedirs(config_dir, exist_ok=True)
-
-    df = pd.read_csv(csr_data_file, sep='\t', encoding=get_encoding(csr_data_file))
+    df = pd.read_csv(csr_data_file, sep='\t', encoding=get_encoding(csr_data_file), dtype=object)
     df = add_modifiers(df)
 
     study = tmtk.Study()
@@ -56,7 +53,7 @@ def get_encoding(file_name):
 
 
 def add_modifiers(df):
-    df['CSR_DIAGNOSE_MOD'] = df['DIAGNOSIS_ID']
+    df['CSR_DIAGNOSIS_MOD'] = df['DIAGNOSIS_ID']
     df['CSR_STUDY_MOD'] = df['STUDY_ID']
     df['CSR_BIOSOURCE_MOD'] = df['BIOSOURCE_ID']
     df['CSR_BIOMATERIAL_MOD'] = df['BIOMATERIAL_ID']
