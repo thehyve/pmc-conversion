@@ -66,7 +66,7 @@ cm_map_file = codebook_mapping.json
 [MergeClinicalData]
 csr_transformation = csr_transformations.py
 data_model = data_model.json
-file_list = file_list.txt
+column_priority = column_priority.json
 file_headers = file_headers.json
 columns_to_csr = columns_to_csr.json
 

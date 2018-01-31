@@ -138,7 +138,7 @@ class MergeClinicalData(ExternalProgramTask):
 
     csr_transformation = luigi.Parameter(description='CSR transformation script name', significant=False)
     data_model = luigi.Parameter(description='JSON file with the columns per entity', significant=False)
-    file_list = luigi.Parameter(description='Flat text file with an ordered list of expected files', significant=False)
+    column_priority = luigi.Parameter(description='Flat text file with an ordered list of expected files', significant=False)
     file_headers = luigi.Parameter(description='JSON file with a list of columns per data file', significant=False,
                                    default=None)
     columns_to_csr = luigi.Parameter(
@@ -151,7 +151,7 @@ class MergeClinicalData(ExternalProgramTask):
                 '--output_dir', config.intermediate_file_dir,
                 '--config_dir', config.config_json_dir,
                 '--data_model', self.data_model,
-                '--file_list', self.file_list,
+                '--column_priority', self.file_list,
                 '--columns_to_csr', self.columns_to_csr,
                 '--output_filename', config.csr_data_file,
                 '--file_headers', self.file_headers]
