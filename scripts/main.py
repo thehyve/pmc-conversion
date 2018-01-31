@@ -150,7 +150,7 @@ class MergeClinicalData(ExternalProgramTask):
                 '--output_dir', config.intermediate_file_dir,
                 '--config_dir', config.config_json_dir,
                 '--data_model', self.data_model,
-                '--column_priority', self.file_list,
+                '--column_priority', self.column_priority,
                 '--columns_to_csr', self.columns_to_csr,
                 '--output_filename', config.csr_data_file,
                 '--file_headers', self.file_headers]
@@ -160,7 +160,7 @@ class MergeClinicalData(ExternalProgramTask):
                 '--output_dir', config.intermediate_file_dir,
                 '--config_dir', config.config_json_dir,
                 '--data_model', self.data_model,
-                '--column_priority', self.file_list,
+                '--column_priority', self.column_priority,
                 '--columns_to_csr', self.columns_to_csr,
                 '--output_filename', self.output_filename]
 
