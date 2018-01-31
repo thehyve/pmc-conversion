@@ -55,23 +55,58 @@ $ luigid
 
 ```
 
-To start the pipeline:
+To start the full pipeline:
 
 ``` bash
-$ ./load_if_new_files.sh
+$ ./run.sh
 
 ```
 
-To load data version from the git history:
+## Fixing manually when something went wrong
+
+When pipeline fails on loading or you want to load data from the history you need to run the data load step only.
+
+To load data to transmart only:
 
 ``` bash
-$ ./load_data_version.sh <sha1 hash of the commit>
+$ ./load_transmart_data.sh
 
 ```
 
-The pipeline creates files with identifiers in several subdirectories. These files
-all start with `.done-*` and if you remove them the pipeline will rerun all tasks. E.g:
+To load data to cbioportal only:
 
+``` bash
+$ ./load_cbioportal_data.sh
+
+```
+
+To load data to both systems:
+
+``` bash
+$ ./load_data.sh
+
+```
+
+The pipeline creates files that start with `.done-*`.
+These files created for each successfully finished task of the pipeline.
+To force execution of tasks again you need to remove these files:
 ``` bash
 $ ./remove_done_files.sh
 ```
+
+That's what happens as part of the script when you run load data task only.
+
+The typical workflow to load version from history might look like this:
+``` bash
+$ cd <data repo>
+$ git checkout <hash of the commit which data versioin we want to load>
+$ cd <this directory, with the bash scripts>
+$ ./load_data.sh
+$ cd <data repo>
+# to clean repository from data loading logs
+$ git checkout .
+# return back recent version
+$ git checkout master
+```
+
+Please note that above example won't leave any sign in the git history of the fact of data load.

@@ -11,8 +11,9 @@ record_task_history = True
 state_path = luigi-state.pickle
 
 [GlobalConfig]
+## NOTE: insert full absolute paths
 drop_dir=<path_to>/test_data/dropzone
-repo_root_dir=/projects/pmc/data
+repo_root_dir=<path_to>/projects/pmc/data
 input_data_dir_name=input_data
 staging_dir_name=staging
 load_logs_dir_name=load_logs
@@ -27,9 +28,9 @@ csr_data_file = csr_transformation_data.tsv
 python=python3
 
 # TranSMART study settings
-transmart_copy_jar = /transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
+transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
 study_id = CSR_STUDY
-top_node = \Private Studies\CSR Study\
+top_node = \Central Subject Registry\
 # security_required: Y or N
 security_required = Y
 
