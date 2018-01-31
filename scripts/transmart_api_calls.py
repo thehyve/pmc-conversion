@@ -47,7 +47,7 @@ class TransmartApiCalls(object):
             data = response.json()
             token = data['access_token']
         except Exception as e:
-            raise TransmartApiException('Could not retrieve access token for %s: %s' % (self.url, e))
+            raise TransmartApiException('Could not retrieve access token for %s: %s' % (url, e))
 
         return token
 

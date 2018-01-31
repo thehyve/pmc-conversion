@@ -77,7 +77,7 @@ blueprint = blueprint_example.json
 modifiers = example_modifiers.txt
 
 
-[TransmartApiCalls]
+[TransmartApiTask]
 transmart_url = https://transmart.thehyve.net
 transmart_username = admin
 transmart_password = admin
