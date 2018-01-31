@@ -261,23 +261,26 @@ class CbioportalDataValidation(ExternalProgramTask):
     # Success codes for validation
     success_codes = [0, 3]
 
-    def program_args(self):
-        # Directory and file names for validation
-        input_dir = config.cbioportal_staging_dir
-        report_dir = config.cbioportal_load_logs_dir
-        db_info_dir = os.path.join(config.config_json_dir, 'cbioportal_db_info')
-        report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
+    # def program_args(self):
+    #     # Directory and file names for validation
+    #     input_dir = config.cbioportal_staging_dir
+    #     report_dir = config.cbioportal_load_logs_dir
+    #     db_info_dir = os.path.join(config.config_json_dir, 'cbioportal_db_info')
+    #     report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
+    #
+    #     # Build the command for validation
+    #     docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
+    #                      '-v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
+    #                      % (input_dir, db_info_dir, report_dir, self.docker_image)
+    #
+    #     python_command = 'python /cbioportal/core/src/main/scripts/importer/validateData.py -s /study/ ' \
+    #                      '-P /cbioportal/src/main/resources/portal.properties ' \
+    #                      '-p /cbioportal_db_info -html /html_reports/%s -v' \
+    #                      % report_name
+    #     return [docker_command, python_command]
 
-        # Build the command for validation
-        docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
-                         '-v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
-                         % (input_dir, db_info_dir, report_dir, self.docker_image)
-
-        python_command = 'python /cbioportal/core/src/main/scripts/importer/validateData.py -s /study/ ' \
-                         '-P /cbioportal/src/main/resources/portal.properties ' \
-                         '-p /cbioportal_db_info -html /html_reports/%s -v' \
-                         % report_name
-        return [docker_command, python_command]
+    def run(self):
+        pass
 
 
 class CbioportalDataLoading(ExternalProgramTask):
@@ -300,22 +303,25 @@ class CbioportalDataLoading(ExternalProgramTask):
                                               'empty. PMC servers: pmc-cbioportal-test | '
                                               'pmc-cbioportal-acc | pmc-cbioportal-prod', significant=False)
 
-    def program_args(self):
+    # def program_args(self):
+    #
+    #     # Directory and file names for validation
+    #     input_dir = config.cbioportal_staging_dir
+    #
+    #     # Build the command for importer only
+    #     docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
+    #                      % (input_dir, self.docker_image)
+    #     python_command = 'python /cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
+    #
+    #     # Check if cBioPortal is running locally or on other server
+    #     if self.server_name == "":
+    #         restart_command = "; docker restart cbioportal"
+    #     else:
+    #         restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
+    #     return [docker_command, python_command, restart_command]
 
-        # Directory and file names for validation
-        input_dir = config.cbioportal_staging_dir
-
-        # Build the command for importer only
-        docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
-                         % (input_dir, self.docker_image)
-        python_command = 'python /cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
-
-        # Check if cBioPortal is running locally or on other server
-        if self.server_name == "":
-            restart_command = "; docker restart cbioportal"
-        else:
-            restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
-        return [docker_command, python_command, restart_command]
+    def run(self):
+        pass
 
 
 class GitVersionTask(BaseTask):
