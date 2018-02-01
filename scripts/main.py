@@ -238,7 +238,7 @@ class TransmartApiTask(BaseTask):
                                        rebuild_timeout = self.rebuild_timeout)
 
         logger.info('Rebuilding tree cache')
-        reload_obj.rebuild_tree_nodes_cache()
+        reload_obj.clear_tree_nodes_cache()
         logger.info('Scanning for new subscriptions')
         reload_obj.scan_subscription_queries()
 

@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 import json
 import requests
 
@@ -66,27 +65,9 @@ class TransmartApiCalls(object):
         Waits max `cache_rebuild_timeout` seconds for the rebuild to finish
         before returning.
         """
-        status = self.retrieve_cache_rebuild_status()
-        if status != 'running':
-            Console.info('Clearing and rebuilding tree nodes cache ...')
-            self.get('/v2/tree_nodes/rebuild_cache')
-            status = self.retrieve_cache_rebuild_status()
-        Console.info('Cache rebuild status: %s' % status)
-        t = time.time()
-        if status is None:
-            Console.warning('Could not retrieve cache rebuild status. Waiting for %d seconds.'
-                            % self.cache_rebuild_timeout)
-            time.sleep(self.cache_rebuild_timeout)
-        while status == 'running':
-            # Wait for a second before polling again.
-            time.sleep(1)
-            if (time.time() - t) > self.cache_rebuild_timeout:
-                Console.warning('Timeout.')
-                status = 'timeout'
-                Console.info('Cache rebuild status: %s' % status)
-            else:
-                status = self.retrieve_cache_rebuild_status()
-                Console.info('Cache rebuild status: %s' % status)
+
+        Console.info('Clearing tree nodes cache ...')
+        self.get('/v2/tree_nodes/clear_cache')
 
 
     def retrieve_cache_rebuild_status(self):
