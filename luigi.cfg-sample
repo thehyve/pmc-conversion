@@ -77,6 +77,12 @@ blueprint = blueprint_example.json
 modifiers = example_modifiers.txt
 
 
+[TransmartApiTask]
+transmart_url = https://transmart.thehyve.net
+transmart_username = admin
+transmart_password = admin
+
+
 [CbioportalDataValidation]
 docker_image = cbioportal-hg38:1.10.2
 
