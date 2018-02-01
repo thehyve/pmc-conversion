@@ -81,7 +81,6 @@ modifiers = example_modifiers.txt
 transmart_url = https://transmart.thehyve.net
 transmart_username = admin
 transmart_password = admin
-rebuild_timeout = 30
 
 
 [CbioportalDataValidation]

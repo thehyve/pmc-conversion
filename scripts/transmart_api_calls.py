@@ -14,7 +14,6 @@ class TransmartApiCalls(object):
         self.username = username
         self.password = password
         self.token = None
-        self.cache_rebuild_timeout = float(rebuild_timeout)
 
     def get_token(self):
         """

@@ -229,13 +229,11 @@ class TransmartApiTask(BaseTask):
     transmart_url = luigi.Parameter(description='Url of the tranSMART instance', significant=False)
     transmart_username = luigi.Parameter(description='Username for an admin account', significant=False)
     transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
-    rebuild_timeout = luigi.Parameter(description='Time to wait for tree to rebuild in seconds', significant=False)
 
     def run(self):
         reload_obj = TransmartApiCalls(url=self.transmart_url,
                                        username=self.transmart_username,
-                                       password=self.transmart_password,
-                                       rebuild_timeout = self.rebuild_timeout)
+                                       password=self.transmart_password)
 
         logger.info('Rebuilding tree cache')
         reload_obj.clear_tree_nodes_cache()
