@@ -59,7 +59,7 @@ class TransmartApiCalls(object):
         self.post('/v2/query_sets/scan')
 
 
-    def rebuild_tree_nodes_cache(self):
+    def clear_tree_nodes_cache(self):
         """
         Triggers a rebuild of the tree nodes cache of TranSMART.
         Waits max `cache_rebuild_timeout` seconds for the rebuild to finish
@@ -68,25 +68,6 @@ class TransmartApiCalls(object):
 
         Console.info('Clearing tree nodes cache ...')
         self.get('/v2/tree_nodes/clear_cache')
-
-
-    def retrieve_cache_rebuild_status(self):
-        try:
-            data = self.get_json('/v2/tree_nodes/rebuild_status')
-            return data['status']
-        except TransmartApiException as e:
-            Console.warning(e)
-            return None
-
-
-    def get_json(self, path):
-        """
-        Retrieves JSON data from the server.
-        :param path: the API path to fetch data from.
-        :return: the JSON data.
-        """
-        response = self.get(path)
-        return response.json()
 
 
     def get(self, path):
