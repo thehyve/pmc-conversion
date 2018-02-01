@@ -15,7 +15,7 @@ class TransmartApiCalls(object):
         self.username = username
         self.password = password
         self.token = None
-        self.cache_rebuild_timeout = rebuild_timeout
+        self.cache_rebuild_timeout = float(rebuild_timeout)
 
     def get_token(self):
         """
@@ -24,7 +24,7 @@ class TransmartApiCalls(object):
         :return: the access token.
         """
         if self.token is None:
-            self.retrieve_token()
+            self.token = self.retrieve_token()
         return self.token
 
     def retrieve_token(self):
@@ -121,6 +121,7 @@ class TransmartApiCalls(object):
         }
         url = self.url + path
         response = None
+        Console.warning(url)
         try:
             response = requests.get(url, headers=headers)
             if not response.ok:
