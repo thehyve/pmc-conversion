@@ -9,7 +9,7 @@ class TransmartApiException(Exception):
 
 class TransmartApiCalls(object):
 
-    def __init__(self, url, username, password, rebuild_timeout):
+    def __init__(self, url, username, password):
         self.url = url
         self.username = username
         self.password = password
