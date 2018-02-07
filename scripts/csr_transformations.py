@@ -13,7 +13,6 @@ PK_COLUMNS = {'INDIVIDUAL_ID',
               'DIAGNOSIS_ID',
               'STUDY_ID',
               'BIOMATERIAL_ID',
-              #'SRC_BIOSOURCE_ID',  # Remove this "Identifying column"?
               'BIOSOURCE_ID'}
 
 
