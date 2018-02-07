@@ -35,9 +35,11 @@ class IndividualIdentifierMissing(Exception):
 @click.option('--output_filename', default='csr_data_transformation.tsv')  # target_file
 @click.option('--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
               help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
+@click.option('--log_level', type=click.Choice(['DEBUG','INFO','WARNING','ERROR']), default='WARNING',show_default=True,
+              help='Set level on which the logger should produce output')
 def main(input_dir, output_dir, config_dir, data_model,
-         column_priority, file_headers, columns_to_csr, output_filename, log_type):
-    configure_logging(log_type)
+         column_priority, file_headers, columns_to_csr, output_filename, log_type, log_level):
+    configure_logging(log_type, level=log_level)
 
     # Check which params need to be set
     mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--column_priority': column_priority,
@@ -186,7 +188,7 @@ def check_column_prio(column_prio_dict, col_file_dict):
                              'file_headers.json. Priority files not used: {1}').format(col, files_only_in_prio))
 
 
-def configure_logging(log_type, level=logging.INFO):
+def configure_logging(log_type, level):
     log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', '%d-%m-%y %H:%M:%S')
     logging.getLogger().setLevel(level)
 
