@@ -83,9 +83,7 @@ def main(input_dir, output_dir, config_dir, data_model,
                                               csr_data_model=csr_data_model)
 
     subject_registry.reset_index(inplace=True)
-    subject_registry.to_csv('/tmp/TMP_SUBJ_REGI.txt', sep='\t', index=False)
 
-    # - Check if all CSR headers are in the merged dataframe
     csr_expected_header = []
     for key in csr_data_model:
         csr_expected_header += list(csr_data_model[key])
@@ -96,7 +94,7 @@ def main(input_dir, output_dir, config_dir, data_model,
         sys.exit(1)
 
     if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
-        logging.error('Some individuals do not have an identifier')
+        logging.error('Found data rows with no individual or patient identifier')
         sys.exit(1)
 
     logging.info('Writing CSR data to {}'.format(output_file))
