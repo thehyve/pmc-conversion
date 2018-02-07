@@ -50,5 +50,10 @@
     "biomaterial_test.txt",
     "biomaterial_test2.txt",
     "biosource_test.txt"
+  ],
+  "SRC_BIOSOURCE_ID": [
+    "biomaterial_test.txt",
+    "biomaterial_test2.txt",
+    "biosource_test.txt"
   ]
 }

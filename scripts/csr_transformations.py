@@ -13,7 +13,7 @@ PK_COLUMNS = {'INDIVIDUAL_ID',
               'DIAGNOSIS_ID',
               'STUDY_ID',
               'BIOMATERIAL_ID',
-              'SRC_BIOSOURCE_ID',  # Remove this "Identifying column"?
+              #'SRC_BIOSOURCE_ID',  # Remove this "Identifying column"?
               'BIOSOURCE_ID'}
 
 
@@ -84,10 +84,8 @@ def main(input_dir, output_dir, config_dir, data_model,
 
     subject_registry.reset_index(inplace=True)
     subject_registry.to_csv('/tmp/TMP_SUBJ_REGI.txt', sep='\t', index=False)
-    logging.warning('Temporary stop, Issues with BioMaterial and src_biosource_id')
-    sys.exit(12)
-    # - Check if all CSR headers are in the merged dataframe
 
+    # - Check if all CSR headers are in the merged dataframe
     csr_expected_header = []
     for key in csr_data_model:
         csr_expected_header += list(csr_data_model[key])
@@ -114,21 +112,19 @@ def resolve_data_conflicts(df, column_priority, csr_data_model):
     missing_column = False
     df = df.reorder_levels(order=[1, 0], axis=1).sort_index(axis=1, level=0)
     subject_registry = pd.DataFrame()
-    print(df.columns.get_level_values(0).unique())
     for column in df.columns.get_level_values(0).unique():
         if df[column].shape[1] > 1:
             ref_df = df.pop(column)
             if column not in column_priority:
                 logging.error(
                     'Column: {} missing from column priority \
-mapping for the following files {}'.format(column,ref_df.columns.tolist()))
+mapping for the following files {}'.format(column, ref_df.columns.tolist()))
                 missing_column = True
                 continue
             ref_files = column_priority[column]
             base = pd.DataFrame(data={column: ref_df[ref_files[0]]})
             for file in ref_files[1:]:
                 base = base.combine_first(pd.DataFrame(data={column: ref_df[file]}))
-            # print(base.head())
             if subject_registry.empty:
                 subject_registry = base
             else:
@@ -193,7 +189,7 @@ def check_column_prio(column_prio_dict, col_file_dict):
                              'file_headers.json. Priority files not used: {1}').format(col, files_only_in_prio))
 
 
-def configure_logging(log_type, level=logging.WARNING):
+def configure_logging(log_type, level=logging.INFO):
     log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', '%d-%m-%y %H:%M:%S')
     logging.getLogger().setLevel(level)
 
@@ -323,7 +319,7 @@ def add_biosource_identifiers(biosource, biomaterial, biosource_merge_on='BIOSOU
     biom = biomaterial.copy()
 
     bios.columns = bios.columns.map('|'.join)
-    biom.columns = biom.columns.map('|'.join)
+    biom.columns = ['|'.join([col,'']) for col in biom.columns]
 
     biomaterial_merge_on = '|'.join([biomaterial_merge_on, ''])
     biosource_merge_on = '|'.join([biosource_merge_on, ''])
@@ -333,10 +329,7 @@ def add_biosource_identifiers(biosource, biomaterial, biosource_merge_on='BIOSOU
                     right_on=biosource_merge_on,
                     how='left')
 
-    df.drop(biosource_merge_on, inplace=True, axis=1)
-    col_names = [tuple(i.split('|')) for i in df.columns]
-    df = df.T.set_index(pd.MultiIndex.from_tuples(col_names)).T
-
+    df.columns = [i.split('|')[0] for i in df.columns]
     return df
 
 
@@ -357,8 +350,9 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     entity_to_columns['individual'] = ['INDIVIDUAL_ID']
     entity_to_columns['diagnosis'] = ['DIAGNOSIS_ID', 'INDIVIDUAL_ID']
     entity_to_columns['study'] = ['STUDY_ID', 'INDIVIDUAL_ID']
-    entity_to_columns['biomaterial'] = ['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID']
     entity_to_columns['biosource'] = ['BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID']
+    #entity_to_columns['biomaterial'] = ['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID']
+    entity_to_columns['biomaterial'] = ['BIOMATERIAL_ID','BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID']
 
     missing_entities = False
 
@@ -368,6 +362,12 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
             logging.error('Missing data for entity: {} does not have a corresponding file.'.format(entity))
             missing_entities = True
             continue
+
+        if entity == 'biomaterial' and 'biosource' in entity_to_data_frames.keys():
+            for filename in file_dict[entity]:
+                file_dict[entity][filename] = add_biosource_identifiers(entity_to_data_frames['biosource'],
+                                                                        file_dict[entity][filename])
+
         df = merge_entity_data_frames(df_dict=file_dict[entity],
                                       id_columns=columns)
         entity_to_data_frames[entity] = df
@@ -375,9 +375,6 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     if missing_entities:
         logging.error('Missing data for one or more entities, cannot continue.')
         sys.exit(1)
-
-    entity_to_data_frames['biomaterial'] = add_biosource_identifiers(entity_to_data_frames['biosource'],
-                                                                     entity_to_data_frames['biomaterial'])
 
     # TODO: ADD DEDUPLICATION ACROSS ENTITIES:
     # TODO: Add advanced deduplication for double values from for example individual and diagnosis.
@@ -390,6 +387,7 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     subject_registry = pd.concat(entity_to_data_frames.values())
     subject_registry['INDIVIDUAL_ID'] = subject_registry['INDIVIDUAL_ID'].combine_first(subject_registry['index'])
     subject_registry.drop('index', axis=1, inplace=True)
+
     return subject_registry
 
 
