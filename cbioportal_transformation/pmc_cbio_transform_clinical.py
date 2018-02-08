@@ -121,10 +121,10 @@ def pmc_data_restructuring(clinical_data, clinical_type):
             clinical_data.loc[index, 'Entity'] = 'Diagnosis'
         elif pd.notnull(row['STUDY_ID']):
             clinical_data.loc[index, 'Entity'] = 'Study'
-        elif pd.notnull(row['BIOSOURCE_ID']):
-            clinical_data.loc[index, 'Entity'] = 'Biosource'
         elif pd.notnull(row['BIOMATERIAL_ID']):
             clinical_data.loc[index, 'Entity'] = 'Biomaterial'
+        elif pd.notnull(row['BIOSOURCE_ID']):
+            clinical_data.loc[index, 'Entity'] = 'Biosource'
         else:
             clinical_data.loc[index, 'Entity'] = 'Patient'
 
@@ -141,7 +141,6 @@ def pmc_data_restructuring(clinical_data, clinical_type):
 
     # Rename column, else duplicate columns
     biomaterial_data.rename(columns = {'DESCRIPTION': 'Biomaterial description',
-                                       'SRC_BIOSOURCE_ID': 'BIOSOURCE_ID',
                                        'LABEL': 'Biomaterial label'}, inplace = True)
     biosource_data.rename(columns = {'DESCRIPTION': 'Biosource description',
                                      'LABEL': 'Biosource label'}, inplace = True)

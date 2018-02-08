@@ -39,5 +39,21 @@
   "DESCRIPTION": [
     "biosource_test.txt",
     "study.txt"
+  ],
+  "IDAA": [
+    "br_test.txt",
+    "br_test2.txt",
+    "br_test_copy.txt",
+    "extra_file.txt"
+  ],
+  "LABEL":  [
+    "biomaterial_test.txt",
+    "biomaterial_test2.txt",
+    "biosource_test.txt"
+  ],
+  "SRC_BIOSOURCE_ID": [
+    "biomaterial_test.txt",
+    "biomaterial_test2.txt",
+    "biosource_test.txt"
   ]
 }

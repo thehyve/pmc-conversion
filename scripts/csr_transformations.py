@@ -8,9 +8,12 @@ import logging
 import pandas as pd
 from click import UsageError
 
-
 ALLOWED_ENCODINGS = {'utf-8', 'ascii'}
-PK_COLUMNS = {'INDIVIDUAL_ID', 'DIAGNOSIS_ID', 'STUDY_ID', 'BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID', 'BIOSOURCE_ID'}
+PK_COLUMNS = {'INDIVIDUAL_ID',
+              'DIAGNOSIS_ID',
+              'STUDY_ID',
+              'BIOMATERIAL_ID',
+              'BIOSOURCE_ID'}
 
 
 class MissingHeaderException(Exception):
@@ -32,10 +35,11 @@ class IndividualIdentifierMissing(Exception):
 @click.option('--output_filename', default='csr_data_transformation.tsv')  # target_file
 @click.option('--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
               help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
+@click.option('--log_level', type=click.Choice(['DEBUG','INFO','WARNING','ERROR']), default='WARNING',show_default=True,
+              help='Set level on which the logger should produce output')
 def main(input_dir, output_dir, config_dir, data_model,
-         column_priority, file_headers, columns_to_csr, output_filename, log_type):
-
-    configure_logging(log_type)
+         column_priority, file_headers, columns_to_csr, output_filename, log_type, log_level):
+    configure_logging(log_type, level=log_level)
 
     # Check which params need to be set
     mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--column_priority': column_priority,
@@ -54,13 +58,11 @@ def main(input_dir, output_dir, config_dir, data_model,
     column_prio_dict = read_dict_from_file(filename=column_priority, path=config_dir)
     column_prio_dict = {k.upper(): files for k, files in column_prio_dict.items()}
 
-    # TODO: insert validation from validation script
-
     col_file_dict = get_overlapping_columns(file_prop_dict, columns_to_csr_map)
     check_column_prio(column_prio_dict, col_file_dict)
 
     # write priority as constructed from file_headers.json
-    #with open('../config/column_priority.json', 'w') as fp:
+    # with open('../config/column_priority.json', 'w') as fp:
     #    json.dump(col_file_dict, fp)
 
     expected_files = file_prop_dict.keys()
@@ -77,7 +79,11 @@ def main(input_dir, output_dir, config_dir, data_model,
                                            file_list=expected_files,
                                            csr_data_model=csr_data_model)
 
-    # - Check if all CSR headers are in the merged dataframe
+    subject_registry = resolve_data_conflicts(df=subject_registry,
+                                              column_priority=column_prio_dict,
+                                              csr_data_model=csr_data_model)
+
+    subject_registry.reset_index(inplace=True)
 
     csr_expected_header = []
     for key in csr_data_model:
@@ -89,13 +95,47 @@ def main(input_dir, output_dir, config_dir, data_model,
         sys.exit(1)
 
     if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
-        logging.error('Some individuals do not have an identifier')
+        logging.error('Found data rows with no individual or patient identifier')
         sys.exit(1)
 
     logging.info('Writing CSR data to {}'.format(output_file))
     subject_registry.to_csv(output_file, sep='\t', index=False)
 
     sys.exit(0)
+
+
+def resolve_data_conflicts(df, column_priority, csr_data_model):
+    df.set_index(['INDIVIDUAL_ID', 'DIAGNOSIS_ID', 'STUDY_ID', 'BIOMATERIAL_ID', 'BIOSOURCE_ID'],
+                 inplace=True)
+    df.to_csv('/tmp/CONF_SR.txt', '\t')
+    missing_column = False
+    df = df.reorder_levels(order=[1, 0], axis=1).sort_index(axis=1, level=0)
+    subject_registry = pd.DataFrame()
+    for column in df.columns.get_level_values(0).unique():
+        if df[column].shape[1] > 1:
+            ref_df = df.pop(column)
+            if column not in column_priority:
+                logging.error(
+                    'Column: {} missing from column priority \
+mapping for the following files {}'.format(column, ref_df.columns.tolist()))
+                missing_column = True
+                continue
+            ref_files = column_priority[column]
+            base = pd.DataFrame(data={column: ref_df[ref_files[0]]})
+            for file in ref_files[1:]:
+                base = base.combine_first(pd.DataFrame(data={column: ref_df[file]}))
+            if subject_registry.empty:
+                subject_registry = base
+            else:
+                subject_registry = subject_registry.merge(base, left_index=True, right_index=True, how='outer')
+
+    df.columns = df.columns.droplevel(1)
+    subject_registry = subject_registry.merge(df, left_index=True, right_index=True, how='outer')
+
+    if missing_column:
+        logging.error('Can not resolve data conflicts due to missing columns from column priority mapping, exiting')
+        sys.exit(1)
+    return subject_registry  # Conflict free df
 
 
 def get_overlapping_columns(file_prop_dict, columns_to_csr_map):
@@ -148,7 +188,7 @@ def check_column_prio(column_prio_dict, col_file_dict):
                              'file_headers.json. Priority files not used: {1}').format(col, files_only_in_prio))
 
 
-def configure_logging(log_type, level=logging.WARNING):
+def configure_logging(log_type, level):
     log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', '%d-%m-%y %H:%M:%S')
     logging.getLogger().setLevel(level)
 
@@ -219,7 +259,7 @@ def determine_file_type(columns, filename):
         return 'individual'
     else:
         logging.error(('No key identifier found (individual, diagnosis, study, biosource, '
-                      'biomaterial) in {}'.format(filename)))
+                       'biomaterial) in {}'.format(filename)))
 
 
 def check_file_list(files_found):
@@ -228,23 +268,16 @@ def check_file_list(files_found):
             logging.error('Data file: {} expected but not found in source folder.'.format(filename))
 
 
-def merge_data_frames(df_dict, file_order, id_columns):
-    """Takes a dictionary with filenames as keys and dataframes as values and merges these into one pandas dataframe
-    based on the id_columns. This should be done per entity type.
+def merge_entity_data_frames(df_dict, id_columns):
+    df_list = []
+    key_list = []
+    for key in df_dict.keys():
+        df_list.append(df_dict[key].set_index(id_columns))
+        key_list.append(key)
 
-    :param df_dict: A dictionary of filenames and dataframes
-    :param file_order: List of files to indicate which data to use in case of duplicate observations.
-    :param id_columns: ID columns to merge data on (INDIVIDUAL, STUDY, DIAGNOSIS, BIOSOURCE, BIOMATERIAL).
-    :return: Merged pandas Dataframe
-    """
-    # TODO: add warning to indicate there are files in the dict that are not in the order list
-    # TODO: implement test to see if dataframe not empty
-    df_list = [f for f in file_order if f in df_dict.keys()]
-    ref_df = df_dict[df_list[0]]
-    for i in df_list[1:]:
-        ref_df = ref_df.merge(df_dict[i], how='outer', on=id_columns, suffixes=('_x', '_y'))
-        combine_column_data(ref_df)
-    return ref_df
+    df = pd.concat(df_list, keys=key_list, join='outer', axis=1)
+    df.reset_index(inplace=True)
+    return df
 
 
 def combine_column_data(df):
@@ -281,10 +314,21 @@ def add_biosource_identifiers(biosource, biomaterial, biosource_merge_on='BIOSOU
     :param biomaterial_merge_on: The column containing the identifiers to use
     :return: biomaterial DataFrame with added predefined identifier columns
     """
-    select_header = ['INDIVIDUAL_ID', 'DIAGNOSIS_ID'] + biomaterial.columns.tolist()
-    id_look_up = biosource[['INDIVIDUAL_ID', 'BIOSOURCE_ID', 'DIAGNOSIS_ID']]
-    df = biomaterial.merge(id_look_up, how='left',
-                           left_on=biomaterial_merge_on, right_on=biosource_merge_on)[select_header]
+    bios = biosource[['INDIVIDUAL_ID', 'BIOSOURCE_ID', 'DIAGNOSIS_ID']].copy()
+    biom = biomaterial.copy()
+
+    bios.columns = bios.columns.map('|'.join)
+    biom.columns = ['|'.join([col,'']) for col in biom.columns]
+
+    biomaterial_merge_on = '|'.join([biomaterial_merge_on, ''])
+    biosource_merge_on = '|'.join([biosource_merge_on, ''])
+
+    df = biom.merge(bios,
+                    left_on=biomaterial_merge_on,
+                    right_on=biosource_merge_on,
+                    how='left')
+
+    df.columns = [i.split('|')[0] for i in df.columns]
     return df
 
 
@@ -305,8 +349,9 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     entity_to_columns['individual'] = ['INDIVIDUAL_ID']
     entity_to_columns['diagnosis'] = ['DIAGNOSIS_ID', 'INDIVIDUAL_ID']
     entity_to_columns['study'] = ['STUDY_ID', 'INDIVIDUAL_ID']
-    entity_to_columns['biomaterial'] = ['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID']
     entity_to_columns['biosource'] = ['BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID']
+    #entity_to_columns['biomaterial'] = ['BIOMATERIAL_ID', 'SRC_BIOSOURCE_ID']
+    entity_to_columns['biomaterial'] = ['BIOMATERIAL_ID','BIOSOURCE_ID', 'INDIVIDUAL_ID', 'DIAGNOSIS_ID']
 
     missing_entities = False
 
@@ -316,17 +361,19 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
             logging.error('Missing data for entity: {} does not have a corresponding file.'.format(entity))
             missing_entities = True
             continue
-        df = merge_data_frames(df_dict=file_dict[entity],
-                               file_order=file_list,
-                               id_columns=columns)
+
+        if entity == 'biomaterial' and 'biosource' in entity_to_data_frames.keys():
+            for filename in file_dict[entity]:
+                file_dict[entity][filename] = add_biosource_identifiers(entity_to_data_frames['biosource'],
+                                                                        file_dict[entity][filename])
+
+        df = merge_entity_data_frames(df_dict=file_dict[entity],
+                                      id_columns=columns)
         entity_to_data_frames[entity] = df
 
     if missing_entities:
         logging.error('Missing data for one or more entities, cannot continue.')
         sys.exit(1)
-
-    entity_to_data_frames['biomaterial'] = add_biosource_identifiers(entity_to_data_frames['biosource'],
-                                                                     entity_to_data_frames['biomaterial'])
 
     # TODO: ADD DEDUPLICATION ACROSS ENTITIES:
     # TODO: Add advanced deduplication for double values from for example individual and diagnosis.
@@ -337,6 +384,8 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
 
     # Concat all data starting with individual into the CSR dataframe, study, diagnosis, biosource and biomaterial
     subject_registry = pd.concat(entity_to_data_frames.values())
+    subject_registry['INDIVIDUAL_ID'] = subject_registry['INDIVIDUAL_ID'].combine_first(subject_registry['index'])
+    subject_registry.drop('index', axis=1, inplace=True)
 
     return subject_registry
 
@@ -353,7 +402,8 @@ def validate_source_file(file_prop_dict, path):
     encoding = get_encoding(path)
     if encoding not in ALLOWED_ENCODINGS:
         logging.error('Invalid file encoding ({0}) detected for: {1}. Must be {2}.'.format(encoding,
-                      filename, '/'.join(ALLOWED_ENCODINGS)))
+                                                                                           filename,
+                                                                                           '/'.join(ALLOWED_ENCODINGS)))
         return
 
     # Try to read the file as df
@@ -426,8 +476,8 @@ def set_date_fields(df, file_prop_dict, filename):
         logging.info('Setting date fields for {}'.format(filename))
         for col in date_fields:
             try:
-                #df[col] = pd.to_datetime(df[col], format=expected_date_format).dt.strftime('%Y-%m-%d').astype(object)
-                df[col] = df[col].apply(get_date_as_string,args=(expected_date_format,))
+                # df[col] = pd.to_datetime(df[col], format=expected_date_format).dt.strftime('%Y-%m-%d').astype(object)
+                df[col] = df[col].apply(get_date_as_string, args=(expected_date_format,))
             except ValueError:
                 args = (filename, col, expected_date_format)
                 logging.error('Incorrect date format for {0} in field {1}, expected {2}'.format(*args))
@@ -441,6 +491,7 @@ def get_date_as_string(item, dateformat, str_format='%Y-%m-%d'):
         return pd.np.nan
     else:
         return pd.datetime.strptime(item, dateformat).strftime(str_format)
+
 
 class InputFilesIncomplete(Exception):
     pass
