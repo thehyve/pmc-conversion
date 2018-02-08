@@ -1,2 +1,3 @@
 from .main import LoadDataFromNewFilesTask
-from .main import LoadDataFromHistoryTask
+from .main import LoadTransmartStudy
+from .main import CbioportalDataLoading

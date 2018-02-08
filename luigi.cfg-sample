@@ -1,6 +1,19 @@
 [core]
 logging_conf_file=logging.cfg
 
+[email]
+#Receiver can be a comma separated list
+receiver=
+force-send=True
+prefix=[CSR Data Loading Pipeline]
+
+[smtp]
+# default values:
+port=25
+ssl=False
+timeout=10
+#username=
+#password=
 
 [task_history]
 db_connection = sqlite:///pmc-luigi-db.sqlite
@@ -11,8 +24,9 @@ record_task_history = True
 state_path = luigi-state.pickle
 
 [GlobalConfig]
+## NOTE: insert full absolute paths
 drop_dir=<path_to>/test_data/dropzone
-repo_root_dir=/projects/pmc/data
+repo_root_dir=<path_to>/projects/pmc/data
 input_data_dir_name=input_data
 staging_dir_name=staging
 load_logs_dir_name=load_logs
@@ -27,7 +41,7 @@ csr_data_file = csr_transformation_data.tsv
 python=python3
 
 # TranSMART study settings
-transmart_copy_jar = /transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
+transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
 study_id = CSR_STUDY
 top_node = \Central Subject Registry\
 # security_required: Y or N
@@ -65,7 +79,7 @@ cm_map_file = codebook_mapping.json
 [MergeClinicalData]
 csr_transformation = csr_transformations.py
 data_model = data_model.json
-file_list = file_list.txt
+column_priority = column_priority.json
 file_headers = file_headers.json
 columns_to_csr = columns_to_csr.json
 
@@ -74,6 +88,12 @@ columns_to_csr = columns_to_csr.json
 tm_transformation = transmart_transformation.py
 blueprint = blueprint_example.json
 modifiers = example_modifiers.txt
+
+
+[TransmartApiTask]
+transmart_url = https://transmart.thehyve.net
+transmart_username = admin
+transmart_password = admin
 
 
 [CbioportalDataValidation]

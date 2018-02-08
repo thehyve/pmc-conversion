@@ -4,6 +4,7 @@ import tmtk
 import click
 import chardet
 import pandas as pd
+import datetime as dt
 
 
 @click.command()
@@ -17,7 +18,7 @@ import pandas as pd
 @click.option('--security_required')
 def main(csr_data_file, output_dir, config_dir, blueprint, modifiers, study_id, top_node, security_required):
 
-    df = pd.read_csv(csr_data_file, sep='\t', encoding=get_encoding(csr_data_file))
+    df = pd.read_csv(csr_data_file, sep='\t', encoding=get_encoding(csr_data_file), dtype=object)
     df = add_modifiers(df)
 
     study = tmtk.Study()
@@ -34,6 +35,8 @@ def main(csr_data_file, output_dir, config_dir, blueprint, modifiers, study_id, 
 
     blueprint_file = os.path.join(config_dir, blueprint)
     study.apply_blueprint(blueprint_file, omit_missing=True)
+
+    study = add_meta_data(study)
 
     tm_study = tmtk.toolbox.SkinnyExport(study, output_dir)
 
@@ -53,15 +56,33 @@ def get_encoding(file_name):
 
 
 def add_modifiers(df):
-    df['CSR_DIAGNOSE_MOD'] = df['DIAGNOSIS_ID']
+    df['CSR_DIAGNOSIS_MOD'] = df['DIAGNOSIS_ID']
     df['CSR_STUDY_MOD'] = df['STUDY_ID']
     df['CSR_BIOSOURCE_MOD'] = df['BIOSOURCE_ID']
     df['CSR_BIOMATERIAL_MOD'] = df['BIOMATERIAL_ID']
 
-    df.loc[pd.notnull(df['BIOMATERIAL_ID']), 'CSR_BIOMATERIAL_MOD'] = df.loc[
-        pd.notnull(df['BIOMATERIAL_ID']), 'SRC_BIOSOURCE_ID']
+    # Redundant with new input file
+    # df.loc[pd.notnull(df['BIOMATERIAL_ID']), 'CSR_BIOMATERIAL_MOD'] = df.loc[
+    #     pd.notnull(df['BIOMATERIAL_ID']), 'SRC_BIOSOURCE_ID']
 
     return df
+
+def add_meta_data(study):
+    date = dt.datetime.now().strftime('%d-%m-%Y')
+    study.ensure_metadata()
+
+    header = study.Tags.header
+    study_meta_data = [
+        ['\\'],
+        ['Load date'],
+        [date],
+        ['3']
+    ]
+
+    meta_data_df = pd.DataFrame.from_items(list((zip(header, study_meta_data))))
+    study.Tags.df = study.Tags.df.append(meta_data_df, ignore_index=True)
+
+    return study
 
 
 if __name__ == '__main__':

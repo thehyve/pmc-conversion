@@ -1,0 +1,59 @@
+{
+  "CID": [
+    "br_test.txt",
+    "br_test2.txt",
+    "extra_file.txt"
+  ],
+  "DIAGNOSIS_DATE": [
+    "br_test.txt",
+    "br_test2.txt"
+  ],
+  "DIAGNOSIS_ID": [
+    "br_test.txt",
+    "br_test2.txt"
+  ],
+  "CENTER_TREATMENT": [
+    "br_test.txt",
+    "br_test2.txt"
+  ],
+  "TUMOR_TYPE": [
+    "br_test.txt",
+    "br_test2.txt"
+  ],
+  "TOPOGRAPHY": [
+    "br_test.txt",
+    "br_test2.txt"
+  ],
+  "TUMOR_STAGE": [
+    "br_test.txt",
+    "br_test2.txt"
+  ],
+  "TREATMENT_PROTOCOL": [
+    "br_test.txt",
+    "br_test2.txt"
+  ],
+  "IFCREF": [
+    "br_test_copy.txt",
+    "br_test_copy.txt"
+  ],
+  "DESCRIPTION": [
+    "biosource_test.txt",
+    "study.txt"
+  ],
+  "IDAA": [
+    "br_test.txt",
+    "br_test2.txt",
+    "br_test_copy.txt",
+    "extra_file.txt"
+  ],
+  "LABEL":  [
+    "biomaterial_test.txt",
+    "biomaterial_test2.txt",
+    "biosource_test.txt"
+  ],
+  "SRC_BIOSOURCE_ID": [
+    "biomaterial_test.txt",
+    "biomaterial_test2.txt",
+    "biosource_test.txt"
+  ]
+}
