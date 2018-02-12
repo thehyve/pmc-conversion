@@ -1,40 +1,42 @@
-ACRONYM	BIOMATERIAL_DATE	BIOMATERIAL_ID	BIOSOURCE_DATE	BIOSOURCE_DEDICATED	BIOSOURCE_ID	BIRTH_DATE	CENTER_TREATMENT	CID	DATADICTIONARY	DEATH_DATE	DESCRIPTION	DIAGNOSIS_DATE	DIAGNOSIS_ID	DISEASE_STATUS	GENDER	IC_DATA	IC_GIVE_DATE	IC_LINKING_EXT	IC_MATERIAL	IC_TYPE	IC_VERSION	IC_WITHDRAWN_DATE	IDAA	IFCREF	INDIVIDUAL_ID	INDIVIDUAL_STUDY_ID	LABEL	NO_DATA	REPORT_HER_SUSC	REPORT_INC_FINDINGS	SRC_BIOMATERIAL_ID	SRC_BIOSOURCE_ID	STUDY_ID	TAXONOMY	TEST2	TISSUE	TITLE	TOPOGRAPHY	TREATMENT_PROTOCOL	TUMOR_PERCENTAGE	TUMOR_STAGE	TUMOR_TYPE	TYPE
-						01/01/18									1	1		8	1	1	0.1		3540		PMCID000AAA				No	Yes				Human									
-						05/03/02				05/07/16					2					4	0.2		2436		PMCID000BAA				Yes	No				Human									
-						06/08/12				09/10/17					1					4	0.5	No information	1546		PMCID000AAC				Not sure					Human									
-						04/04/11				26/07/16					2					4	1.0	Yes	9569		PMCID000AAD				No					Human									
-						09/06/08				14/05/14					1					4	7.0	Unknown	5533		PMCID000AAE				Yes					Astronaut									
-						22/08/15				01/01/18					1	1	01/01/16	8	1	1	8.0		3463		PMCID000AAW				No	No				Bottle									
-							220	A706				22/01/12	A706										3540		PMCID000AAA													749	Chemo		stage 4	95003	
-							217	B141				27/11/14	B141										2436		PMCID000BAA													421	Surgery			98363	
-							217	C373				04/01/15	C373										1546		PMCID000AAB													649	Protocol 1		IV	89603	
-							203	D428				19/04/15	D428										9569		PMCID000AAC													220	Chemo		st  IV, re st III, li st I	89703	
-							217	E431				01/07/15	E431										5533		PMCID000AAD													220	Chemo		IR, st IV, lokaal st III	89703	
-							220	F343				22/08/15	F343										4542		PMCID000AAW													220	Chemo		IV	95003	
-							220	F555				02/08/15	F555										5534		PMCID000AAE													649			Nieuwe record	89703	
-							220	G333				22/08/15	G333										2421		PMCID000AAW													220			IV	95003	
-TS01									reference 01		Study for testing														PMCID000AAA	ID001							PMCST002AAA				Test study 01						
-TS02									reference 02		Another study for testing														PMCID000AAA	ID001							PMCST005AAA				Test study 02						
-TS01									reference 01		Study for testing														PMCID000BAA	ID002							PMCST002AAA				Test study 01						
-TS01									reference 01		Study for testing														PMCID000AAC	ID003							PMCST002AAA				Test study 01						
-TS03									reference 03		Yet another study for testing														PMCID000AAC	ID003							PMCST007AAA				Test study 03						
-	05/06/11	PMCBM000AAA									neuroblastoma RNA		14706												PMCID000AAA		NBL_RNA					PMCBS000AAA			test2 data								RNA
-		PMCBM000AAB									healthy nerve tissue RNA		14706												PMCID000AAA		NBL_normal_RNA	no data here				PMCBS000AAB											RNA
-		PMCBM000ABA									rhadomyosarcoma RNA		14706												PMCID000AAA		RMS_RNA					PMCBS000ABA											RNA
-		PMCBM000ABB									healthy muscle tissue RNA		14706												PMCID000AAA		RMS_normal_RNA					PMCBS000ABB											RNA
-		PMCBM000BAA											17141												PMCID000BAA		NBL_DNA					PMCBS000BAA											DNA
-		PMCBM000BAB											17141												PMCID000BAA		NBL_org_pdx_DNA					PMCBS000BCA											DNA
-	24/01/18	PMCBM000AAN									tumor test		56790												PMCID000AAW		NA12878 T					PMCBS000AAN											DNA
-	24/01/18	PMCBM000AAO									normal test		56790												PMCID000AAW		NA12878 N					PMCBS000AAO											DNA
-				Yes	PMCBS000AAA						neuroblastoma		14706	terminal											PMCID000AAA		NBL									nerve				5			
-				Yes	PMCBS000AAB						tumor surrounding normal nerve tissue		14706	T4											PMCID000AAA		NBL_normal									nerve				10			
-				No	PMCBS000ABA						rhadomyosarcoma		14706	C9											PMCID000AAA		RMS									muscle				60			
-				No	PMCBS000ABB						tumor surrounding normal muscle tissue		14706	3s											PMCID000AAA		RMS_normal									muscle				24			
-				Unknown	PMCBS000BAA						neuroblastoma		17141												PMCID000BAA		NBL									skin				25			
-				Yes	PMCBS000BAB						peripheral blood		17141	T4											PMCID000BAA		normal									skin				86			
-				No	PMCBS000BAC						rhadomyosarcoma		17141	T4											PMCID000BAA		RMS									skin				32			
-				Yes	PMCBS000BBA						neuroblastoma organoid		17141	T4											PMCID000BAA		NBL_org					PMCBS000BAA				skin				46			
-					PMCBS000ACA						neuroblastoma organoid pdx		18000	C9											PMCID000AAM		NBL_org_pdx					PMCBS000ABA				skin				0			
-				No information	PMCBS000BCA						test		17141	C9											PMCID000BAA		NBL_org_pdx_2					PMCBS000BBA				skin				3			
-			24/01/18	Yes	PMCBS000AAN						Colon Carcinoma		56790	Tumor											PMCID000AAW		NA12878									bottle				80			
-			24/01/18	Yes	PMCBS000AAO						Normal tissue		56790	Normal											PMCID000AAW		NA12878									bottle				0			
+INDIVIDUAL_ID	DIAGNOSIS_ID	STUDY_ID	BIOMATERIAL_ID	BIOSOURCE_ID	CENTER_TREATMENT	CID	DESCRIPTION	DIAGNOSIS_DATE	IDAA	LABEL	SRC_BIOSOURCE_ID	TOPOGRAPHY	TUMOR_STAGE	TUMOR_TYPE	ACRONYM	BIOMATERIAL_DATE	BIOSOURCE_DATE	BIOSOURCE_DEDICATED	BIRTH_DATE	CIDDIAG2	DATADICTIONARY	DEATH_DATE	DIAGCD	DIAGGRSTX	DISEASE_STATUS	GENDER	HOSPDIAG	IC_DATA	IC_GIVE_DATE	IC_LINKING_EXT	IC_MATERIAL	IC_TYPE	IC_VERSION	IC_WITHDRAWN_DATE	IDAABA_PSEUDO	IFCREF	INDIVIDUAL_STUDY_ID	NO_DATA	PLOCCD	REPORT_HER_SUSC	REPORT_INC_FINDINGS	SRC_BIOMATERIAL_ID	TAXONOMY	TEST2	TISSUE	TITLE	TREATMENT_PROTOCOL	TUMOR_PERCENTAGE	TYPE
+PMCID000AAA						A706			3540										2018-01-01	A706			95003	stage 4		male	220	yes		not applicable	yes	yes	0.1		2012-01-22				749	No	Yes		Human						
+PMCID000AAB						C373			1546											C373			89603	IV			217								2015-01-04				649										
+PMCID000AAC						D428			1546										2012-08-06	D428		2017-10-09	89703	st  IV, re st III, li st I		male	203					IC will follow	0.5		2015-01-19				220	Not sure			Human						
+PMCID000AAD						E431			9569										2011-04-04	E431		2016-07-26	89703	IR, st IV, lokaal st III		female	217					IC will follow	1.0		2015-01-01				220	No			Human						
+PMCID000AAE						F555			5533										2008-06-09	F555		2014-05-14	89703	Nieuwe record, andere datum		male	220					IC will follow	7.0	2018-01-24	2015-01-02				649	Yes			Astronaut						
+PMCID000AAT									3251																	female		yes		not applicable	yes	IC will follow	9.0							No	Yes		Extra						
+PMCID000AAW									3463										2015-08-22			2018-01-01				female		yes	2016-01-01	not applicable	yes	yes	8.0							No	No		Bottle						
+PMCID000BAA						B141			2436										2002-03-05	B141		2016-07-05	98363			female	217					IC will follow	0.2		2014-01-27				421	Yes	No		Human						
+PMCID000AAA	A706				PMC	A706		2012-01-22	3540			adrenal gland, NOS	stage 4	Neuroblastoma, NOS																																	Chemo		
+PMCID000BAA	B141				UMCU	B141		2014-11-27	2436			bone marrow		Precursor B-cell lymphoblastic leukemia																																	Surgery		
+PMCID000AAB	C373				UMCU	C373		2015-01-04	1546			kidney, NOS	IV	Nephroblastoma, NOS																																	Protocol 1		
+PMCID000AAC	D428				CZE	D428		2015-04-19	9569			liver	st  IV, re st III, li st I	Hepatoblastoma																																	Chemo		
+PMCID000AAD	E431				UMCU	E431		2015-07-01	5533			liver	IR, st IV, lokaal st III	Hepatoblastoma																																	Chemo		
+PMCID000AAW	F343				PMC	F343		2015-08-22	4542			liver	IV	Neuroblastoma, NOS																																	Chemo		
+PMCID000AAE	F555				PMC	F555		2015-08-02	5534			kidney, NOS	Nieuwe record	Hepatoblastoma																																			
+PMCID000AAW	G333				PMC	G333		2015-08-22	2421			liver	IV	Neuroblastoma, NOS																																			
+PMCID000AAA		PMCST002AAA					Study for testing								TS01						reference 01																ID001									Test study 01			
+PMCID000AAA		PMCST005AAA					Another study for testing								TS02						reference 02																ID001									Test study 02			
+PMCID000BAA		PMCST002AAA					Study for testing								TS01						reference 01																ID002									Test study 01			
+PMCID000AAC		PMCST002AAA					Study for testing								TS01						reference 01																ID003									Test study 01			
+PMCID000AAC		PMCST007AAA					Yet another study for testing								TS03						reference 03																ID003									Test study 03			
+PMCID000AAA	14706			PMCBS000AAA			neuroblastoma			NBL								Yes							terminal																				nerve			5	
+PMCID000AAA	14706			PMCBS000AAB			tumor surrounding normal nerve tissue			NBL_normal								Yes							T4																				nerve			10	
+PMCID000AAA	14706			PMCBS000ABA			rhadomyosarcoma			RMS								No							C9																				muscle			60	
+PMCID000AAA	14706			PMCBS000ABB			tumor surrounding normal muscle tissue			RMS_normal								No							3s																				muscle			24	
+PMCID000BAA	17141			PMCBS000BAA			neuroblastoma			NBL								Unknown																											skin			25	
+PMCID000BAA	17141			PMCBS000BAB			peripheral blood			normal								Yes							T4																				skin			86	
+PMCID000BAA	17141			PMCBS000BAC			rhadomyosarcoma			RMS								No							T4																				skin			32	
+PMCID000BAA	17141			PMCBS000BBA			neuroblastoma organoid			NBL_org	PMCBS000BAA							Yes							T4																				skin			46	
+PMCID000AAM	18000			PMCBS000ACA			neuroblastoma organoid pdx			NBL_org_pdx	PMCBS000ABA														C9																				skin			0	
+PMCID000BAA	17141			PMCBS000BCA			test			NBL_org_pdx_2	PMCBS000BBA							No information							C9																				skin			3	
+PMCID000AAW	56790			PMCBS000AAN			Colon Carcinoma			NA12878							2018-01-24	Yes							Tumor																				bottle			80	
+PMCID000AAW	56790			PMCBS000AAO			Normal tissue			NA12878							2018-01-24	Yes							Normal																				bottle			0	
+PMCID000AAA	14706		PMCBM000AAA	PMCBS000AAA						NBL_RNA	PMCBS000AAA					2011-06-05																												test2 data					RNA
+PMCID000AAA	14706		PMCBM000AAB	PMCBS000AAB						NBL_normal_RNA	PMCBS000AAB																											no data here											RNA
+PMCID000AAW	56790		PMCBM000AAN	PMCBS000AAN						NA12878 T	PMCBS000AAN					2018-01-24																																	DNA
+PMCID000AAW	56790		PMCBM000AAO	PMCBS000AAO						NA12878 N	PMCBS000AAO					2018-01-24																																	DNA
+PMCID000AAA	14706		PMCBM000ABA	PMCBS000ABA						RMS_RNA	PMCBS000ABA																																						RNA
+PMCID000AAA	14706		PMCBM000ABB	PMCBS000ABB						RMS_normal_RNA	PMCBS000ABB																																						RNA
+PMCID000BAA	17141		PMCBM000BAA	PMCBS000BAA						NBL_DNA	PMCBS000BAA																																						DNA
+PMCID000BAA	17141		PMCBM000BAB	PMCBS000BCA						NBL_org_pdx_DNA	PMCBS000BCA																																						DNA
