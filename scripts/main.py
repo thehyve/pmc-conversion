@@ -363,11 +363,15 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
                                              commit_message='Add transmart data.')
         commit_transmart_staging.required_tasks = [transmart_data_transformation]
         yield commit_transmart_staging
+
         load_transmart_study = LoadTransmartStudy()
         load_transmart_study.required_tasks = [commit_transmart_staging]
         yield load_transmart_study
+
         transmart_api_task = TransmartApiTask()
         transmart_api_task.required_tasks = [load_transmart_study]
+        yield transmart_api_task
+
         commit_transmart_load_logs = GitCommit(directory_to_add=config.transmart_load_logs_dir,
                                                commit_message='Add transmart loading log.')
         commit_transmart_load_logs.required_tasks = [transmart_api_task]
