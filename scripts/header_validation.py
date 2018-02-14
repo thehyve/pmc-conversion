@@ -64,7 +64,7 @@ def get_encoding(file_name):
 
 
 def check_arguments(header_file):
-    if not os.path.splitext(header_file)[1].lower() != '.json':
+    if not os.path.splitext(header_file)[1].lower() == '.json':
         logging.error("Provided HEADER_FILE is not a valid json file: {}".format(header_file))
         sys.exit(1)
 
