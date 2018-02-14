@@ -45,9 +45,9 @@ def get_source_files(path, file_prop_dict):
 
     if expected_files != valid_files:
         missing = expected_files - source_files
-        logging.error('({0}/{1}) expected files were not found: {2}'.format(len(missing), len(expected_files), missing))
+        logging.warning('({0}/{1}) files were not found: {2}'.format(len(missing), len(expected_files), missing))
     else:
-        logging.info('All expected files were found in the source folder.')
+        logging.info('All files were found in the source folder.')
 
     additional_files = source_files - expected_files
     if additional_files:
