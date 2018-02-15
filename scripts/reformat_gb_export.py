@@ -13,7 +13,7 @@ DATE_FORMAT = '%d-%m-%Y'
 
 
 @click.command()
-@click.argument('input_file', click.Path(exists=True))
+@click.argument('input_file', type=click.Path(exists=True, dir_okay=False))
 @click.argument('output_filename')
 @click.option('--output_dir', default=None, help='Set directory to save the output file to')
 @click.option('--log_level', type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR']), default='INFO',
