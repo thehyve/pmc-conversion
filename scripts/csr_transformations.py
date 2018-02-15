@@ -73,7 +73,8 @@ def main(input_dir, output_dir, config_dir, data_model,
                                        output_dir=output_dir,
                                        columns_to_csr=columns_to_csr_map,
                                        file_list=expected_files,
-                                       file_headers=file_prop_dict)
+                                       file_headers=file_prop_dict,
+                                       file_headers_name=file_headers)
 
     subject_registry = build_csr_dataframe(file_dict=files_per_entity,
                                            file_list=expected_files,
@@ -390,7 +391,7 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     return subject_registry
 
 
-def validate_source_file(file_prop_dict, path):
+def validate_source_file(file_prop_dict, path, file_headers_name):
     filename = os.path.basename(path)
 
     # Check file is not empty
@@ -417,15 +418,21 @@ def validate_source_file(file_prop_dict, path):
         file_header_fields = set(df.columns)
 
     # Check mandatory header fields are present
-    required_header_fields = {field.upper() for field in file_prop_dict[filename]['headers']}
-    if not required_header_fields.issubset(file_header_fields):
-        missing = required_header_fields - file_header_fields
-        logging.warning('{0} is missing mandatory header fields: {1}'.format(filename, missing))
+    if filename in file_prop_dict:
+        required_header_fields = {field.upper() for field in file_prop_dict[filename]['headers']}
+        if not required_header_fields.issubset(file_header_fields):
+            missing = required_header_fields - file_header_fields
+            logging.warning('{0} is missing mandatory header fields: {1}'.format(filename, missing))
+        return False
+    else:
+        logging.error('Found file {}, but not defined in {}'.format(filename, file_headers_name))
+        return True
 
 
-def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_headers):
+def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_headers, file_headers_name):
     # Input is taken in per entity.
     files_per_entity = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
+    exit_after_process = False
 
     files_found = {filename: False for filename in file_list}
     # Assumption is that all the files are in EPD, LIMMS or STUDY folders.
@@ -438,7 +445,10 @@ def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_heade
                 if filename in files_found:
                     files_found[filename] = True
 
-                validate_source_file(file_headers, file)
+                validate_error = validate_source_file(file_headers, file, file_headers_name)
+                if validate_error:
+                    exit_after_process = True
+                    continue
 
                 codebook = check_for_codebook(filename, output_dir)
 
@@ -463,6 +473,10 @@ def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_heade
                 files_per_entity[file_type].update({filename: df})
 
     check_file_list(files_found)
+
+    if exit_after_process:
+        logging.error('Missing expected input files, exiting program.')
+        sys.exit(1)
 
     return files_per_entity
 
