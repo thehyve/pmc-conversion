@@ -37,10 +37,10 @@ def main(input_file, output_filename, output_dir, log_level):
 
     logging.info('Output file: {}'.format(output_file))
 
-    with tempfile.TemporaryDirectory() as working_dir:
-        os.chdir(working_dir)
+    working_dir = tempfile.TemporaryDirectory()
+    os.chdir(working_dir.name)
 
-        export_data = read_zip_file(input_file)
+    export_data = read_zip_file(input_file)
 
     observations = export_data.pop('observations')
     logging.info('Building mapping dictionary from export files')
