@@ -14,16 +14,18 @@ import pmc_cbio_create_metafile
 import pmc_cbio_create_caselist
 import pandas as pd
 import shutil
+import time
 
 
 ### Define study properties
 STUDY_ID = 'pmc_test'
 NAME = "PMC - Test Study"
 NAME_SHORT = "PMC - Test Study"
-DESCRIPTION = 'Transformed from PMC Test Data to cBioPortal format.'
+DESCRIPTION = '%s Transformed from PMC Test Data to cBioPortal format.' % time.strftime("%d-%m-%Y %H:%M")
 TYPE_OF_CANCER = 'mixed'
 
-def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, only_clinical_files):
+
+def transform_study(clinical_input_file, ngs_dir, output_dir):
 
     ### Create output directories
     if not os.path.exists(output_dir):
@@ -174,8 +176,8 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, o
     print('Transformation of studies complete.')
 
 
-def main(clinical_input_file, ngs_dir, output_dir, only_meta_files, only_clinical_files):
-    transform_study(clinical_input_file, ngs_dir, output_dir, only_meta_files, only_clinical_files)
+def main(clinical_input_file, ngs_dir, output_dir):
+    transform_study(clinical_input_file, ngs_dir, output_dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -196,17 +198,5 @@ if __name__ == '__main__':
         required = True,
         help = "Directory where studies with cBioPortal staging files are written.")
 
-    arguments.add_argument("-m", "--only_meta_files",
-        required = False,
-        action = 'store_true',
-        default = False,
-        help = "Optional: If -m added, only create meta files (fast).")
-
-    arguments.add_argument("-f", "--only_clinical_files",
-        required = False,
-        action = 'store_true',
-        default = False,
-        help = "Optional: If -c added, only clinical data files will be transformed.")
-
     args = parser.parse_args()
-    main(args.clinical_input_file, args.ngs_dir, args.output_dir, args.only_meta_files, args.only_clinical_files)
+    main(args.clinical_input_file, args.ngs_dir, args.output_dir)
