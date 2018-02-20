@@ -398,6 +398,47 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
     def requires(self):
         return self.tasks_dependency_tree
 
+class e2e_LoadDataFromNewFilesTaskTransmartOnly(luigi.WrapperTask):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tasks_dependency_tree = list(self._build_task_dependency_tree())
+
+    @classmethod
+    def _build_task_dependency_tree(self):
+        logger.debug('Building the complete workflow ...')
+        update_data_files = UpdateDataFiles()
+        update_data_files.required_tasks = []
+        yield update_data_files
+        commit_input_data = GitCommit(directory_to_add=config.input_data_dir,
+                                      commit_message='Add new input data.')
+        commit_input_data.required_tasks = [update_data_files]
+        yield commit_input_data
+        format_codebook = FormatCodeBooks()
+        format_codebook.required_tasks = [commit_input_data]
+        yield format_codebook
+        merge_clinical_data = MergeClinicalData()
+        merge_clinical_data.required_tasks = [format_codebook]
+        yield merge_clinical_data
+
+        transmart_data_transformation = TransmartDataTransformation()
+        transmart_data_transformation.required_tasks = [merge_clinical_data]
+        yield transmart_data_transformation
+        commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
+                                             commit_message='Add transmart data.')
+        commit_transmart_staging.required_tasks = [transmart_data_transformation]
+        yield commit_transmart_staging
+
+        load_transmart_study = LoadTransmartStudy()
+        load_transmart_study.required_tasks = [commit_transmart_staging]
+        yield load_transmart_study
+
+        commit_transmart_load_logs = GitCommit(directory_to_add=config.transmart_load_logs_dir,
+                                               commit_message='Add transmart loading log.')
+        commit_transmart_load_logs.required_tasks = [load_transmart_study]
+        yield commit_transmart_load_logs
+
+    def requires(self):
+        return self.tasks_dependency_tree
 
 if __name__ == '__main__':
     luigi.run()
