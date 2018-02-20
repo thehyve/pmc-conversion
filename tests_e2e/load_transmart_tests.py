@@ -7,9 +7,9 @@ class LoadTransmartTest(unittest.TestCase):
     config = configparser.ConfigParser()
     config.read('luigi.cfg')
 
-    # def setUp(self):
-    #     test_helpers.clean_database(self.config)
-    #     test_helpers.clean_dropzone(self.config)
+    def setUp(self):
+        test_helpers.clean_database(self.config)
+        test_helpers.clean_dropzone(self.config)
 
     def test_load_valid_data(self):
         test_helpers.run_pipe()
