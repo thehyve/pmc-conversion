@@ -103,3 +103,9 @@ docker_image = cbioportal-hg38:1.10.2
 [CbioportalDataLoading]
 docker_image = cbioportal-hg38:1.10.2
 server_name = pmc-cbioportal-test
+
+[E2eTest]
+PGADMINUSER = postgres
+PGADMINPASSWORD = password
+parent_drop_dir = <path_to>/pmc-conversion/test_data/dropzone
+transmart_data = <path_to>/transmart-core/transmart-data

@@ -143,3 +143,4 @@ luigi.cfg
 config/csr_transformation.config
 config/transmart_transformation.config
 luigi-state.pickle
+e2e-temp
