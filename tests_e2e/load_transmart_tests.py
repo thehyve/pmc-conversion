@@ -13,7 +13,8 @@ class LoadTransmartTest(unittest.TestCase):
 
     def test_load_valid_data(self):
         test_helpers.run_pipe()
-        self.assertTrue(test_helpers.checkDB(self.config)[2] == 'CSR_STUDY', 'row one in the study table does not contain CSR_STUDY')
+        self.assertTrue(test_helpers.checkDB(self.config)[2] == self.config['GlobalConfig']['study_id'],
+                        'row one in the study table does not contain the expected study')
 
 
 if __name__ == '__main__':
