@@ -13,7 +13,7 @@ DATE_FORMAT = '%d-%m-%Y'
 
 
 @click.command()
-@click.argument('input_file', click.Path(exists=True))
+@click.argument('input_file', type=click.Path(exists=True, dir_okay=False))
 @click.argument('output_filename')
 @click.option('--output_dir', default=None, help='Set directory to save the output file to')
 @click.option('--log_level', type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR']), default='INFO',
@@ -37,10 +37,10 @@ def main(input_file, output_filename, output_dir, log_level):
 
     logging.info('Output file: {}'.format(output_file))
 
-    with tempfile.TemporaryDirectory() as working_dir:
-        os.chdir(working_dir)
+    working_dir = tempfile.TemporaryDirectory()
+    os.chdir(working_dir.name)
 
-        export_data = read_zip_file(input_file)
+    export_data = read_zip_file(input_file)
 
     observations = export_data.pop('observations')
     logging.info('Building mapping dictionary from export files')
