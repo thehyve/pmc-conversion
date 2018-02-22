@@ -27,23 +27,12 @@ TYPE_OF_CANCER = 'mixed'
 
 def transform_study(clinical_input_file, ngs_dir, output_dir):
 
-    ### Create output directories
+    ### Create output directory
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    ### Select study files
-    study_files = []
-    for study_file in os.listdir(ngs_dir):
-        if study_file[0] != '.':
-            study_files.append(study_file)
-
-    ### Create sample list, required for cnaseq case list
-    mutation_samples = []
-    cna_samples = []
-
     ### Clinical data
-    if study_file.split('_')[0] == 'clinical':
-        print('Transforming clinical patient data: %s' % study_file)
+    print('Transforming clinical data: %s' % clinical_input_file)
 
     ### Transform patient file
     pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=clinical_input_file,
@@ -55,7 +44,17 @@ def transform_study(clinical_input_file, ngs_dir, output_dir):
                                                         output_dir=output_dir, clinical_type='sample',
                                                         study_id=STUDY_ID)
 
-    ### Transform data files
+    ### Select NGS study files
+    study_files = []
+    for study_file in os.listdir(ngs_dir):
+        if study_file[0] != '.':
+            study_files.append(study_file)
+
+    ### Create sample list, required for cnaseq case list
+    mutation_samples = []
+    cna_samples = []
+
+    ### Transform NGS data files
     for study_file in study_files:
         if study_file.endswith('sha1'):
             continue
