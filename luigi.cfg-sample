@@ -9,11 +9,12 @@ prefix=[CSR Data Loading Pipeline]
 
 [smtp]
 # default values:
-port=25
-ssl=False
+port=587
 timeout=10
-#username=
-#password=
+username=
+password=
+no_tls=False
+host=example.host.com
 
 [task_history]
 db_connection = sqlite:///pmc-luigi-db.sqlite
