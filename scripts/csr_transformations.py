@@ -106,7 +106,7 @@ def main(input_dir, output_dir, config_dir, data_model,
 
 
 def resolve_data_conflicts(df, column_priority, csr_data_model):
-    df.set_index(['INDIVIDUAL_ID', 'DIAGNOSIS_ID', 'STUDY_ID', 'BIOMATERIAL_ID', 'BIOSOURCE_ID'],
+    df.set_index(list(PK_COLUMNS),
                  inplace=True)
     df.to_csv('/tmp/CONF_SR.txt', '\t')
     missing_column = False
@@ -131,7 +131,16 @@ mapping for the following files {}'.format(column, ref_df.columns.tolist()))
                 subject_registry = subject_registry.merge(base, left_index=True, right_index=True, how='outer')
 
     df.columns = df.columns.droplevel(1)
-    subject_registry = subject_registry.merge(df, left_index=True, right_index=True, how='outer')
+    df.reset_index(inplace=True)
+    subject_registry.reset_index(inplace=True)
+
+    if subject_registry.empty:
+        subject_registry = df
+    else:
+        subject_registry = subject_registry.merge(df, on=list(PK_COLUMNS), how='outer')
+
+    # Handle duplicated rows
+    subject_registry = subject_registry.loc[~subject_registry.duplicated(keep='first'),:]
 
     if missing_column:
         logging.error('Can not resolve data conflicts due to missing columns from column priority mapping, exiting')
@@ -385,8 +394,9 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
 
     # Concat all data starting with individual into the CSR dataframe, study, diagnosis, biosource and biomaterial
     subject_registry = pd.concat(entity_to_data_frames.values())
-    subject_registry['INDIVIDUAL_ID'] = subject_registry['INDIVIDUAL_ID'].combine_first(subject_registry['index'])
-    subject_registry.drop('index', axis=1, inplace=True)
+    if 'index' in subject_registry.columns:
+        subject_registry['INDIVIDUAL_ID'] = subject_registry['INDIVIDUAL_ID'].combine_first(subject_registry['index'])
+        subject_registry.drop('index', axis=1, inplace=True)
 
     return subject_registry
 
