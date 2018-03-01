@@ -55,7 +55,7 @@ class TransmartApiCalls(object):
         Triggers the scan of stored set queries in TranSMART.
 
         """
-        self.post('/v2/query_sets/scan')
+        self.post('/v2/sets/scan')
 
 
     def clear_tree_nodes_cache(self):
