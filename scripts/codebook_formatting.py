@@ -2,7 +2,11 @@ import os
 import json
 import click
 import chardet
+import logging
 import tempfile
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 @click.command()
 @click.argument('codebook_file', type=click.Path(exists=True))
@@ -14,26 +18,28 @@ def main(codebook_file, codebook_mapping):
     
 
 def codebook_formatting(file, codebook_mapping, output_dir=tempfile.gettempdir()):
+    logger.debug('Codebook formatting for: {}'.format(file))
     basename = os.path.basename(file)
 
     cm_file = os.path.abspath(codebook_mapping)
+    logger.debug('Retrieving codebook mapping from: {}'.format(cm_file))
     with open(cm_file, 'r', encoding=get_encoding(cm_file)) as cm:
         codebook_type = json.loads(cm.read())
 
 
-    # TODO: come up with convention to provide output, overwrite file?
     codebook_out = os.path.join(output_dir,basename+'.json')
-    print('codebook output: :', codebook_out)
 
     with open(file, 'r', encoding=get_encoding(file)) as file:
+        logger.debug('Processing: {}'.format(basename))
         lines = file.readlines()
 
     # TODO: implement format checker
     if codebook_type[basename] == 'format1':
+        logger.debug('Format found: format1. Start processing')
         codebook = process_br_codebook(lines)
 
-    # TODO: add logger
-    #print('Writing formatted {} to {}.json').format(basename, basename)
+
+    logger.info('Writing formatted codebook {} to {}'.format(basename, codebook_out))
     with open(codebook_out, 'w') as f:
         f.write(json.dumps(codebook))
 
