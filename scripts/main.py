@@ -7,6 +7,7 @@ from .git_commons import get_git_repo
 from .sync import sync_dirs, get_checksum_pairs_set
 from .luigi_commons import BaseTask, ExternalProgramTask
 from .codebook_formatting import codebook_formatting
+from .transmart_api_calls import TransmartApiCalls
 import threading
 
 logger = logging.getLogger(__name__)
@@ -188,15 +189,20 @@ class CbioportalDataTransformation(ExternalProgramTask):
     Task to transform data files for cBioPortal
     """
 
+    cbioportal_header_descriptions = luigi.Parameter(description='JSON file with a description per column')
+
     def program_args(self):
         clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
         ngs_dir = os.path.join(config.input_data_dir, 'NGS')
         output_dir = config.cbioportal_staging_dir
+        description_mapping = os.path.join(config.config_json_dir, self.cbioportal_header_descriptions)
 
-        return ['python3 cbioportal_transformation/pmc_cbio_wrapper.py',
+        return [config.python,
+                'cbioportal_transformation/pmc_cbio_wrapper.py',
                 '-c', clinical_input_file,
                 '-n', ngs_dir,
-                '-o', output_dir]
+                '-o', output_dir,
+                '-d', description_mapping]
 
 
 class TransmartDataLoader(ExternalProgramTask):
@@ -220,9 +226,6 @@ class LoadTransmartStudy(TransmartDataLoader):
     def program_args(self):
         return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '--re-upload',
                 '{!r}'.format(config.transmart_staging_dir)]
-
-
-from .transmart_api_calls import TransmartApiCalls
 
 
 class TransmartApiTask(BaseTask):

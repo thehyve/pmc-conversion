@@ -4,6 +4,7 @@
 ### Author: Sander Tan, The Hyve
 
 import sys
+
 sys.dont_write_bytecode = True
 
 import pandas as pd
@@ -34,19 +35,22 @@ RENAME_OS_STATUS_MAP = {}
 RENAME_DFS_STATUS_MAP = {}
 
 ### Force some datatypes to be remappad to STRING
-FORCE_STRING_LIST = ['CENTER_TREATMENT', 'CID', 'DIAGNOSIS_ID', 'GENDER', 'IC_DATA', 'IC_LINKING_EXT', 'IC_MATERIAL', 'IC_TYPE', 'IDAA', 'INDIVIDUAL_STUDY_ID', 'TOPOGRAPHY', 'TUMOR_TYPE']
+FORCE_STRING_LIST = ['CENTER_TREATMENT', 'CID', 'DIAGNOSIS_ID', 'GENDER', 'IC_DATA', 'IC_LINKING_EXT', 'IC_MATERIAL',
+                     'IC_TYPE', 'IDAA', 'INDIVIDUAL_STUDY_ID', 'TOPOGRAPHY', 'TUMOR_TYPE']
+
 
 def create_clinical_header(df):
     """ Function to create header in cBioPortal format for clinical data
     """
 
     ### Create attribute name and attribute description
-    header_data = pd.DataFrame(data = df.columns)
+    header_data = pd.DataFrame(data=df.columns)
     header_data[1] = header_data
 
     ### Data type header line
     type_values = []
     for i in df.dtypes:
+        # TODO: Minor - extent to include other int and float times (check if numerical)
         if i in ['int64', 'float64']:
             type_values.append('NUMBER')
         else:
@@ -64,7 +68,7 @@ def create_clinical_header(df):
     header_data.columns = df.columns
 
     ### Adding hash # to the first column
-    header_data.iloc[:,0] = '#' + header_data.iloc[:,0].astype(str)
+    header_data.iloc[:, 0] = '#' + header_data.iloc[:, 0].astype(str)
 
     return header_data
 
@@ -96,28 +100,45 @@ def fix_integer_na_columns(df):
     numerical_data = df.select_dtypes(include=[np.float64])
 
     ### Round values to 4 decimals
-    #clinical_data.loc[:, numerical_data.columns] = np.round(numerical_data, 4)
+    # clinical_data.loc[:, numerical_data.columns] = np.round(numerical_data, 4)
 
     # Select columns which contain integers with NA values (numpy has converted them to floats)
-    integer_na_columns = numerical_data.columns[numerical_data.apply(check_integer_na_columns, axis = 0)]
+    integer_na_columns = numerical_data.columns[numerical_data.apply(check_integer_na_columns, axis=0)]
 
     # Convert integer columns with NA to string(integer) columns
     if len(integer_na_columns) > 0:
-        df.loc[:, integer_na_columns] = df.loc[:, integer_na_columns].applymap(lambda x: str(x).split('.')[0].replace('nan', 'NA'))
+        df.loc[:, integer_na_columns] = df.loc[:, integer_na_columns].applymap(
+            lambda x: str(x).split('.')[0].replace('nan', 'NA'))
     return df
 
-def remove_empty_columns(df):
-    """ Columns without any values should be removed from dataframe. """
-    for column in df:
-        if df[column].isnull().values.all():
-            df.drop(column, axis = 1, inplace=True)
-    return df
 
-def pmc_data_restructuring(clinical_data, clinical_type):
+def pmc_data_restructuring(unfiltered_clinical_data, clinical_type, description_map):
+    mapped_columns = set()
+    for value in description_map.values():
+        mapped_columns.update(value.keys())
+
+    clinical_columns = unfiltered_clinical_data.columns.intersection(mapped_columns)
+
+    len_c_c = len(clinical_columns)
+    len_mp_c = len(mapped_columns)
+    len_unf_c = unfiltered_clinical_data.columns.size
+
+    print('Found {} out of total {} columns found in mapping.'.format(len_c_c, len_mp_c))
+    if len_c_c < len_mp_c:
+        print('Columns defined in mapping but missing in the CSR data: {}'.format(mapped_columns.difference(clinical_columns)))
+
+    print('Found {} out of total {} columns in the data)'.format(len_c_c, len_unf_c))
+    if len_c_c < len_unf_c:
+        print('Columns defined in mapping but missing in the CSR data: {}'.format(
+            unfiltered_clinical_data.columns.difference(clinical_columns)))
+
+    clinical_data = unfiltered_clinical_data[clinical_columns]
+
     ### Add entity of the row (Patient, Diagnosis, Study, Biosource, Biomaterial)
     clinical_data['Entity'] = ''
     for index, row in clinical_data.iterrows():
-        if pd.notnull(row['DIAGNOSIS_ID']) and pd.isnull(row['BIOSOURCE_ID']) and pd.isnull(row['STUDY_ID']) and pd.isnull(row['BIOMATERIAL_ID']):
+        if pd.notnull(row['DIAGNOSIS_ID']) and pd.isnull(row['BIOSOURCE_ID']) and pd.isnull(
+                row['STUDY_ID']) and pd.isnull(row['BIOMATERIAL_ID']):
             clinical_data.loc[index, 'Entity'] = 'Diagnosis'
         elif pd.notnull(row['STUDY_ID']):
             clinical_data.loc[index, 'Entity'] = 'Study'
@@ -140,25 +161,29 @@ def pmc_data_restructuring(clinical_data, clinical_type):
         return patient_data
 
     # Rename column, else duplicate columns
-    biomaterial_data.rename(columns = {'DESCRIPTION': 'Biomaterial description',
-                                       'LABEL': 'Biomaterial label'}, inplace = True)
-    biosource_data.rename(columns = {'DESCRIPTION': 'Biosource description',
-                                     'LABEL': 'Biosource label'}, inplace = True)
+    entity_map = {
+        'diagnosis'  : diagnosis_data,
+        'biosource'  : biosource_data,
+        'biomaterial': biomaterial_data,
+        'individual' : patient_data,
+        'study'      : study_data
+    }
+
+    for key, descriptions in description_map.items():
+        entity_map[key].rename(columns=descriptions, inplace=True)
 
     # Merge columns
     biosource_data = pd.merge(biosource_data, diagnosis_data, how='left', on=['DIAGNOSIS_ID'])
     biomaterial_data = pd.merge(biomaterial_data, biosource_data, how='left', on=['BIOSOURCE_ID'])
     biomaterial_data['Sample ID'] = biomaterial_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
 
-    # Drop patient specific columns
-    biomaterial_data.drop('IDAA', axis = 1, inplace = True)
-
     # TODO: Remove sample IDs which are not in the data
 
     # In case of clinical sample data, return merged biomaterial dataframe
     return biomaterial_data
 
-def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study_id):
+
+def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study_id, description_map):
     """ Converting the input file to a cBioPortal staging file.
     """
 
@@ -166,7 +191,7 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     clinical_data = pd.read_csv(clinical_inputfile, sep='\t', na_values=[''])
 
     ### PMC data restructuring
-    clinical_data = pmc_data_restructuring(clinical_data, clinical_type)
+    clinical_data = pmc_data_restructuring(clinical_data, clinical_type, description_map)
 
     ###############################
     ### Modify column names #######
@@ -176,23 +201,20 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     clinical_data = clinical_data.rename(columns=lambda x: x.strip())
 
     ## Remove empty columns
-    clinical_data = remove_empty_columns(clinical_data)
+    clinical_data.dropna(axis=1, how='all', inplace=True)
 
     ### Rename attributes before creating header
     ### These are the attribute names that will show up in cBioPortal UI
-    clinical_data.rename(columns= RENAME_BEFORE_CREATING_HEADER_MAP, inplace = True)
-
-    ### Set datatype of specific columns before creating header
-    # if '' in clinical_data.columns:
-    #     clinical_data[''] = clinical_data[''].astype(object)
+    clinical_data.rename(columns=RENAME_BEFORE_CREATING_HEADER_MAP, inplace=True)
 
     ### Create header
     clinical_header = create_clinical_header(clinical_data)
 
     ### Rename attributes after creating header
     ### These are the attribute names for the database
-    clinical_data.rename(columns= RENAME_AFTER_CREATING_HEADER_MAP, inplace = True)
+    clinical_data.rename(columns=RENAME_AFTER_CREATING_HEADER_MAP, inplace=True)
 
+    # TODO: Major - Check FORCE_STRING_LIST assumption --> make configurable?
     ### Set datatype of specific columns before after header
     for string_column_name in FORCE_STRING_LIST:
         if string_column_name in clinical_header.columns:
@@ -236,6 +258,7 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
 
     ### Check if column names are unique.
     ### In case of duplicates, rename them manually before or after header creation
+    # TODO: Nice to have - Extract mapping dictionaries to external config, now they are hardcoded
     if not len(set(clinical_data.columns.tolist())) == len(clinical_data.columns.tolist()):
         print('Attribute names are not unique, not writing data_clinical. Rename them using the remap dictionary.')
         sys.exit(1)
@@ -245,8 +268,8 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     ##############################
     ### Writing clinical patient file
     clinical_filename = os.path.join(output_dir, 'data_clinical_%s.txt' % clinical_type)
-    clinical_header.to_csv(clinical_filename, sep='\t', index=False, header=False, mode = 'w')
-    clinical_data.to_csv(clinical_filename, sep='\t', index=False, header=True, mode = 'a')
+    clinical_header.to_csv(clinical_filename, sep='\t', index=False, header=False, mode='w')
+    clinical_data.to_csv(clinical_filename, sep='\t', index=False, header=True, mode='a')
 
     ### Set clinical type for meta file
     if clinical_type == 'sample':
@@ -259,7 +282,8 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
 
     ### Create meta file
     meta_filename = os.path.join(output_dir, 'meta_clinical_%s.txt' % clinical_type)
-    pmc_cbio_create_metafile.create_meta_content(meta_filename, study_id, 'CLINICAL', meta_datatype, 'data_clinical_%s.txt' % clinical_type)
+    pmc_cbio_create_metafile.create_meta_content(meta_filename, study_id, 'CLINICAL', meta_datatype,
+                                                 'data_clinical_%s.txt' % clinical_type)
     return
 
 
@@ -270,27 +294,26 @@ def main(clinical_inputfile, output_dir, clinical_type, study_id):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        usage = '-i <input_file> -o <dir_for_output_files> -c <datatype: sample or patient>',
-        description = 'Read input and output filenames.')
+        usage='-i <input_file> -o <dir_for_output_files> -c <datatype: sample or patient>',
+        description='Read input and output filenames.')
 
     requiredNamed = parser.add_argument_group('required named arguments')
 
     requiredNamed.add_argument('-i', '--input_file',
-        required = True,
-        help = 'Data file containing donor/patient/sample information.')
+                               required=True,
+                               help='Data file containing donor/patient/sample information.')
 
     requiredNamed.add_argument('-o', '--dir_for_output_files',
-        required = True,
-        help = 'Directory in which the staging file created by this \
-script will be placed.')
+                               required=True,
+                               help='Directory in which the staging file created by this script will be placed.')
 
     requiredNamed.add_argument('-c', '--clinical_type',
-        required = True,
-        help = 'Specify whether the data is a patient or sample file.')
+                               required=True,
+                               help='Specify whether the data is a patient or sample file.')
 
     requiredNamed.add_argument('-s', '--study_id',
-        required = True,
-        help = 'Specify study id.')
+                               required=True,
+                               help='Specify study id.')
 
     args = parser.parse_args()
 
