@@ -33,15 +33,19 @@ def codebook_formatting(file, codebook_mapping, output_dir=tempfile.gettempdir()
         logger.debug('Processing: {}'.format(basename))
         lines = file.readlines()
 
+
+    codebook= None
     # TODO: implement format checker
     if codebook_type[basename] == 'format1':
         logger.debug('Format found: format1. Start processing')
         codebook = process_br_codebook(lines)
+    else:
+        logger.info('Format not found for {}, skipping'.format(file))
 
-
-    logger.info('Writing formatted codebook {} to {}'.format(basename, codebook_out))
-    with open(codebook_out, 'w') as f:
-        f.write(json.dumps(codebook))
+    if codebook:
+        logger.info('Writing formatted codebook {} to {}'.format(basename, codebook_out))
+        with open(codebook_out, 'w') as f:
+            f.write(json.dumps(codebook))
 
 
 def get_encoding(file_name):
