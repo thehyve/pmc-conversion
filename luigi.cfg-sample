@@ -96,6 +96,8 @@ transmart_url = https://transmart.thehyve.net
 transmart_username = admin
 transmart_password = admin
 
+[CbioportalDataTransformation]
+cbioportal_header_descriptions=cbioportal_header_descriptions.json
 
 [CbioportalDataValidation]
 docker_image = cbioportal-hg38:1.10.2
