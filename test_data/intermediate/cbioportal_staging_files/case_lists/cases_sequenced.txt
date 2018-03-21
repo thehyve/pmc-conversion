@@ -3,4 +3,4 @@ stable_id: pmc_test_sequenced
 case_list_name: Sequenced samples
 case_list_description: All sequenced samples
 case_list_category: all_cases_with_mutation_data
-case_list_ids: PMCBS000AAA_PMCBM000AAA	PMCBS000AAB_PMCBM000AAB
+case_list_ids: PMCBS000AAA_PMCBM000AAA	PMCBS000AAB_PMCBM000AAB	PMCBS000AAN_PMCBM000AAN
