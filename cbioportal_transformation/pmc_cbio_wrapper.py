@@ -167,6 +167,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
                 raise ValueError("Found samples in CNA files that are not in clinical data:\n%s"
                                  % ", ".join(set(cna_samples).difference(set(sample_ids))))
 
+
         ### CNA Discrete
         elif 'thresholded.by_genes' in study_file:
             print('Transforming discrete CNA data: %s' % study_file)
@@ -198,6 +199,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
         elif study_file.split('.')[-2:] == ['maf', 'gz']:
             ### Mutations file are transformed in an other loop
             pass
+
         else:
             print("Unknown file type: %s" % study_file)
 
