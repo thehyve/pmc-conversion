@@ -25,7 +25,6 @@ NAME_SHORT = "PMC - Test Study"
 DESCRIPTION = '%s Transformed from PMC Test Data to cBioPortal format.' % time.strftime("%d-%m-%Y %H:%M")
 TYPE_OF_CANCER = 'mixed'
 
-
 def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     ### Create output directory
     if not os.path.exists(output_dir):
@@ -39,13 +38,13 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
     ### Transform patient file
     # TODO: Nice to have - Duplicate steps by calling function twice --> Change flow of program
-    pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=clinical_input_file,
+    patient_ids = pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=clinical_input_file,
                             output_dir=output_dir, clinical_type='patient',
                             study_id=STUDY_ID,
                             description_map=descriptions_dict)
 
     ### Transform sample file
-    pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=clinical_input_file,
+    sample_ids = pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=clinical_input_file,
                             output_dir=output_dir, clinical_type='sample',
                             study_id=STUDY_ID,
                             description_map=descriptions_dict)
@@ -60,7 +59,43 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     mutation_samples = []
     cna_samples = []
 
-    ### Transform NGS data files
+    ### Transform mutation data files
+    maf_result_df = pd.DataFrame()
+    for study_file in study_files:
+        if study_file.split('.')[-2:] == ['maf', 'gz']:
+            maf_file_location = os.path.join(ngs_dir, study_file)
+            maf_df = pd.read_csv(maf_file_location, comment = '#', sep = '\t')
+        maf_result_df = pd.concat([maf_result_df, maf_df], ignore_index=True)
+
+    if maf_result_df.shape[0] > 0:
+        output_file = 'data_mutations.maf'
+        output_file_location = os.path.join(output_dir, output_file)
+        maf_result_df.to_csv(output_file_location, sep="\t", index = False, header=True)
+
+        ### Create meta file
+        meta_filename = os.path.join(output_dir, 'meta_mutations.txt')
+        pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
+                                                     genetic_alteration_type='MUTATION_EXTENDED', datatype='MAF',
+                                                     stable_id='mutations',
+                                                     show_profile_in_analysis_tab='true', profile_name='Mutations',
+                                                     profile_description='Mutation data', data_filename=output_file,
+                                                     variant_classification_filter='', swissprot_identifier='accession')
+
+        ### Create case list
+        mutation_samples = maf_result_df['Tumor_Sample_Barcode'].unique().tolist()
+        pmc_cbio_create_caselist.create_caselist(output_dir=output_dir, file_name='cases_sequenced.txt',
+                                                 cancer_study_identifier=STUDY_ID,
+                                                 stable_id='%s_sequenced' % STUDY_ID, case_list_name='Sequenced samples',
+                                                 case_list_description='All sequenced samples',
+                                                 case_list_category='all_cases_with_mutation_data',
+                                                 case_list_ids="\t".join(mutation_samples))
+
+        ### Test for samples in MAF files that are not in clinical data
+        if not set(sample_ids).issuperset(set(mutation_samples)):
+            raise ValueError("Found samples in MAF files that are not in clinical data:\n%s"
+                             % ", ".join(set(mutation_samples).difference(set(sample_ids))))
+
+    ### Transform CNA data files
     for study_file in study_files:
         if study_file.endswith('sha1'):
             continue
@@ -90,38 +125,6 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
             pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
                                 genetic_alteration_type='COPY_NUMBER_ALTERATION', datatype='SEG',
                                 reference_genome_id='hg38', description='Segment data', data_filename=output_file)
-
-        ### Mutation data
-        elif study_file.split('.')[-2:] == ['maf', 'gz']:
-            print('Transforming mutation data: %s' % study_file)
-
-            output_file = 'data_mutations.maf'
-
-            # TODO: Merge possible multiple files per study, into 1 file per study
-            output_file_location = os.path.join(output_dir, output_file)
-
-            # Unzip MAF file
-            with gzip.open(study_file_location, 'rb') as f_in:
-                with open(output_file_location, 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-
-            ### Create meta file
-            meta_filename = os.path.join(output_dir, 'meta_mutations.txt')
-            pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
-                                genetic_alteration_type='MUTATION_EXTENDED', datatype='MAF', stable_id='mutations',
-                                show_profile_in_analysis_tab='true', profile_name='Mutations',
-                                profile_description='Mutation data', data_filename=output_file,
-                                variant_classification_filter='', swissprot_identifier='accession')
-
-            ### Create case list
-            mutation_data = pd.read_csv(output_file_location, sep='\t', dtype={'Tumor_Sample_Barcode': str},
-                                        usecols=['Tumor_Sample_Barcode'], skiprows=1)
-            mutation_samples = mutation_data['Tumor_Sample_Barcode'].unique().tolist()
-            pmc_cbio_create_caselist.create_caselist(output_dir=output_dir, file_name='cases_sequenced.txt', cancer_study_identifier=STUDY_ID,
-                            stable_id='%s_sequenced' % STUDY_ID, case_list_name='Sequenced samples',
-                            case_list_description='All sequenced samples',
-                            case_list_category='all_cases_with_mutation_data',
-                            case_list_ids="\t".join(mutation_samples))
 
         ### CNA Continuous
         elif 'data_by_genes' in study_file:
@@ -159,6 +162,11 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
                             case_list_description='All CNA samples', case_list_category='all_cases_with_cna_data',
                             case_list_ids="\t".join(cna_samples))
 
+            ### Test for samples in CNA files that are not in clinical data
+            if not set(sample_ids).issuperset(set(cna_samples)):
+                raise ValueError("Found samples in CNA files that are not in clinical data:\n%s"
+                                 % ", ".join(set(cna_samples).difference(set(sample_ids))))
+
         ### CNA Discrete
         elif 'thresholded.by_genes' in study_file:
             print('Transforming discrete CNA data: %s' % study_file)
@@ -187,6 +195,9 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
                                 profile_name='Putative copy-number alterations from GISTIC',
                                 profile_description='Putative copy-number alteration values for each gene from GISTIC 2.0. Values: -2 = homozygous deletion; -1 = hemizygous deletion; 0 = neutral / no change; 1 = gain; 2 = high level amplification.',
                                 data_filename=output_file)
+        elif study_file.split('.')[-2:] == ['maf', 'gz']:
+            ### Mutations file are transformed in an other loop
+            pass
         else:
             print("Unknown file type: %s" % study_file)
 
