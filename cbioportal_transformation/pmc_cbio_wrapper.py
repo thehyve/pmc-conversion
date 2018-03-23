@@ -65,7 +65,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
         if study_file.split('.')[-2:] == ['maf', 'gz']:
             maf_file_location = os.path.join(ngs_dir, study_file)
             maf_df = pd.read_csv(maf_file_location, comment = '#', sep = '\t')
-        maf_result_df = pd.concat([maf_result_df, maf_df], ignore_index=True)
+            maf_result_df = pd.concat([maf_result_df, maf_df], ignore_index=True)
 
     if maf_result_df.shape[0] > 0:
         output_file = 'data_mutations.maf'
