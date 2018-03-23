@@ -284,7 +284,11 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     meta_filename = os.path.join(output_dir, 'meta_clinical_%s.txt' % clinical_type)
     pmc_cbio_create_metafile.create_meta_content(meta_filename, study_id, 'CLINICAL', meta_datatype,
                                                  'data_clinical_%s.txt' % clinical_type)
-    return
+
+    if clinical_type == 'sample':
+        return clinical_data['SAMPLE_ID'].unique().tolist()
+    else:
+        return clinical_data['PATIENT_ID'].unique().tolist()
 
 
 def main(clinical_inputfile, output_dir, clinical_type, study_id):

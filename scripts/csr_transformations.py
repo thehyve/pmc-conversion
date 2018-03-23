@@ -130,7 +130,6 @@ mapping for the following files {}'.format(column, ref_df.columns.tolist()))
 
     df.columns = df.columns.droplevel(1)
     df.reset_index(inplace=True)
-    #subject_registry.reset_index(inplace=True)
 
     if subject_registry.empty:
         subject_registry = df

@@ -3,4 +3,4 @@ stable_id: pmc_test_cnaseq
 case_list_name: Sequenced and CNA samples
 case_list_description: All sequenced and CNA samples
 case_list_category: all_cases_with_mutation_and_cna_data
-case_list_ids: PMCBS000AAB_PMCBM000AAB	PMCBS000AAA_PMCBM000AAA
+case_list_ids: PMCBS000AAN_PMCBM000AAN	PMCBS000AAA_PMCBM000AAA	PMCBS000AAB_PMCBM000AAB
