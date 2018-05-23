@@ -1,3 +1,5 @@
+# TODO: Include prerequistes and assumptions of the script
+
 import os
 import sys
 import json
@@ -23,16 +25,17 @@ class MissingHeaderException(Exception):
 class IndividualIdentifierMissing(Exception):
     pass
 
+# TODO: order functions
 
 @click.command()
-@click.option('--input_dir', type=click.Path(exists=True))  # file_dir
-@click.option('--output_dir', type=click.Path(exists=True))  # target_dir
+@click.option('--input_dir', type=click.Path(exists=True))
+@click.option('--output_dir', type=click.Path(exists=True))
 @click.option('--config_dir', type=click.Path(exists=True))
-@click.option('--data_model', default=None)  # file_header_config
-@click.option('--column_priority', default=None)  # JSON file indicating file priority per column
-@click.option('--file_headers', default=None)  # Correct file headers per file
-@click.option('--columns_to_csr', default=None)  # header_mapping_config
-@click.option('--output_filename', default='csr_data_transformation.tsv')  # target_file
+@click.option('--data_model', default=None)
+@click.option('--column_priority', default=None)
+@click.option('--file_headers', default=None)
+@click.option('--columns_to_csr', default=None)
+@click.option('--output_filename', default='csr_data_transformation.tsv')
 @click.option('--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
               help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
 @click.option('--log_level', type=click.Choice(['DEBUG','INFO','WARNING','ERROR']), default='WARNING',show_default=True,
@@ -41,7 +44,7 @@ def main(input_dir, output_dir, config_dir, data_model,
          column_priority, file_headers, columns_to_csr, output_filename, log_type, log_level):
     configure_logging(log_type, level=log_level)
 
-    # Check which params need to be set
+    # Check if mandatory parameters are set
     mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--column_priority': column_priority,
                  '--columns_to_csr': columns_to_csr, '--file_headers': file_headers, '--input_dir': input_dir,
                  '--output_dir': output_dir}
@@ -61,6 +64,7 @@ def main(input_dir, output_dir, config_dir, data_model,
     col_file_dict = get_overlapping_columns(file_prop_dict, columns_to_csr_map)
     check_column_prio(column_prio_dict, col_file_dict)
 
+    ## Temporary code to be removed - Generates column file dictionary to use as column priority json.
     # write priority as constructed from file_headers.json
     # with open('../config/column_priority.json', 'w') as fp:
     #    json.dump(col_file_dict, fp)
@@ -69,6 +73,7 @@ def main(input_dir, output_dir, config_dir, data_model,
 
     output_file = os.path.join(output_dir, output_filename)
 
+    # Read in the data files per entity
     files_per_entity = read_data_files(input_dir=input_dir,
                                        output_dir=output_dir,
                                        columns_to_csr=columns_to_csr_map,
@@ -76,6 +81,7 @@ def main(input_dir, output_dir, config_dir, data_model,
                                        file_headers=file_prop_dict,
                                        file_headers_name=file_headers)
 
+    # Use read in data to build the Central Subject Registry
     subject_registry = build_csr_dataframe(file_dict=files_per_entity,
                                            file_list=expected_files,
                                            csr_data_model=csr_data_model)
@@ -84,10 +90,14 @@ def main(input_dir, output_dir, config_dir, data_model,
                                               column_priority=column_prio_dict,
                                               csr_data_model=csr_data_model)
 
-    csr_expected_header = []
-    for key in csr_data_model:
-        csr_expected_header += list(csr_data_model[key])
+    # # TODO: replaced this with list comphrehension --> remove code after tests
+    # csr_expected_header = []
+    # for key in csr_data_model:
+    #     csr_expected_header += list(csr_data_model[key])
 
+    # Check if all fields expected in the CSR dataframe are present. The expected columns are derived from the CSR data
+    # model
+    csr_expected_header = [csr_data_model[key] for key in csr_data_model]
     missing_header = [l for l in csr_expected_header if l not in subject_registry.columns]
     if len(missing_header) > 0:
         logging.error('Missing columns from Subject Registry data model:\n {}'.format(missing_header))
@@ -103,10 +113,11 @@ def main(input_dir, output_dir, config_dir, data_model,
     sys.exit(0)
 
 
-def resolve_data_conflicts(df, column_priority, csr_data_model):
+def resolve_data_conflicts(df, column_priority):
+    # TODO: add docstring explaining what the function does
     df.set_index(list(PK_COLUMNS),
                  inplace=True)
-    df.to_csv('/tmp/CONF_SR.txt', '\t', index=False)
+    df.to_csv('/tmp/CONF_SR.txt', '\t', index=False) # TODO: remove
     missing_column = False
     df = df.reorder_levels(order=[1, 0], axis=1).sort_index(axis=1, level=0)
     subject_registry = pd.DataFrame()
@@ -136,7 +147,7 @@ mapping for the following files {}'.format(column, ref_df.columns.tolist()))
     else:
         subject_registry = subject_registry.merge(df, on=list(PK_COLUMNS), how='outer')
 
-    # Handle duplicated rows
+    # Handle duplicated rows.
     subject_registry = subject_registry.loc[~subject_registry.duplicated(keep='first'),:]
 
     if missing_column:
@@ -146,6 +157,7 @@ mapping for the following files {}'.format(column, ref_df.columns.tolist()))
 
 
 def get_overlapping_columns(file_prop_dict, columns_to_csr_map):
+    # TODO: document function --> Uses expected file headers and column mapping to generate ...??
     col_file_dict = dict()
     for filename in file_prop_dict:
         colname_dict = columns_to_csr_map[filename] if filename in columns_to_csr_map else None
@@ -194,7 +206,7 @@ def check_column_prio(column_prio_dict, col_file_dict):
             logging.warning(('Provided priority for column "{0}" contains more files than present in '
                              'file_headers.json. Priority files not used: {1}').format(col, files_only_in_prio))
 
-
+# TODO: Move logging settings to logging.cfg
 def configure_logging(log_type, level):
     log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', '%d-%m-%y %H:%M:%S')
     logging.getLogger().setLevel(level)
@@ -230,7 +242,7 @@ def get_encoding(file_name):
     return file_encoding.lower()
 
 
-def input_file_to_df(file_name, encoding, seperator=None, column_mapping=None, codebook=None):
+def input_file_to_df(file_name, encoding, seperator=None, codebook=None):
     """Read in a DataFrame from a plain text file. Columns are cast to uppercase.
      If a column_mapping is specified the columns will also be tried to map.
      If a codebook was specified it will be applied before the column mapping"""
@@ -437,6 +449,8 @@ def validate_source_file(file_prop_dict, path, file_headers_name):
 
 def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_headers, file_headers_name):
     # Input is taken in per entity.
+    # TODO: include docstring to explain what function is doing
+    # TODO: Simplify function --> Revisit file structure
     files_per_entity = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
     exit_after_process = False
 
@@ -461,9 +475,9 @@ def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_heade
                 # Read data from file and create a
                 # pandas DataFrame. If a header mapping is provided the columns
                 # are mapped before the DataFrame is returned
-                df = input_file_to_df(file, get_encoding(file), codebook=codebook)
+                df = input_file_to_df(file_name=file, encoding=get_encoding(file), codebook=codebook)
 
-                ## Update date format
+                # Update date format
                 set_date_fields(df, file_headers, filename)
 
                 # Check if mapping for columns to CSR fields is present
@@ -488,6 +502,7 @@ def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_heade
 
 
 def set_date_fields(df, file_prop_dict, filename):
+    # TODO: document functions, especially the apply step in the try-catch block
     date_fields = file_prop_dict[filename].get('date_columns')
     date_fields = [field.upper() for field in date_fields] if date_fields else None
 

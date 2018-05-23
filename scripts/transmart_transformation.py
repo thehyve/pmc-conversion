@@ -35,14 +35,10 @@ def main(csr_data_file, output_dir, config_dir, blueprint, modifiers, study_id, 
 
     blueprint_file = os.path.join(config_dir, blueprint)
     study.apply_blueprint(blueprint_file, omit_missing=True)
-
     study = add_meta_data(study)
 
     tm_study = tmtk.toolbox.SkinnyExport(study, output_dir)
-
     tm_study.build_observation_fact()
-
-    print(tm_study.observation_fact.df.shape)
     tm_study.to_disk()
 
     sys.exit(0)
@@ -60,12 +56,8 @@ def add_modifiers(df):
     df['CSR_STUDY_MOD'] = df['STUDY_ID']
     df['CSR_BIOSOURCE_MOD'] = df['BIOSOURCE_ID']
     df['CSR_BIOMATERIAL_MOD'] = df['BIOMATERIAL_ID']
-
-    # Redundant with new input file
-    # df.loc[pd.notnull(df['BIOMATERIAL_ID']), 'CSR_BIOMATERIAL_MOD'] = df.loc[
-    #     pd.notnull(df['BIOMATERIAL_ID']), 'SRC_BIOSOURCE_ID']
-
     return df
+
 
 def add_meta_data(study):
     date = dt.datetime.now().strftime('%d-%m-%Y')

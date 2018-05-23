@@ -51,6 +51,7 @@ def main(input_file, output_filename, output_dir, log_level):
     observations.replace(mapping_dict, inplace=True)
 
     logging.info('Transformating observation data')
+    observations.to_csv(os.path.join(os.path.dirname(input_file),'obs_{}'.format(output_filename)))
     obs_pivot = pivot_observation_data(observations)
 
     logging.info('Updating date fields with format: {}'.format(DATE_FORMAT))

@@ -19,6 +19,7 @@ import time
 import json
 
 ### Define study properties
+# TODO: Move study properties to configuration file
 STUDY_ID = 'pmc_test'
 NAME = "PMC - Test Study"
 NAME_SHORT = "PMC - Test Study"
