@@ -71,10 +71,15 @@ def main(input_dir, output_dir, config_dir, data_model,
 
     expected_files = file_prop_dict.keys()
 
+    clinical_data_dir = os.path.join(input_dir, 'CLINICAL')
+    if not os.path.isdir(clinical_data_dir):
+        logging.error('Directory CLINICAL in {} not found! required for clinical data'.format(input_dir))
+        raise FileNotFoundError('Missing CLINICAL directory in {}'.format(input_dir))
+
     output_file = os.path.join(output_dir, output_filename)
 
     # Read in the data files per entity
-    files_per_entity = read_data_files(input_dir=input_dir,
+    files_per_entity = read_data_files(clinical_data_dir=clinical_data_dir,
                                        output_dir=output_dir,
                                        columns_to_csr=columns_to_csr_map,
                                        file_list=expected_files,
@@ -447,50 +452,63 @@ def validate_source_file(file_prop_dict, path, file_headers_name):
         return True
 
 
-def read_data_files(input_dir, output_dir, columns_to_csr, file_list, file_headers, file_headers_name):
-    # Input is taken in per entity.
+def bool_is_file(filename, path):
+    """If filename is not a file, has codebook in its name or starts with a . returns False, else True
+    """
+    path_ = os.path.join(path, filename)
+    if 'codebook' in filename.lower():
+        return False
+    if filename.startswith('.'):
+        return False
+
+    return os.path.isfile(path_)
+
+
+def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, file_headers, file_headers_name):
     # TODO: include docstring to explain what function is doing
-    # TODO: Simplify function --> Revisit file structure
+    # TODO: reconsider if check can be done separately from processing
     files_per_entity = {'individual': {}, 'diagnosis': {}, 'biosource': {}, 'biomaterial': {}, 'study': {}}
     exit_after_process = False
 
     files_found = {filename: False for filename in file_list}
-    # Assumption is that all the files are in EPD, LIMMS or STUDY folders.
-    for path, dir_, filenames in os.walk(input_dir):
-        for filename in filenames:
-            working_dir = os.path.basename(path).upper()
-            if working_dir in ['EPD', 'LIMMS', 'STUDY'] and 'codebook' not in filename and not filename.startswith('.'):
-                file = os.path.join(path, filename)
+    for filename in os.listdir(clinical_data_dir):
 
-                if filename in files_found:
-                    files_found[filename] = True
+        # Check if filename is a file or not
+        if not bool_is_file(filename, clinical_data_dir):
+            continue
 
-                validate_error = validate_source_file(file_headers, file, file_headers_name)
-                if validate_error:
-                    exit_after_process = True
-                    continue
+        file = os.path.join(clinical_data_dir, filename)
 
-                codebook = check_for_codebook(filename, output_dir)
+        if filename in files_found:
+            files_found[filename] = True
 
-                # Read data from file and create a
-                # pandas DataFrame. If a header mapping is provided the columns
-                # are mapped before the DataFrame is returned
-                df = input_file_to_df(file_name=file, encoding=get_encoding(file), codebook=codebook)
+        validate_error = validate_source_file(file_headers, file, file_headers_name)
+        if validate_error:
+            exit_after_process = True
+            continue
 
-                # Update date format
-                set_date_fields(df, file_headers, filename)
+        # Check if codebook is available for filename, if not codebook will be None
+        codebook = check_for_codebook(filename, output_dir)
 
-                # Check if mapping for columns to CSR fields is present
-                header_map = columns_to_csr[filename] if filename in columns_to_csr else None
-                if header_map:
-                    df.columns = apply_header_map(df.columns, header_map)
+        # Read data from file and create a
+        # pandas DataFrame. If a header mapping is provided the columns
+        # are mapped before the DataFrame is returned
+        df = input_file_to_df(file_name=file, encoding=get_encoding(file), codebook=codebook)
 
-                columns = df.columns
-                # Check if headers are present
-                file_type = determine_file_type(columns, filename)
-                if not file_type:
-                    continue
-                files_per_entity[file_type].update({filename: df})
+        # Update date format
+        set_date_fields(df, file_headers, filename)
+
+        # Check if mapping for columns to CSR fields is present
+        header_map = columns_to_csr[filename] if filename in columns_to_csr else None
+        if header_map:
+            df.columns = apply_header_map(df.columns, header_map)
+
+        columns = df.columns
+        # Check if headers are present
+        file_type = determine_file_type(columns, filename)
+        if not file_type:
+            continue
+        files_per_entity[file_type].update({filename: df})
 
     check_file_list(files_found)
 
@@ -541,6 +559,9 @@ def print_errors(messages):
 
 
 def check_for_codebook(filename, path):
+    """ Check if the filename has a corresponding codebook that is stored in the path dir.
+    The filename is used to search for <filename>_codebook.<filename extension>.json
+    """
     f_name, f_extension = filename.rsplit('.', 1)
     code_file = '{}_codebook.{}.json'.format(f_name, f_extension)
     if code_file in os.listdir(path):
