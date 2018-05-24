@@ -92,17 +92,16 @@ def main(input_dir, output_dir, config_dir, data_model,
                                            csr_data_model=csr_data_model)
 
     subject_registry = resolve_data_conflicts(df=subject_registry,
-                                              column_priority=column_prio_dict,
-                                              csr_data_model=csr_data_model)
+                                              column_priority=column_prio_dict)
 
     # # TODO: replaced this with list comphrehension --> remove code after tests
-    # csr_expected_header = []
-    # for key in csr_data_model:
-    #     csr_expected_header += list(csr_data_model[key])
+    csr_expected_header = []
+    for key in csr_data_model:
+        csr_expected_header += list(csr_data_model[key])
 
     # Check if all fields expected in the CSR dataframe are present. The expected columns are derived from the CSR data
     # model
-    csr_expected_header = [csr_data_model[key] for key in csr_data_model]
+    #csr_expected_header = [csr_data_model[key] for key in csr_data_model]
     missing_header = [l for l in csr_expected_header if l not in subject_registry.columns]
     if len(missing_header) > 0:
         logging.error('Missing columns from Subject Registry data model:\n {}'.format(missing_header))
