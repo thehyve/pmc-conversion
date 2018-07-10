@@ -10,13 +10,16 @@ sys.dont_write_bytecode = True
 import os
 import argparse
 import gzip
-import pmc_cbio_transform_clinical
-import pmc_cbio_create_metafile
-import pmc_cbio_create_caselist
+from .pmc_cbio_transform_clinical import transform_clinical_data
+from .pmc_cbio_create_metafile import create_meta_content
+from .pmc_cbio_create_caselist import create_caselist
 import pandas as pd
 import shutil
 import time
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 ### Define study properties
 # TODO: Move study properties to configuration file
@@ -39,13 +42,13 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
     ### Transform patient file
     # TODO: Nice to have - Duplicate steps by calling function twice --> Change flow of program
-    patient_ids = pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=clinical_input_file,
+    patient_ids = transform_clinical_data(clinical_inputfile=clinical_input_file,
                             output_dir=output_dir, clinical_type='patient',
                             study_id=STUDY_ID,
                             description_map=descriptions_dict)
 
     ### Transform sample file
-    sample_ids = pmc_cbio_transform_clinical.transform_clinical_data(clinical_inputfile=clinical_input_file,
+    sample_ids = transform_clinical_data(clinical_inputfile=clinical_input_file,
                             output_dir=output_dir, clinical_type='sample',
                             study_id=STUDY_ID,
                             description_map=descriptions_dict)
@@ -53,7 +56,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     ### Select NGS study files
     study_files = []
     for study_file in os.listdir(ngs_dir):
-        if study_file[0] != '.':
+        if not study_file.startswith('.'):
             study_files.append(study_file)
 
     ### Create sample list, required for cnaseq case list
@@ -75,7 +78,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
         ### Create meta file
         meta_filename = os.path.join(output_dir, 'meta_mutations.txt')
-        pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
+        create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
                                                      genetic_alteration_type='MUTATION_EXTENDED', datatype='MAF',
                                                      stable_id='mutations',
                                                      show_profile_in_analysis_tab='true', profile_name='Mutations',
@@ -84,7 +87,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
         ### Create case list
         mutation_samples = maf_result_df['Tumor_Sample_Barcode'].unique().tolist()
-        pmc_cbio_create_caselist.create_caselist(output_dir=output_dir, file_name='cases_sequenced.txt',
+        create_caselist(output_dir=output_dir, file_name='cases_sequenced.txt',
                                                  cancer_study_identifier=STUDY_ID,
                                                  stable_id='%s_sequenced' % STUDY_ID, case_list_name='Sequenced samples',
                                                  case_list_description='All sequenced samples',
@@ -123,7 +126,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
             ### Create meta file
             meta_filename = os.path.join(output_dir, 'meta_cna_segments.txt')
-            pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
+            create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
                                 genetic_alteration_type='COPY_NUMBER_ALTERATION', datatype='SEG',
                                 reference_genome_id='hg38', description='Segment data', data_filename=output_file)
 
@@ -149,7 +152,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
             ### Create meta file
             meta_filename = os.path.join(output_dir, 'meta_cna_continuous.txt')
-            pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
+            create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
                                 genetic_alteration_type='COPY_NUMBER_ALTERATION', datatype='LOG2-VALUE',
                                 stable_id='log2CNA', show_profile_in_analysis_tab='false',
                                 profile_name='Copy-number alteration values',
@@ -158,7 +161,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
             ### Create case list
             cna_samples = cna_data.columns[2:].tolist()
-            pmc_cbio_create_caselist.create_caselist(output_dir=output_dir, file_name='cases_cna.txt', cancer_study_identifier=STUDY_ID,
+            create_caselist(output_dir=output_dir, file_name='cases_cna.txt', cancer_study_identifier=STUDY_ID,
                             stable_id='%s_cna' % STUDY_ID, case_list_name='CNA samples',
                             case_list_description='All CNA samples', case_list_category='all_cases_with_cna_data',
                             case_list_ids="\t".join(cna_samples))
@@ -191,7 +194,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
             ### Create meta file
             meta_filename = os.path.join(output_dir, 'meta_cna_discrete.txt')
-            pmc_cbio_create_metafile.create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
+            create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
                                 genetic_alteration_type='COPY_NUMBER_ALTERATION', datatype='DISCRETE',
                                 stable_id='gistic', show_profile_in_analysis_tab='true',
                                 profile_name='Putative copy-number alterations from GISTIC',
@@ -207,7 +210,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     ### Create cnaseq case list
     cnaseq_samples = list(set(mutation_samples + cna_samples))
     if len(cnaseq_samples) > 0:
-        pmc_cbio_create_caselist.create_caselist(output_dir=output_dir, file_name='cases_cnaseq.txt', cancer_study_identifier=STUDY_ID,
+        create_caselist(output_dir=output_dir, file_name='cases_cnaseq.txt', cancer_study_identifier=STUDY_ID,
                         stable_id='%s_cnaseq' % STUDY_ID, case_list_name='Sequenced and CNA samples',
                         case_list_description='All sequenced and CNA samples',
                         case_list_category='all_cases_with_mutation_and_cna_data',
@@ -215,7 +218,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
     ### Create meta study file
     meta_filename = os.path.join(output_dir, 'meta_study.txt')
-    pmc_cbio_create_metafile.create_meta_content(meta_filename, STUDY_ID, type_of_cancer=TYPE_OF_CANCER, name=NAME, short_name=NAME_SHORT,
+    create_meta_content(meta_filename, STUDY_ID, type_of_cancer=TYPE_OF_CANCER, name=NAME, short_name=NAME_SHORT,
                         description=DESCRIPTION, add_global_case_list='true')
 
     print('Done transforming files for %s' % STUDY_ID)

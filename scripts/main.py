@@ -10,8 +10,7 @@ from .codebook_formatting import codebook_formatting
 from .transmart_api_calls import TransmartApiCalls
 import threading
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger('luigi')
 
 TRANSMART_DIR_NAME = 'transmart'
 CBIOPORTAL_DIR_NAME = 'cbioportal'
@@ -198,7 +197,7 @@ class CbioportalDataTransformation(ExternalProgramTask):
         description_mapping = os.path.join(config.config_json_dir, self.cbioportal_header_descriptions)
 
         return [config.python,
-                'cbioportal_transformation/pmc_cbio_wrapper.py',
+                'scripts/cbioportal_transformation/pmc_cbio_wrapper.py',
                 '-c', clinical_input_file,
                 '-n', ngs_dir,
                 '-o', output_dir,
@@ -234,14 +233,15 @@ class TransmartApiTask(BaseTask):
     transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
 
     def run(self):
-        reload_obj = TransmartApiCalls(url=self.transmart_url,
-                                       username=self.transmart_username,
-                                       password=self.transmart_password)
-
-        logger.info('Rebuilding tree cache')
-        reload_obj.clear_tree_nodes_cache()
-        logger.info('Scanning for new subscriptions')
-        reload_obj.scan_subscription_queries()
+        pass
+        # reload_obj = TransmartApiCalls(url=self.transmart_url,
+        #                                username=self.transmart_username,
+        #                                password=self.transmart_password)
+        #
+        # logger.info('Rebuilding tree cache')
+        # reload_obj.clear_tree_nodes_cache()
+        # logger.info('Scanning for new subscriptions')
+        # reload_obj.scan_subscription_queries()
 
 
 class CbioportalDataValidation(ExternalProgramTask):
@@ -281,6 +281,7 @@ class CbioportalDataValidation(ExternalProgramTask):
         return [docker_command, python_command]
 
 
+
 class CbioportalDataLoading(ExternalProgramTask):
     """
     Task to load data to cBioPortal
@@ -292,7 +293,7 @@ class CbioportalDataLoading(ExternalProgramTask):
     4. A running cBioPortal instance
     5. A running cBioPortal database
     """
-
+    # TODO: Take care of this location in logging conf
     std_out_err_dir = config.cbioportal_load_logs_dir
 
     # Variables
@@ -301,20 +302,42 @@ class CbioportalDataLoading(ExternalProgramTask):
                                               'empty. PMC servers: pmc-cbioportal-test | '
                                               'pmc-cbioportal-acc | pmc-cbioportal-prod', significant=False)
 
-    def program_args(self):
 
+    # def program_args(self):
+    #
+    #     # Directory and file names for validation
+    #     input_dir = config.cbioportal_staging_dir
+    #
+    #     # Build the command for importer only
+    #     docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
+    #                      % (input_dir, self.docker_image)
+    #     python_command = 'python /cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
+    #
+    #     # Check if cBioPortal is running locally or on other server
+    #     if self.server_name == "":
+    #         restart_command = "; docker restart cbioportal"
+    #     else:
+    #         restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
+    #     return [docker_command, python_command, restart_command]
+
+
+    def program_args(self):
         # Directory and file names for validation
         input_dir = config.cbioportal_staging_dir
 
-        # Build the command for importer only
-        docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
-                         % (input_dir, self.docker_image)
         python_command = 'python /cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
 
         # Check if cBioPortal is running locally or on other server
         if self.server_name == "":
+            # Build the command for importer only
+            docker_command = 'docker run --rm -v %s:/study/ --net cbio-net %s' \
+                             % (input_dir, self.docker_image)
+
             restart_command = "; docker restart cbioportal"
         else:
+            docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
+                             % (input_dir, self.docker_image)
+
             restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
         return [docker_command, python_command, restart_command]
 

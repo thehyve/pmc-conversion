@@ -7,8 +7,6 @@ import luigi
 from luigi.contrib.external_program import ExternalProgramRunContext, ExternalProgramRunError
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
 
 def read_content(file) -> str:
     with open(file, 'r') as f:
@@ -128,7 +126,6 @@ class ExternalProgramTask(BaseTask):
     control the environment variables (see :py:class:`ExternalPythonProgramTask`
     for an example).
     """
-
     stop_on_error = True
     wd = '.'
     success_codes = [0]

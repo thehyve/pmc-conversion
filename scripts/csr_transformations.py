@@ -9,6 +9,7 @@ import collections
 import logging
 import pandas as pd
 from click import UsageError
+from logging.config import fileConfig
 
 ALLOWED_ENCODINGS = {'utf-8', 'ascii'}
 PK_COLUMNS = {'INDIVIDUAL_ID',
@@ -18,118 +19,111 @@ PK_COLUMNS = {'INDIVIDUAL_ID',
               'BIOSOURCE_ID'}
 
 
-class MissingHeaderException(Exception):
-    pass
+fileConfig('../logging.cfg')
 
+logger = logging.getLogger('csr_transformations')
 
-class IndividualIdentifierMissing(Exception):
-    pass
 
 # TODO: order functions
 
-@click.command()
-@click.option('--input_dir', type=click.Path(exists=True))
-@click.option('--output_dir', type=click.Path(exists=True))
-@click.option('--config_dir', type=click.Path(exists=True))
-@click.option('--data_model', default=None)
-@click.option('--column_priority', default=None)
-@click.option('--file_headers', default=None)
-@click.option('--columns_to_csr', default=None)
-@click.option('--output_filename', default='csr_data_transformation.tsv')
-@click.option('--log_type', type=click.Choice(['console', 'file', 'both']), default='console', show_default=True,
-              help='Log validation results to screen ("console"), log file ("file"), or both ("both")')
-@click.option('--log_level', type=click.Choice(['DEBUG','INFO','WARNING','ERROR']), default='WARNING',show_default=True,
-              help='Set level on which the logger should produce output')
-def main(input_dir, output_dir, config_dir, data_model,
-         column_priority, file_headers, columns_to_csr, output_filename, log_type, log_level):
-    configure_logging(log_type, level=log_level)
-
-    # Check if mandatory parameters are set
-    mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--column_priority': column_priority,
-                 '--columns_to_csr': columns_to_csr, '--file_headers': file_headers, '--input_dir': input_dir,
-                 '--output_dir': output_dir}
-    if not all(mandatory.values()):
-        for option_name, option_value in mandatory.items():
-            if not option_value:
-                logging.error('Input argument missing: {}'.format(option_name))
-        raise UsageError('Missing input arguments')
-
-    csr_data_model = read_dict_from_file(filename=data_model, path=config_dir)
-    file_prop_dict = read_dict_from_file(filename=file_headers, path=config_dir)
-    columns_to_csr_map = read_dict_from_file(filename=columns_to_csr, path=config_dir)
-    columns_to_csr_map = {k: {k.upper(): v.upper() for k, v in vals.items()} for k, vals in columns_to_csr_map.items()}
-    column_prio_dict = read_dict_from_file(filename=column_priority, path=config_dir)
-    column_prio_dict = {k.upper(): files for k, files in column_prio_dict.items()}
-
-    col_file_dict = get_overlapping_columns(file_prop_dict, columns_to_csr_map)
-    check_column_prio(column_prio_dict, col_file_dict)
-
-    ## Temporary code to be removed - Generates column file dictionary to use as column priority json.
-    # write priority as constructed from file_headers.json
-    # with open('../config/column_priority.json', 'w') as fp:
-    #    json.dump(col_file_dict, fp)
-
-    expected_files = file_prop_dict.keys()
-
-    clinical_data_dir = os.path.join(input_dir, 'CLINICAL')
-    if not os.path.isdir(clinical_data_dir):
-        logging.error('Directory CLINICAL in {} not found! required for clinical data'.format(input_dir))
-        raise FileNotFoundError('Missing CLINICAL directory in {}'.format(input_dir))
-
-    output_file = os.path.join(output_dir, output_filename)
-
-    # Read in the data files per entity
-    files_per_entity = read_data_files(clinical_data_dir=clinical_data_dir,
-                                       output_dir=output_dir,
-                                       columns_to_csr=columns_to_csr_map,
-                                       file_list=expected_files,
-                                       file_headers=file_prop_dict,
-                                       file_headers_name=file_headers)
-
-    # Use read in data to build the Central Subject Registry
-    subject_registry = build_csr_dataframe(file_dict=files_per_entity,
-                                           file_list=expected_files,
-                                           csr_data_model=csr_data_model)
-
-    subject_registry = resolve_data_conflicts(df=subject_registry,
-                                              column_priority=column_prio_dict)
-
-    # # TODO: replaced this with list comphrehension --> remove code after tests
-    csr_expected_header = []
-    for key in csr_data_model:
-        csr_expected_header += list(csr_data_model[key])
-
-    # Check if all fields expected in the CSR dataframe are present. The expected columns are derived from the CSR data
-    # model
-    #csr_expected_header = [csr_data_model[key] for key in csr_data_model]
-    missing_header = [l for l in csr_expected_header if l not in subject_registry.columns]
-    if len(missing_header) > 0:
-        logging.error('Missing columns from Subject Registry data model:\n {}'.format(missing_header))
+# TODO: Move to common module
+def read_dict_from_file(filename, path=None):
+    logger.debug('Reading json file {}'.format(filename))
+    file = os.path.join(path, filename)
+    if os.path.exists(file):
+        with open(file, 'r') as f:
+            dict_ = json.loads(f.read())
+        return dict_
+    else:
+        logger.error('Config file: {} - not found. Aborting'.format(file))
         sys.exit(1)
 
-    if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
-        logging.error('Found data rows with no individual or patient identifier')
-        sys.exit(1)
 
-    logging.info('Writing CSR data to {}'.format(output_file))
-    subject_registry.to_csv(output_file, sep='\t', index=False)
+def get_overlapping_columns(file_prop_dict, columns_to_csr_map):
+    """Determine which columns in the Central Subject Registry (CSR) have input from multiple files. Constructs a dict
+    with conflicts grouped per CSR column. Takes two dicts which define expected headers in the input files and
+    map the expected headers to the CSR datamodel.
 
-    sys.exit(0)
+    :param file_prop_dict: Dictionary with filename as key and headers in file as a list of values -
+    FILENAME: [COLUMN_1, COLUMN_2]}
+    :param columns_to_csr_map: Map input column names to the CSR data model column names -
+    {FILENAME: {COLUMN_NAME: CSR_COLUMN_NAME}}
+    :return: Dict with column names as keys and ordered filename lists as values. {CSR_COLUMN_NAME: [FILE_1, FILE_2]}
+    """
+    col_file_dict = dict()
+    for filename in file_prop_dict:
+        colname_dict = columns_to_csr_map[filename] if filename in columns_to_csr_map else None
+        for colname in file_prop_dict[filename]['headers']:
+            colname = colname.upper()
+            if colname in PK_COLUMNS:
+                continue
+            if colname_dict and colname in colname_dict:
+                colname = colname_dict[colname]
+            if colname not in col_file_dict:
+                col_file_dict[colname] = [filename]
+            else:
+                col_file_dict[colname].append(filename)
+
+    # Remove all columns that occur in only one file, not important to use in conflict resolution
+    col_file_dict = {colname: filenames for colname, filenames in col_file_dict.items() if len(filenames) > 1}
+    return col_file_dict
+
+
+def check_column_prio(column_prio_dict, col_file_dict):
+    """Compare the priority definition from column_priority.json with what was found in file_headers.json and log
+    all mismatches."""
+    missing_in_priority = set(col_file_dict.keys()) - set(column_prio_dict.keys())
+    missing_in_file_headers = set(column_prio_dict.keys()) - set(col_file_dict.keys())
+
+    # Column name missing entirely
+    if missing_in_priority:
+        for col in missing_in_priority:
+            logger.error(('"{0}" column occurs in multiple data files: {1}, but no priority is '
+                           'defined.'.format(col, col_file_dict[col])))
+
+    if missing_in_file_headers:
+        for col in missing_in_file_headers:
+            logger.warning('Priority is defined for "{0}", but it not present in file_headers.json'.format(col))
+
+    # Priority present, but incomplete or unknown priority provided
+    shared_columns = set(column_prio_dict.keys()).intersection(set(col_file_dict.keys()))
+    for col in shared_columns:
+        files_missing_in_prio = [filename for filename in col_file_dict[col] if filename not in column_prio_dict[col]]
+        files_only_in_prio = [filename for filename in column_prio_dict[col] if filename not in col_file_dict[col]]
+        if files_missing_in_prio:
+            logger.error(('Incomplete priority provided for column "{0}". It occurs in files: {1}, but priority '
+                           'found only for files: {2}').format(col, col_file_dict[col], column_prio_dict[col]))
+
+        if files_only_in_prio:
+            logger.warning(('Provided priority for column "{0}" contains more files than present in '
+                             'file_headers.json. Priority files not used: {1}').format(col, files_only_in_prio))
 
 
 def resolve_data_conflicts(df, column_priority):
-    # TODO: add docstring explaining what the function does
-    df.set_index(list(PK_COLUMNS),
-                 inplace=True)
-    df.to_csv('/tmp/CONF_SR.txt', '\t', index=False) # TODO: remove
+    """Take in the subject registry as df and use the column priority per file to resolve conflicts.
+    A conflict means data for the same column name is provided from multiple data sources.
+
+    If conflicted columns are present in the provided dataframe but no resolution strategy is provided
+    via the column_priority an error will be logged. The function will finish processing the whole dataframe
+    before exiting if it finished without errors.
+
+    Duplicated rows are dropped.
+
+    :param df: Subject registry dataframe with multi level column names
+    :param column_priority: Dictionary with column name as key and an ordered list as values to indicate priority
+    :return: Conflict free Subject registry with one column per mapped concept
+    """
+    df.set_index(list(PK_COLUMNS), inplace=True)
     missing_column = False
+    # Reorder the column names from filename - column label to column label - filename
     df = df.reorder_levels(order=[1, 0], axis=1).sort_index(axis=1, level=0)
     subject_registry = pd.DataFrame()
     for column in df.columns.get_level_values(0).unique():
         if df[column].shape[1] > 1:
+            # Remove columns from the dataframe that are being processed and store in a reference df
             ref_df = df.pop(column)
             if column not in column_priority:
-                logging.error(
+                logger.error(
                     'Column: {} missing from column priority \
 mapping for the following files {}'.format(column, ref_df.columns.tolist()))
                 missing_column = True
@@ -151,92 +145,13 @@ mapping for the following files {}'.format(column, ref_df.columns.tolist()))
     else:
         subject_registry = subject_registry.merge(df, on=list(PK_COLUMNS), how='outer')
 
-    # Handle duplicated rows.
+    # Drop duplicated rows.
     subject_registry = subject_registry.loc[~subject_registry.duplicated(keep='first'),:]
 
     if missing_column:
-        logging.error('Can not resolve data conflicts due to missing columns from column priority mapping, exiting')
+        logger.error('Can not resolve data conflicts due to missing columns from column priority mapping, exiting')
         sys.exit(1)
     return subject_registry  # Conflict free df
-
-
-def get_overlapping_columns(file_prop_dict, columns_to_csr_map):
-    # TODO: document function --> Uses expected file headers and column mapping to generate ...??
-    col_file_dict = dict()
-    for filename in file_prop_dict:
-        colname_dict = columns_to_csr_map[filename] if filename in columns_to_csr_map else None
-        for colname in file_prop_dict[filename]['headers']:
-            colname = colname.upper()
-            if colname in PK_COLUMNS:
-                continue
-            if colname_dict and colname in colname_dict:
-                colname = colname_dict[colname]
-            if colname not in col_file_dict:
-                col_file_dict[colname] = [filename]
-            else:
-                col_file_dict[colname].append(filename)
-
-    # Remove all columns that occur in only one file
-    col_file_dict = {colname: filenames for colname, filenames in col_file_dict.items() if len(filenames) > 1}
-    return col_file_dict
-
-
-def check_column_prio(column_prio_dict, col_file_dict):
-    """Compare the priority definition from column_priority.json with what was found in file_headers.json and log
-    all mismatches."""
-    missing_in_priority = set(col_file_dict.keys()) - set(column_prio_dict.keys())
-    missing_in_file_headers = set(column_prio_dict.keys()) - set(col_file_dict.keys())
-
-    # Column name missing entirely
-    if missing_in_priority:
-        for col in missing_in_priority:
-            logging.error(('"{0}" column occurs in multiple data files: {1}, but no priority is '
-                           'defined.'.format(col, col_file_dict[col])))
-
-    if missing_in_file_headers:
-        for col in missing_in_file_headers:
-            logging.warning('Priority is defined for "{0}", but it not present in file_headers.json'.format(col))
-
-    # Priority present, but incomplete or unknown priority provided
-    shared_columns = set(column_prio_dict.keys()).intersection(set(col_file_dict.keys()))
-    for col in shared_columns:
-        files_missing_in_prio = [filename for filename in col_file_dict[col] if filename not in column_prio_dict[col]]
-        files_only_in_prio = [filename for filename in column_prio_dict[col] if filename not in col_file_dict[col]]
-        if files_missing_in_prio:
-            logging.error(('Incomplete priority provided for column "{0}". It occurs in files: {1}, but priority '
-                           'found only for files: {2}').format(col, col_file_dict[col], column_prio_dict[col]))
-
-        if files_only_in_prio:
-            logging.warning(('Provided priority for column "{0}" contains more files than present in '
-                             'file_headers.json. Priority files not used: {1}').format(col, files_only_in_prio))
-
-# TODO: Move logging settings to logging.cfg
-def configure_logging(log_type, level):
-    log_format = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s', '%d-%m-%y %H:%M:%S')
-    logging.getLogger().setLevel(level)
-
-    # Add console handler
-    if log_type in ['console', 'both']:
-        console = logging.StreamHandler()
-        console.setFormatter(log_format)
-        logging.getLogger('').addHandler(console)
-
-    # Add file handler
-    if log_type in ['file', 'both']:
-        log_file = logging.FileHandler('validation.log')
-        log_file.setFormatter(log_format)
-        logging.getLogger('').addHandler(log_file)
-
-
-def read_dict_from_file(filename, path=None):
-    file = os.path.join(path, filename)
-    if os.path.exists(file):
-        with open(file, 'r') as f:
-            dict_ = json.loads(f.read())
-        return dict_
-    else:
-        logging.error('Config file: {} - not found. Aborting'.format(file))
-        sys.exit(1)
 
 
 def get_encoding(file_name):
@@ -288,7 +203,7 @@ def determine_file_type(columns, filename):
 def check_file_list(files_found):
     for filename, found in files_found.items():
         if not found:
-            logging.error('Data file: {} expected but not found in source folder.'.format(filename))
+            logger.error('Data file: {} expected but not found in source folder.'.format(filename))
 
 
 def merge_entity_data_frames(df_dict, id_columns):
@@ -383,7 +298,7 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
     entity_to_data_frames = collections.OrderedDict()
     for entity, columns in entity_to_columns.items():
         if not file_dict[entity]:
-            logging.error('Missing data for entity: {} does not have a corresponding file.'.format(entity))
+            logger.error('Missing data for entity: {} does not have a corresponding file.'.format(entity))
             missing_entities = True
             continue
 
@@ -397,7 +312,7 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
         entity_to_data_frames[entity] = df
 
     if missing_entities:
-        logging.error('Missing data for one or more entities, cannot continue.')
+        logger.error('Missing data for one or more entities, cannot continue.')
         sys.exit(1)
 
     # TODO: ADD DEDUPLICATION ACROSS ENTITIES:
@@ -414,17 +329,24 @@ def build_csr_dataframe(file_dict, file_list, csr_data_model):
 
 
 def validate_source_file(file_prop_dict, path, file_headers_name):
+    """ TODO fill in docstring
+
+    :param file_prop_dict:
+    :param path:
+    :param file_headers_name:
+    :return:
+    """
     filename = os.path.basename(path)
 
     # Check file is not empty
     if os.stat(path).st_size == 0:
-        logging.error('File is empty: {}'.format(filename))
+        logger.error('File is empty: {}'.format(filename))
         return
 
     # Check encoding
     encoding = get_encoding(path)
     if encoding not in ALLOWED_ENCODINGS:
-        logging.error('Invalid file encoding ({0}) detected for: {1}. Must be {2}.'.format(encoding,
+        logger.error('Invalid file encoding ({0}) detected for: {1}. Must be {2}.'.format(encoding,
                                                                                            filename,
                                                                                            '/'.join(ALLOWED_ENCODINGS)))
         return
@@ -433,7 +355,7 @@ def validate_source_file(file_prop_dict, path, file_headers_name):
     try:
         df = pd.read_csv(path, sep=None, engine='python', dtype='object')
     except ValueError:  # Catches far from everything
-        logging.error('Could not read file: {}. Is it a valid data frame?'.format(filename))
+        logger.error('Could not read file: {}. Is it a valid data frame?'.format(filename))
         return
     else:
         df.columns = [field.upper() for field in df.columns]
@@ -444,10 +366,10 @@ def validate_source_file(file_prop_dict, path, file_headers_name):
         required_header_fields = {field.upper() for field in file_prop_dict[filename]['headers']}
         if not required_header_fields.issubset(file_header_fields):
             missing = required_header_fields - file_header_fields
-            logging.warning('{0} is missing mandatory header fields: {1}'.format(filename, missing))
+            logger.warning('{0} is missing mandatory header fields: {1}'.format(filename, missing))
         return False
     else:
-        logging.error('Found file {}, but not defined in {}'.format(filename, file_headers_name))
+        logger.error('Found file {}, but not defined in {}'.format(filename, file_headers_name))
         return True
 
 
@@ -525,7 +447,7 @@ def set_date_fields(df, file_prop_dict, filename):
 
     if date_fields:
         expected_date_format = file_prop_dict[filename].get('date_format')
-        logging.info('Setting date fields for {}'.format(filename))
+        logger.info('Setting date fields for {}'.format(filename))
         for col in date_fields:
             try:
                 # df[col] = pd.to_datetime(df[col], format=expected_date_format).dt.strftime('%Y-%m-%d').astype(object)
@@ -535,7 +457,7 @@ def set_date_fields(df, file_prop_dict, filename):
                 logging.error('Incorrect date format for {0} in field {1}, expected {2}'.format(*args))
                 continue
     else:
-        logging.info('There are no expected date fields to check for {}'.format(filename))
+        logger.info('There are no expected date fields to check for {}'.format(filename))
 
 
 def get_date_as_string(item, dateformat, str_format='%Y-%m-%d'):
@@ -543,18 +465,6 @@ def get_date_as_string(item, dateformat, str_format='%Y-%m-%d'):
         return pd.np.nan
     else:
         return pd.datetime.strptime(item, dateformat).strftime(str_format)
-
-
-class InputFilesIncomplete(Exception):
-    pass
-
-
-def print_errors(messages):
-    # just a list of files for now, Don't start with blocks
-    print('--------- ERRORS ---------')
-    for msg in messages:
-        print(msg)
-    return len(messages)
 
 
 def check_for_codebook(filename, path):
@@ -569,6 +479,92 @@ def check_for_codebook(filename, path):
         return codebook
     else:
         return None
+
+def parse_ngs_data(ngs_data_dir):
+    for file in os.listdir(ngs_data_dir):
+
+
+
+    return "something"
+
+
+@click.command()
+@click.option('--input_dir', type=click.Path(exists=True))
+@click.option('--output_dir', type=click.Path(exists=True))
+@click.option('--config_dir', type=click.Path(exists=True))
+@click.option('--data_model', default=None)
+@click.option('--column_priority', default=None)
+@click.option('--file_headers', default=None)
+@click.option('--columns_to_csr', default=None)
+@click.option('--output_filename', default='csr_data_transformation.tsv')
+def main(input_dir, output_dir, config_dir, data_model,
+         column_priority, file_headers, columns_to_csr, output_filename):
+
+    # Check if mandatory parameters are set
+    mandatory = {'--config_dir': config_dir, '--data_model': data_model, '--column_priority': column_priority,
+                 '--columns_to_csr': columns_to_csr, '--file_headers': file_headers, '--input_dir': input_dir,
+                 '--output_dir': output_dir}
+    if not all(mandatory.values()):
+        for option_name, option_value in mandatory.items():
+            if not option_value:
+                logger.error('Input argument missing: {}'.format(option_name))
+        sys.exit(1) #raise UsageError('Missing input arguments')
+
+
+    csr_data_model = read_dict_from_file(filename=data_model, path=config_dir)
+    file_prop_dict = read_dict_from_file(filename=file_headers, path=config_dir)
+    columns_to_csr_map = read_dict_from_file(filename=columns_to_csr, path=config_dir)
+    columns_to_csr_map = {k: {k.upper(): v.upper() for k, v in vals.items()} for k, vals in columns_to_csr_map.items()}
+    column_prio_dict = read_dict_from_file(filename=column_priority, path=config_dir)
+    column_prio_dict = {k.upper(): files for k, files in column_prio_dict.items()}
+
+    col_file_dict = get_overlapping_columns(file_prop_dict, columns_to_csr_map)
+    check_column_prio(column_prio_dict, col_file_dict)
+
+    expected_files = file_prop_dict.keys()
+
+    clinical_data_dir = os.path.join(input_dir, 'CLINICAL')
+    if not os.path.isdir(clinical_data_dir):
+        logger.error('Directory CLINICAL in {} not found! required for clinical data, exiting'.format(input_dir))
+        sys.exit(1)
+
+
+    output_file = os.path.join(output_dir, output_filename)
+
+    # Read in the data files per entity
+    files_per_entity = read_data_files(clinical_data_dir=clinical_data_dir,
+                                       output_dir=output_dir,
+                                       columns_to_csr=columns_to_csr_map,
+                                       file_list=expected_files,
+                                       file_headers=file_prop_dict,
+                                       file_headers_name=file_headers)
+
+    # Use read in data to build the Central Subject Registry
+    subject_registry = build_csr_dataframe(file_dict=files_per_entity,
+                                           file_list=expected_files,
+                                           csr_data_model=csr_data_model)
+
+    subject_registry = resolve_data_conflicts(df=subject_registry,
+                                              column_priority=column_prio_dict)
+
+    # Check if all fields expected in the CSR dataframe are present. The expected columns are derived from the CSR data
+    # model
+    csr_expected_header = []
+    for key in csr_data_model:
+        csr_expected_header += list(csr_data_model[key])
+    missing_header = [l for l in csr_expected_header if l not in subject_registry.columns]
+    if len(missing_header) > 0:
+        logger.error('Missing columns from Subject Registry data model:\n {}'.format(missing_header))
+        sys.exit(1)
+
+    if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
+        logger.error('Found data rows with no individual or patient identifier')
+        sys.exit(1)
+
+    logger.info('Writing CSR data to {}'.format(output_file))
+    subject_registry.to_csv(output_file, sep='\t', index=False)
+
+    sys.exit(0)
 
 
 if __name__ == '__main__':
