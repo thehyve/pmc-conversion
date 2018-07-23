@@ -4,10 +4,10 @@ import os
 import sys
 from shutil import copyfile
 
-from .checksum import read_sha1_file, compute_sha1
+from checksum import read_sha1_file, compute_sha1
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
 
 checksum_algorithm = 'sha1'
 checksum_file_extension = '.' + checksum_algorithm
@@ -50,7 +50,10 @@ def get_data_checksum_file_pairs(files):
             checksum_files.remove(checksum_file)
             yield DataChecksumFilesPair(data_file, checksum_file)
         else:
-            raise FileNotFoundError('The data file {} does not have corresponding checksum file.'.format(data_file))
+            # TODO improve logging for the pipeline
+            logger.error('The data file {} does not have corresponding checksum file.'.format(data_file))
+            sys.exit(2)
+            #raise FileNotFoundError('The data file {} does not have corresponding checksum file.'.format(data_file))
     if checksum_files:
         checksum_files_csv = ', '.join(checksum_files)
         raise FileNotFoundError('The following checksum files does not have corresponding data file: '

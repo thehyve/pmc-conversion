@@ -3,11 +3,12 @@ import os
 
 import luigi
 import time
-from .git_commons import get_git_repo
-from .sync import sync_dirs, get_checksum_pairs_set
-from .luigi_commons import BaseTask, ExternalProgramTask
-from .codebook_formatting import codebook_formatting
-from .transmart_api_calls import TransmartApiCalls
+from git_commons import get_git_repo
+from sync import sync_dirs, get_checksum_pairs_set
+from luigi_commons import BaseTask, ExternalProgramTask
+from codebook_formatting import codebook_formatting
+from csr_transformations import csr_transformation
+from transmart_api_calls import TransmartApiCalls
 import threading
 
 logger = logging.getLogger('luigi')
@@ -34,6 +35,8 @@ class GlobalConfig(luigi.Config):
                              default='python3')
 
     csr_data_file = luigi.Parameter(description='Combined clinical data for the Central subject registry')
+    study_registry_file = luigi.Parameter(description='Combined study and individual_study entity'
+                                                      'data for the Central subject registry')
 
     transmart_copy_jar = luigi.Parameter(description='Path to transmart copy jar.')
     study_id = luigi.Parameter(description="Id of the study to load.")
@@ -131,10 +134,7 @@ class FormatCodeBooks(BaseTask):
                 codebook_formatting(codebook_file, cm_map, config.intermediate_file_dir)
 
 
-class MergeClinicalData(ExternalProgramTask):
-    wd = os.path.join(os.getcwd(), 'scripts')
-
-    csr_transformation = luigi.Parameter(description='CSR transformation script name', significant=False)
+class MergeClinicalData(BaseTask):
     data_model = luigi.Parameter(description='JSON file with the columns per entity', significant=False)
     column_priority = luigi.Parameter(description='Flat text file with an ordered list of expected files',
                                       significant=False)
@@ -142,26 +142,16 @@ class MergeClinicalData(ExternalProgramTask):
     columns_to_csr = luigi.Parameter(
         description='Data file columns mapped to expected fields in the central subject registry', significant=False)
 
-    def program_args(self):
-        if self.file_headers:
-            return [config.python, self.csr_transformation,
-                    '--input_dir', config.input_data_dir,
-                    '--output_dir', config.intermediate_file_dir,
-                    '--config_dir', config.config_json_dir,
-                    '--data_model', self.data_model,
-                    '--column_priority', self.column_priority,
-                    '--columns_to_csr', self.columns_to_csr,
-                    '--output_filename', config.csr_data_file,
-                    '--file_headers', self.file_headers]
-        else:
-            return [config.python, self.csr_transformation,
-                    '--input_dir', config.input_data_dir,
-                    '--output_dir', config.intermediate_file_dir,
-                    '--config_dir', config.config_json_dir,
-                    '--data_model', self.data_model,
-                    '--column_priority', self.column_priority,
-                    '--columns_to_csr', self.columns_to_csr,
-                    '--output_filename', self.output_filename]
+    def run(self):
+        csr_transformation(input_dir=config.input_data_dir,
+                           output_dir=config.intermediate_file_dir,
+                           config_dir=config.config_json_dir,
+                           data_model=self.data_model,
+                           column_priority=self.column_priority,
+                           file_headers=self.file_headers,
+                           columns_to_csr=self.columns_to_csr,
+                           output_filename=config.csr_data_file,
+                           output_study_filename=config.study_registry_file)
 
 
 class TransmartDataTransformation(ExternalProgramTask):
@@ -174,6 +164,7 @@ class TransmartDataTransformation(ExternalProgramTask):
     def program_args(self):
         return [config.python, self.tm_transformation,
                 '--csr_data_file', os.path.join(config.intermediate_file_dir, config.csr_data_file),
+                '--study_registry_data_file', os.path.join(config.intermediate_file_dir, config.study_registry_file),
                 '--output_dir', config.transmart_staging_dir,
                 '--config_dir', config.config_json_dir,
                 '--blueprint', self.blueprint,
@@ -204,12 +195,17 @@ class CbioportalDataTransformation(ExternalProgramTask):
                 '-d', description_mapping]
 
 
+    def run(self):
+        pass
+
+
 class TransmartDataLoader(ExternalProgramTask):
     """
     Task to load data to tranSMART
     """
 
     wd = '.'
+    std_out_err_dir = config.transmart_load_logs_dir
 
     def program_environment(self):
         os.environ['PGHOST'] = config.PGHOST
@@ -218,9 +214,6 @@ class TransmartDataLoader(ExternalProgramTask):
         os.environ['PGUSER'] = config.PGUSER
         os.environ['PGPASSWORD'] = config.PGPASSWORD
 
-
-class LoadTransmartStudy(TransmartDataLoader):
-    std_out_err_dir = config.transmart_load_logs_dir
 
     def program_args(self):
         return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '--re-upload',
@@ -232,6 +225,7 @@ class TransmartApiTask(BaseTask):
     transmart_username = luigi.Parameter(description='Username for an admin account', significant=False)
     transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
 
+    # TODO activate for push
     def run(self):
         pass
         # reload_obj = TransmartApiCalls(url=self.transmart_url,
@@ -280,6 +274,9 @@ class CbioportalDataValidation(ExternalProgramTask):
                          % report_name
         return [docker_command, python_command]
 
+    # TODO remove for push
+    def run(self):
+        pass
 
 
 class CbioportalDataLoading(ExternalProgramTask):
@@ -341,6 +338,10 @@ class CbioportalDataLoading(ExternalProgramTask):
             restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
         return [docker_command, python_command, restart_command]
 
+    # TODO remove for push
+    def run(self):
+        pass
+
 
 class GitVersionTask(BaseTask):
     commit_hexsha = luigi.Parameter(description='commit to come back to')
@@ -390,7 +391,7 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         commit_transmart_staging.required_tasks = [transmart_data_transformation]
         yield commit_transmart_staging
 
-        load_transmart_study = LoadTransmartStudy()
+        load_transmart_study = TransmartDataLoader()
         load_transmart_study.required_tasks = [commit_transmart_staging]
         yield load_transmart_study
 
@@ -454,7 +455,7 @@ class e2e_LoadDataFromNewFilesTaskTransmartOnly(luigi.WrapperTask):
         commit_transmart_staging.required_tasks = [transmart_data_transformation]
         yield commit_transmart_staging
 
-        load_transmart_study = LoadTransmartStudy()
+        load_transmart_study = TransmartDataLoader()
         load_transmart_study.required_tasks = [commit_transmart_staging]
         yield load_transmart_study
 
