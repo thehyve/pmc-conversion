@@ -3,13 +3,13 @@ import os
 
 import luigi
 import time
-from git_commons import get_git_repo
-from sync import sync_dirs, get_checksum_pairs_set
-from luigi_commons import BaseTask, ExternalProgramTask
-from codebook_formatting import codebook_formatting
-from csr_transformations import csr_transformation
-from transmart_api_calls import TransmartApiCalls
-from cbioportal_transformation.cbio_wrapper import create_cbio_study
+from .git_commons import get_git_repo
+from .sync import sync_dirs, get_checksum_pairs_set
+from .luigi_commons import BaseTask, ExternalProgramTask
+from .codebook_formatting import codebook_formatting
+from .csr_transformations import csr_transformation
+from .transmart_api_calls import TransmartApiCalls
+from .cbioportal_transformation.cbio_wrapper import create_cbio_study
 import threading
 
 logger = logging.getLogger('luigi')
@@ -47,8 +47,8 @@ class GlobalConfig(luigi.Config):
     PGHOST = luigi.Parameter(description="Configuration for transmart-copy.")
     PGPORT = luigi.Parameter(description="Configuration for transmart-copy.")
     PGDATABASE = luigi.Parameter(description="Configuration for transmart-copy.")
-    PGUSER = luigi.Parameter(description="Configuration for transmart-copy.")
-    PGPASSWORD = luigi.Parameter(description="Configuration for transmart-copy.")
+    PGUSER = luigi.Parameter(description="Configuration for transmart-copy.", significant=True)
+    PGPASSWORD = luigi.Parameter(description="Configuration for transmart-copy.", significant=False)
 
     @property
     def input_data_dir(self):
@@ -189,9 +189,7 @@ class CbioportalDataTransformation(BaseTask):
             logger.info('Found NGS data directory: {}'.format(ngs_dir))
             break
 
-
     def run(self):
-
         clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
         description_mapping = os.path.join(config.config_json_dir, self.cbioportal_header_descriptions)
 
@@ -216,7 +214,6 @@ class TransmartDataLoader(ExternalProgramTask):
         os.environ['PGUSER'] = config.PGUSER
         os.environ['PGPASSWORD'] = config.PGPASSWORD
 
-
     def program_args(self):
         return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '--re-upload',
                 '{!r}'.format(config.transmart_staging_dir)]
@@ -227,17 +224,15 @@ class TransmartApiTask(BaseTask):
     transmart_username = luigi.Parameter(description='Username for an admin account', significant=False)
     transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
 
-    # TODO activate for push
     def run(self):
-        pass
-        # reload_obj = TransmartApiCalls(url=self.transmart_url,
-        #                                username=self.transmart_username,
-        #                                password=self.transmart_password)
-        #
-        # logger.info('Rebuilding tree cache')
-        # reload_obj.clear_tree_nodes_cache()
-        # logger.info('Scanning for new subscriptions')
-        # reload_obj.scan_subscription_queries()
+        reload_obj = TransmartApiCalls(url=self.transmart_url,
+                                       username=self.transmart_username,
+                                       password=self.transmart_password)
+
+        logger.info('Rebuilding tree cache')
+        reload_obj.clear_tree_nodes_cache()
+        logger.info('Scanning for new subscriptions')
+        reload_obj.scan_subscription_queries()
 
 
 class CbioportalDataValidation(ExternalProgramTask):
@@ -276,10 +271,6 @@ class CbioportalDataValidation(ExternalProgramTask):
                          % report_name
         return [docker_command, python_command]
 
-    # TODO remove for push
-    def run(self):
-        pass
-
 
 class CbioportalDataLoading(ExternalProgramTask):
     """
@@ -301,7 +292,6 @@ class CbioportalDataLoading(ExternalProgramTask):
                                               'empty. PMC servers: pmc-cbioportal-test | '
                                               'pmc-cbioportal-acc | pmc-cbioportal-prod', significant=False)
 
-
     def program_args(self):
         # Directory and file names for validation
         input_dir = config.cbioportal_staging_dir
@@ -321,10 +311,6 @@ class CbioportalDataLoading(ExternalProgramTask):
 
             restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
         return [docker_command, python_command, restart_command]
-
-    # TODO remove for push
-    def run(self):
-        pass
 
 
 class GitVersionTask(BaseTask):
@@ -409,6 +395,7 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
     def requires(self):
         return self.tasks_dependency_tree
 
+
 class e2e_LoadDataFromNewFilesTaskTransmartOnly(luigi.WrapperTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -450,6 +437,7 @@ class e2e_LoadDataFromNewFilesTaskTransmartOnly(luigi.WrapperTask):
 
     def requires(self):
         return self.tasks_dependency_tree
+
 
 if __name__ == '__main__':
     luigi.run()

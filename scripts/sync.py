@@ -7,7 +7,6 @@ from shutil import copyfile
 from checksum import read_sha1_file, compute_sha1
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
 
 checksum_algorithm = 'sha1'
 checksum_file_extension = '.' + checksum_algorithm

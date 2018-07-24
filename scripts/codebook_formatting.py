@@ -6,11 +6,6 @@ import logging
 import tempfile
 
 logger = logging.getLogger(__name__)
-# logger.setLevel('DEBUG')
-# ch = logging.StreamHandler()
-# ch.setLevel('DEBUG')
-# ch.setFormatter(logging.Formatter('%(asctime)s; %(levelname)-8s %(name)-25s - %(message)s'))
-# logger.addHandler(ch)
 
 AVAILABLE_FORMATS = ['br_codebook_1']
 

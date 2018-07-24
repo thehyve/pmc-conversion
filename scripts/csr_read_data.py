@@ -4,6 +4,7 @@ import json
 import chardet
 import logging
 
+# TODO update allowed encodings
 ALLOWED_ENCODINGS = {'utf-8', 'ascii', 'iso-8859-1'}
 
 logger = logging.getLogger(__name__)

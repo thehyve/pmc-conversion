@@ -6,8 +6,8 @@ import collections
 import logging
 import pandas as pd
 from logging.config import fileConfig
-from parse_ngs_files import process_ngs_dir
-from csr_read_data import get_encoding, input_file_to_df,\
+from .parse_ngs_files import process_ngs_dir
+from .csr_read_data import get_encoding, input_file_to_df,\
     bool_is_file, validate_source_file, check_for_codebook, set_date_fields, apply_header_map,\
     determine_file_type, check_file_list
 
