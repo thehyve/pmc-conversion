@@ -17,7 +17,7 @@ from .csr_build_dataframe import add_biosource_identifiers, merge_entity_data_fr
 ST_COLUMNS = {'STUDY_ID'}
 PK_COLUMNS = {'INDIVIDUAL_ID','DIAGNOSIS_ID','BIOMATERIAL_ID','BIOSOURCE_ID'}
 
-logger = logging.getLogger('csr_transformations')
+logger = logging.getLogger(__name__)
 
 def read_dict_from_file(filename, path=None):
     logger.debug('Reading json file {}'.format(filename))

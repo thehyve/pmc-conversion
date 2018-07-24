@@ -37,11 +37,21 @@ def main(csr_data_file, study_registry_data_file, output_dir,
 
     study.Clinical.add_datafile(filename='csr_study.txt', dataframe=df)
     modifier_file = os.path.join(config_dir, modifiers)
-    study.Clinical.Modifiers.df = pd.read_csv(modifier_file, sep='\t')
+    try:
+        study.Clinical.Modifiers.df = pd.read_csv(modifier_file, sep='\t')
+    except FileNotFoundError as fnfe:
+        print('Modifier file, {} not found. {}'.format(modifier_file, fnfe))
+        #logger.error('')
+        sys.exit(1)
 
     blueprint_file = os.path.join(config_dir, blueprint)
-    study.apply_blueprint(blueprint_file, omit_missing=True)
-    study = add_meta_data(study)
+    try:
+        study.apply_blueprint(blueprint_file, omit_missing=True)
+        study = add_meta_data(study)
+    except FileNotFoundError as fnfe:
+        print('Blueprint file, {} not found. {}'.format(blueprint_file,fnfe))
+        #logger.error()
+        sys.exit(1)
 
     # Process study registry data
     std_reg = pd.read_csv(study_registry_data_file, sep='\t', encoding=get_encoding(study_registry_data_file), dtype=object)
