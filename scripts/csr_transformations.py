@@ -421,7 +421,6 @@ def add_diagnosis_counts(csr, colname):
 
 
 def calculate_days_between_dates(csr, colname, date_format='%Y-%m-%d'):
-    csr[['INDIVIDUAL_ID','DIAGNOSIS_ID','BIOSOURCE_ID','BIOMATERIAL_ID','BIRTH_DATE','DIAGNOSIS_DATE']].to_csv('/Users/wibopipping/Projects/PMC/tmp_m/luigi_check.txt', sep='\t', index=False)
     error_found = False
     ind = 'INDIVIDUAL_ID'
     dia = 'DIAGNOSIS_ID'
