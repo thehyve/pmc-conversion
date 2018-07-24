@@ -182,6 +182,7 @@ class ExternalProgramTask(BaseTask):
             proc.wait()
 
         success = proc.returncode in self.success_codes
+        logger.warning('FOUND RETURN CODE {} AND SUCCESS = {}'.format(proc.returncode, success))
 
         stdout = file_text_content_wo_nl(stdout_path)
         stderr = file_text_content_wo_nl(stderr_path)
