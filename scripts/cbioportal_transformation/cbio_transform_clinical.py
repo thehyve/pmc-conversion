@@ -4,20 +4,19 @@
 # Author: Sander Tan, The Hyve
 
 import sys
-
-sys.dont_write_bytecode = True
-
 import pandas as pd
 import numpy as np
 import argparse
 import logging
+import json
 import os
 import re
 from .cbio_create_metafile import create_meta_content
 
+sys.dont_write_bytecode = True
 
 logger = logging.getLogger(__name__)
-logger.name = logger.name.rsplit('.',1)[1]
+logger.name = logger.name.rsplit('.', 1)[1]
 
 # Create maps to rename column names
 
@@ -125,12 +124,17 @@ def pmc_data_restructuring(unfiltered_clinical_data, clinical_type, description_
 
     len_c_c = len(clinical_columns)
     len_mp_c = len(mapped_columns)
+    len_unf_c = len(unfiltered_clinical_data.columns)
 
     logger.info('Found {} out of total {} columns in mapping.'.format(len_c_c, len_mp_c))
     if len_c_c < len_mp_c:
         logger.warning('Columns defined in mapping but missing in the CSR data: {}'.format(
-            mapped_columns.difference(clinical_columns.tolist()))
+            mapped_columns.difference(clinical_columns))
         )
+    if len_c_c < len_unf_c:
+        logger.info('Columns found in the CSR data but not defined in the mapping: {}'.format(
+            set(unfiltered_clinical_data.columns.difference(clinical_columns))
+        ))
 
     clinical_data = unfiltered_clinical_data[clinical_columns]
 
@@ -148,11 +152,16 @@ def pmc_data_restructuring(unfiltered_clinical_data, clinical_type, description_
             clinical_data.loc[index, 'Entity'] = 'Patient'
 
     # Create separate data frames per entity
-    diagnosis_data = clinical_data.loc[clinical_data['Entity'] == 'Diagnosis', :].drop(['Entity', 'INDIVIDUAL_ID'],axis=1).dropna(axis=1, how='all')
-    biomaterial_data = clinical_data.loc[clinical_data['Entity'] == 'Biomaterial', :].drop(['Entity', 'DIAGNOSIS_ID'], axis=1).dropna(axis=1, how='all')
-    biosource_data = clinical_data.loc[clinical_data['Entity'] == 'Biosource', :].drop(['Entity', 'INDIVIDUAL_ID'], axis=1).dropna(axis=1, how='all')
-    study_data = clinical_data.loc[clinical_data['Entity'] == 'Study', :].drop('Entity', axis=1).dropna(axis=1, how='all')
-    patient_data = clinical_data.loc[clinical_data['Entity'] == 'Patient', :].drop('Entity', axis=1).dropna(axis=1, how='all')
+    diagnosis_data = clinical_data.loc[clinical_data['Entity'] == 'Diagnosis', :].drop(
+        ['Entity', 'INDIVIDUAL_ID'], axis=1).dropna(axis=1, how='all')
+    biomaterial_data = clinical_data.loc[clinical_data['Entity'] == 'Biomaterial', :].drop(
+        ['Entity', 'DIAGNOSIS_ID'], axis=1).dropna(axis=1, how='all')
+    biosource_data = clinical_data.loc[clinical_data['Entity'] == 'Biosource', :].drop(
+        ['Entity', 'INDIVIDUAL_ID'], axis=1).dropna(axis=1, how='all')
+    study_data = clinical_data.loc[clinical_data['Entity'] == 'Study', :].drop(
+        'Entity', axis=1).dropna(axis=1, how='all')
+    patient_data = clinical_data.loc[clinical_data['Entity'] == 'Patient', :].drop(
+        'Entity', axis=1).dropna(axis=1, how='all')
 
     # For patient data, no merging is required
     if clinical_type == 'patient':
@@ -160,11 +169,11 @@ def pmc_data_restructuring(unfiltered_clinical_data, clinical_type, description_
 
     # Rename column, else duplicate columns
     entity_map = {
-        'diagnosis'  : diagnosis_data,
-        'biosource'  : biosource_data,
+        'diagnosis': diagnosis_data,
+        'biosource': biosource_data,
         'biomaterial': biomaterial_data,
-        'individual' : patient_data,
-        'study'      : study_data
+        'individual': patient_data,
+        'study': study_data
     }
     for key, descriptions in description_map.items():
         entity_map[key].rename(columns=descriptions, inplace=True)
@@ -173,8 +182,6 @@ def pmc_data_restructuring(unfiltered_clinical_data, clinical_type, description_
     biosource_data = pd.merge(biosource_data, diagnosis_data, how='left', on=['DIAGNOSIS_ID'])
     biomaterial_data = pd.merge(biomaterial_data, biosource_data, how='left', on=['BIOSOURCE_ID'])
     biomaterial_data['Sample ID'] = biomaterial_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
-
-    # TODO: Remove sample IDs which are not in the data
 
     # In case of clinical sample data, return merged biomaterial dataframe
     return biomaterial_data
@@ -214,58 +221,60 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
         if string_column_name in clinical_header.columns:
             clinical_header.loc[2, string_column_name] = 'STRING'
 
-    ### Remove symbols from attribute names and make them uppercase
+    # Remove symbols from attribute names and make them uppercase
     clinical_data = clinical_data.rename(columns=lambda s: re.sub('[^0-9a-zA-Z_]+', '_', s))
     clinical_data = clinical_data.rename(columns=lambda x: x.strip('_'))
     clinical_data.columns = clinical_data.columns.str.upper()
 
-    ################################
-    ### Modify values in columns ###
-    ################################
+    ############################
+    # Modify values in columns #
+    ############################
 
-    ### Remap values to cBioPortal format for certain columns
+    # Remap values to cBioPortal format for certain columns
     if clinical_type == 'patient':
-        ### Remap overal survival
+        # Remap overal survival
         if 'OS_STATUS' in clinical_data.columns:
             clinical_data.replace({'OS_STATUS': RENAME_OS_STATUS_MAP})
 
-        ### Remap disease free survival
+        # Remap disease free survival
         if 'DFS_STATUS' in clinical_data.columns:
             clinical_data.replace({'DFS_STATUS': RENAME_DFS_STATUS_MAP})
 
-        ### Possibly convert days to months
+        # # Possibly convert days to months
         # if 'OS_MONTHS' in clinical_data.columns:
-        #     ### Convert days to months
-        #     clinical_data.loc[clinical_data['OS_MONTHS'].notnull(), 'OS_MONTHS'] = (clinical_data.loc[clinical_data['OS_MONTHS'].notnull(), 'OS_MONTHS'] / 30).round().astype(int)
+        #     # Convert days to months
+        #     clinical_data.loc[clinical_data['OS_MONTHS'].notnull(), 'OS_MONTHS'] = (clinical_data
+        # .loc[clinical_data['OS_MONTHS'].notnull(), 'OS_MONTHS'] / 30).round().astype(int)
 
-        ### Possibly convert days to months
+        # # Possibly convert days to months
         # if 'DFS_MONTHS' in clinical_data.columns:
-        #     ### Convert days to months
-        #     clinical_data.loc[clinical_data['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] = (clinical_data.loc[clinical_data['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] / 30).round().astype(int)
+        #     # Convert days to months
+        #     clinical_data.loc[clinical_data['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] = (clinical_data
+        # .loc[clinical_data['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] / 30).round().astype(int)
 
     # Fix integers that are converted to floats due to NA in column
     if len(clinical_data.select_dtypes(include=[np.float64]).columns) > 0:
         clinical_data = fix_integer_na_columns(clinical_data)
 
-    ### Fill NA values
+    # Fill NA values
     clinical_data = clinical_data.fillna('NA')
 
-    ### Check if column names are unique.
-    ### In case of duplicates, rename them manually before or after header creation
+    # Check if column names are unique.
+    # In case of duplicates, rename them manually before or after header creation
     # TODO: Nice to have - Extract mapping dictionaries to external config, now they are hardcoded
     if not len(set(clinical_data.columns.tolist())) == len(clinical_data.columns.tolist()):
-        logger.error('Attribute names are not unique, not writing data_clinical. Rename them using the remap dictionary.')
+        logger.error('Attribute names not unique, not writing data_clinical. Rename them using the remap dictionary.')
         sys.exit(1)
 
-    ##############################
-    ### Write output #############
-    ##############################
-    ### Writing clinical patient file
-    clinical_filename = os.path.join(output_dir, 'data_clinical_%s.txt' % clinical_type)
+    ################
+    # Write output #
+    ################
+    # Writing clinical patient file
+    clinical_filename = os.path.join(output_dir, 'data_clinical_{}.txt'.format(clinical_type))
     clinical_header.to_csv(clinical_filename, sep='\t', index=False, header=False, mode='w')
     clinical_data.to_csv(clinical_filename, sep='\t', index=False, header=True, mode='a')
 
-    ### Set clinical type for meta file
+    # Set clinical type for meta file
     if clinical_type == 'sample':
         meta_datatype = 'SAMPLE_ATTRIBUTES'
     elif clinical_type == 'patient':
@@ -274,27 +283,30 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
         logger.error("Unknown clinical data type")
         sys.exit(1)
 
-    ### Create meta file
-    meta_filename = os.path.join(output_dir, 'meta_clinical_%s.txt' % clinical_type)
+    # Create meta file
+    meta_filename = os.path.join(output_dir, 'meta_clinical_{}.txt'.format(clinical_type))
     create_meta_content(file_name=meta_filename,
                         cancer_study_identifier=study_id,
                         genetic_alteration_type='CLINICAL',
                         datatype=meta_datatype,
-                        data_filename='data_clinical_%s.txt' % clinical_type)
+                        data_filename='data_clinical_{}.txt'.format(clinical_type))
 
-    #
-    # patient_list = clinical_data['PATIENT_ID'].unique().tolist()
-    # sample_list = clinical_data['SAMPLE_ID'].unique().tolist()
-    # return patient_list, sample_list
     if clinical_type == 'sample':
         return clinical_data['SAMPLE_ID'].unique().tolist()
     else:
         return clinical_data['PATIENT_ID'].unique().tolist()
 
 
-def main(clinical_inputfile, output_dir, clinical_type, study_id):
-    transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study_id)
-    return
+def main(clinical_inputfile, output_dir, clinical_type, study_id, description_map):
+
+    if os.path.isfile(description_map):
+        with open(description_map, 'r') as dmf:
+            description_dict = json.load(dmf)
+    else:
+        print('Description map file is not a file')
+        sys.exit(1)
+
+    transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study_id, description_dict)
 
 
 if __name__ == '__main__':
@@ -320,6 +332,10 @@ if __name__ == '__main__':
                                required=True,
                                help='Specify study id.')
 
+    requiredNamed.add_argument('-d', '--description_map_file',
+                               required=True,
+                               help='Specify path to description map file. File is expected to be in JSON format')
+
     args = parser.parse_args()
 
-    main(args.input_file, args.dir_for_output_files, args.clinical_type, args.study_id)
+    main(args.input_file, args.dir_for_output_files, args.clinical_type, args.study_id, args.description_map_file)
