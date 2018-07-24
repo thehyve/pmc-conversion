@@ -6,46 +6,70 @@ import logging
 import tempfile
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+# logger.setLevel('DEBUG')
+# ch = logging.StreamHandler()
+# ch.setLevel('DEBUG')
+# ch.setFormatter(logging.Formatter('%(asctime)s; %(levelname)-8s %(name)-25s - %(message)s'))
+# logger.addHandler(ch)
+
+AVAILABLE_FORMATS = ['br_codebook_1']
+
 
 @click.command()
 @click.argument('codebook_file', type=click.Path(exists=True))
 @click.argument('codebook_mapping', type=click.Path(exists=True))
-def main(codebook_file, codebook_mapping):
+@click.option('--output_dir', type=click.Path(), default=None)
+def main(codebook_file, codebook_mapping, output_dir):
     
     file = os.path.abspath(codebook_file)
-    codebook_formatting(file, codebook_mapping)
+    codebook_formatting(file, codebook_mapping, output_dir)
     
 
-def codebook_formatting(file, codebook_mapping, output_dir=tempfile.gettempdir()):
-    logger.debug('Codebook formatting for: {}'.format(file))
-    basename = os.path.basename(file)
+def codebook_formatting(codebook_file, codebook_mapping, output_dir=tempfile.gettempdir()):
+    """Format a codebook from the input format to json format. Input formats need to be defined in the codebook_mapping.
+    Only support for defined formats, see codebook_formatting.process_br_codebook for an example.
+
+    json format: {'COLUMN_NAME': {'CODE': 'VALUE'}}:
+        - COLUMN_NAME; The name of the column in the data file.
+        - CODE; The value as it is specified in the data file.
+        - VALUE; The human readable text for the code.
+
+
+    :param codebook_file: Codebook file to process
+    :param codebook_mapping: JSON file, expected format: {FILE_NAME: FORMAT}
+    :param output_dir: Output directory to save the processed codebook
+    """
+    logger.info('Codebook formatting for: {}'.format(codebook_file))
+    basename = os.path.basename(codebook_file)
 
     cm_file = os.path.abspath(codebook_mapping)
     logger.debug('Retrieving codebook mapping from: {}'.format(cm_file))
     with open(cm_file, 'r', encoding=get_encoding(cm_file)) as cm:
         codebook_type = json.loads(cm.read())
 
-
     codebook_out = os.path.join(output_dir,basename+'.json')
 
-    with open(file, 'r', encoding=get_encoding(file)) as file:
+    with open(codebook_file, 'r', encoding=get_encoding(codebook_file)) as file:
         logger.debug('Processing: {}'.format(basename))
         lines = file.readlines()
 
-
-    codebook= None
-    # TODO: implement format checker
-    if codebook_type[basename] == 'format1':
-        logger.debug('Format found: format1. Start processing')
-        codebook = process_br_codebook(lines)
+    codebook = None
+    if codebook_type[basename] not in AVAILABLE_FORMATS:
+        logger.warning('Format {} not found for {}, skipping'.format(codebook_type[basename],codebook_file))
     else:
-        logger.info('Format not found for {}, skipping'.format(file))
+        if codebook_type[basename] == 'br_codebook_1':
+            logger.debug('Format found: br_code_book. Start processing')
+            codebook = process_br_codebook(lines)
+
 
     if codebook:
         logger.info('Writing formatted codebook {} to {}'.format(basename, codebook_out))
         with open(codebook_out, 'w') as f:
             f.write(json.dumps(codebook))
+        return True
+    else:
+        logger.warning('Codebook {} not processed!'.format(basename))
+        return False
 
 
 def get_encoding(file_name):

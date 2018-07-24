@@ -135,6 +135,9 @@ dsc_output_dir/
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Local testdata
+ptp_test/
+
 # System Files
 .DS_Store
 Thumbs.db
