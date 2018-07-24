@@ -4,6 +4,10 @@
 ### Author: Sander Tan, The Hyve
 
 import os
+import logging
+
+logger = logging.getLogger(__name__)
+logger.name = logger.name.rsplit('.',1)[1]
 
 def create_caselist(output_dir,
                     file_name,
@@ -30,6 +34,8 @@ def create_caselist(output_dir,
     caselist_content.append('case_list_ids: %s' % case_list_ids)
 
     ### Write file
+    logger.debug('Writing cBioPortal caselist to {} for study {}'.\
+                 format(file_name, cancer_study_identifier))
     with open(os.path.join(case_list_dir, file_name), 'w') as caselist_output_file:
         caselist_output_file.write('\n'.join(caselist_content) + '\n')
     return

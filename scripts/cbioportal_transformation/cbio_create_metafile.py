@@ -4,6 +4,10 @@
 # Author: Sander Tan, The Hyve
 
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
+logger.name = logger.name.rsplit('.',1)[1]
 sys.dont_write_bytecode = True
 
 
@@ -67,6 +71,8 @@ def create_meta_content(file_name,
         meta_content.append('description: %s' % description)
 
     # Write file
+    logger.debug('Writing cBioPortal metadata to {} for study {} and datatype {}'.\
+                 format(file_name, cancer_study_identifier, datatype))
     with open(file_name, 'w') as meta_output_file:
         meta_output_file.write('\n'.join(meta_content) + '\n')
     return

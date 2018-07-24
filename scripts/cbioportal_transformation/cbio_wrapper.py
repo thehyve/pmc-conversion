@@ -10,16 +10,18 @@ sys.dont_write_bytecode = True
 import os
 import argparse
 import gzip
-from .pmc_cbio_transform_clinical import transform_clinical_data
-from .pmc_cbio_create_metafile import create_meta_content
-from .pmc_cbio_create_caselist import create_caselist
+from .cbio_transform_clinical import transform_clinical_data
+from .cbio_create_metafile import create_meta_content
+from .cbio_create_caselist import create_caselist
 import pandas as pd
 import shutil
 import time
 import json
 import logging
+from logging.config import fileConfig
 
 logger = logging.getLogger(__name__)
+logger.name = logger.name.rsplit('.',1)[1]
 
 ### Define study properties
 # TODO: Move study properties to configuration file
@@ -29,7 +31,7 @@ NAME_SHORT = "PMC - Test Study"
 DESCRIPTION = '%s Transformed from PMC Test Data to cBioPortal format.' % time.strftime("%d-%m-%Y %H:%M")
 TYPE_OF_CANCER = 'mixed'
 
-def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
+def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     ### Create output directory
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -38,20 +40,21 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
         descriptions_dict = json.loads(des.read())
 
     ### Clinical data
-    print('Transforming clinical data: %s' % clinical_input_file)
+    logger.info('Transforming clinical data: %s' % clinical_input_file)
 
     ### Transform patient file
     # TODO: Nice to have - Duplicate steps by calling function twice --> Change flow of program
     patient_ids = transform_clinical_data(clinical_inputfile=clinical_input_file,
-                            output_dir=output_dir, clinical_type='patient',
-                            study_id=STUDY_ID,
-                            description_map=descriptions_dict)
+                                          output_dir=output_dir,
+                                          clinical_type='patient',study_id=STUDY_ID,
+                                          description_map=descriptions_dict)
 
     ### Transform sample file
     sample_ids = transform_clinical_data(clinical_inputfile=clinical_input_file,
-                            output_dir=output_dir, clinical_type='sample',
-                            study_id=STUDY_ID,
-                            description_map=descriptions_dict)
+                                         clinical_type='sample',
+                                         output_dir=output_dir,
+                                         study_id=STUDY_ID,
+                                         description_map=descriptions_dict)
 
     ### Select NGS study files
     study_files = []
@@ -66,9 +69,10 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     ### Transform mutation data files
     maf_result_df = pd.DataFrame()
     for study_file in study_files:
+        logger.debug('Processing NGS data file: {}'.format(study_file))
         if study_file.split('.')[-2:] == ['maf', 'gz']:
             maf_file_location = os.path.join(ngs_dir, study_file)
-            maf_df = pd.read_csv(maf_file_location, comment = '#', sep = '\t')
+            maf_df = pd.read_csv(maf_file_location, comment = '#', sep = '\t', low_memory=False)
             maf_result_df = pd.concat([maf_result_df, maf_df], ignore_index=True)
 
     if maf_result_df.shape[0] > 0:
@@ -96,8 +100,9 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
         ### Test for samples in MAF files that are not in clinical data
         if not set(sample_ids).issuperset(set(mutation_samples)):
-            raise ValueError("Found samples in MAF files that are not in clinical data:\n%s"
+            logger.error("Found samples in MAF files that are not in clinical data: %s"
                              % ", ".join(set(mutation_samples).difference(set(sample_ids))))
+            sys.exit(1)
 
     ### Transform CNA data files
     for study_file in study_files:
@@ -108,7 +113,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
         ### CNA Segment data
         if study_file.split('.')[-1] == 'seg':
-            print('Transforming segment data: %s' % study_file)
+            logger.debug('Transforming segment data: %s' % study_file)
 
             # TODO: Merge possible multiple files per study, into 1 file per study
             output_file = 'data_cna_segments.seg'
@@ -132,7 +137,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
         ### CNA Continuous
         elif 'data_by_genes' in study_file:
-            print('Transforming continuous CNA data: %s' % study_file)
+            logger.debug('Transforming continuous CNA data: %s' % study_file)
 
             # TODO: Merge possibly multiple files per study, into 1 file per study
             output_file = 'data_cna_continuous.txt'
@@ -168,13 +173,13 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
             ### Test for samples in CNA files that are not in clinical data
             if not set(sample_ids).issuperset(set(cna_samples)):
-                raise ValueError("Found samples in CNA files that are not in clinical data:\n%s"
+                logger.error("Found samples in CNA files that are not in clinical data: %s"
                                  % ", ".join(set(cna_samples).difference(set(sample_ids))))
-
+                sys.exit(1)
 
         ### CNA Discrete
         elif 'thresholded.by_genes' in study_file:
-            print('Transforming discrete CNA data: %s' % study_file)
+            logger.debug('Transforming discrete CNA data: %s' % study_file)
 
             # TODO: Merge possibly multiple files per study, into 1 file per study
             output_file = 'data_cna_discrete.txt'
@@ -205,7 +210,7 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
             pass
 
         else:
-            print("Unknown file type: %s" % study_file)
+            logger.warning("Unknown file type: %s" % study_file)
 
     ### Create cnaseq case list
     cnaseq_samples = list(set(mutation_samples + cna_samples))
@@ -221,14 +226,16 @@ def transform_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     create_meta_content(meta_filename, STUDY_ID, type_of_cancer=TYPE_OF_CANCER, name=NAME, short_name=NAME_SHORT,
                         description=DESCRIPTION, add_global_case_list='true')
 
-    print('Done transforming files for %s' % STUDY_ID)
+    logger.info('Done transforming files for %s' % STUDY_ID)
 
     ### Transformation completed
-    print('Transformation of studies complete.')
+    logger.info('Transformation of studies complete.')
+    return
 
 
-def main(clinical_input_file, ngs_dir, output_dir, description_mapping):
-    transform_study(clinical_input_file, ngs_dir, output_dir, description_mapping)
+def main(clinical_input_file, ngs_dir, output_dir, description_mapping, logconfig):
+    fileConfig(logconfig)
+    create_cbio_study(clinical_input_file, ngs_dir, output_dir, description_mapping)
 
 
 if __name__ == '__main__':
@@ -253,6 +260,9 @@ if __name__ == '__main__':
     arguments.add_argument("-d", "--description_mapping",
                            required=True,
                            help="JSON file with a description mapping per CSR entity, {ENTITY: {COLUMN_NAME: DESCRIPTION}")
+    arguments.add_argument("-l","-loggerconfig",
+                           required=True,
+                           help="Path to logging config file")
 
     args = parser.parse_args()
-    main(args.clinical_input_file, args.ngs_dir, args.output_dir, args.description_mapping)
+    main(args.clinical_input_file, args.ngs_dir, args.output_dir, args.description_mapping, args.logconfig)

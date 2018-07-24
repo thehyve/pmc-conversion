@@ -10,9 +10,14 @@ sys.dont_write_bytecode = True
 import pandas as pd
 import numpy as np
 import argparse
+import logging
 import os
 import re
-from .pmc_cbio_create_metafile import create_meta_content
+from .cbio_create_metafile import create_meta_content
+
+
+logger = logging.getLogger(__name__)
+logger.name = logger.name.rsplit('.',1)[1]
 
 # Create maps to rename column names
 
@@ -120,33 +125,25 @@ def pmc_data_restructuring(unfiltered_clinical_data, clinical_type, description_
 
     len_c_c = len(clinical_columns)
     len_mp_c = len(mapped_columns)
-    len_unf_c = unfiltered_clinical_data.columns.size
 
-    print('Found {} out of total {} columns in mapping.'.format(len_c_c, len_mp_c))
+    logger.info('Found {} out of total {} columns in mapping.'.format(len_c_c, len_mp_c))
     if len_c_c < len_mp_c:
-        print('Columns defined in mapping but missing in the CSR data: {}'.format(
-            mapped_columns.difference(clinical_columns))
+        logger.warning('Columns defined in mapping but missing in the CSR data: {}'.format(
+            mapped_columns.difference(clinical_columns.tolist()))
         )
-
-    print('Found {} out of total {} columns in the data)'.format(len_c_c, len_unf_c))
-    if len_c_c < len_unf_c:
-        print('Columns defined in mapping but missing in the CSR data: {}'.format(
-            unfiltered_clinical_data.columns.difference(clinical_columns)))
 
     clinical_data = unfiltered_clinical_data[clinical_columns]
 
-    # Add entity of the row (Patient, Diagnosis, Study, Biosource, Biomaterial)
-    clinical_data['Entity'] = ''
+    # Add entity of the row (Patient, Diagnosis, Biosource, Biomaterial)
+    # Use assign to avoid pandas errors
+    clinical_data = clinical_data.assign(Entity='')
     for index, row in clinical_data.iterrows():
-        if pd.notnull(row['DIAGNOSIS_ID']) and pd.isnull(row['BIOSOURCE_ID']) and pd.isnull(
-                row['STUDY_ID']) and pd.isnull(row['BIOMATERIAL_ID']):
-            clinical_data.loc[index, 'Entity'] = 'Diagnosis'
-        elif pd.notnull(row['STUDY_ID']):
-            clinical_data.loc[index, 'Entity'] = 'Study'
-        elif pd.notnull(row['BIOMATERIAL_ID']):
+        if pd.notnull(row['BIOMATERIAL_ID']):
             clinical_data.loc[index, 'Entity'] = 'Biomaterial'
         elif pd.notnull(row['BIOSOURCE_ID']):
             clinical_data.loc[index, 'Entity'] = 'Biosource'
+        elif pd.notnull(row['DIAGNOSIS_ID']):
+                clinical_data.loc[index, 'Entity'] = 'Diagnosis'
         else:
             clinical_data.loc[index, 'Entity'] = 'Patient'
 
@@ -188,7 +185,7 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     """
 
     # Loading clinical data
-    clinical_data = pd.read_csv(clinical_inputfile, sep='\t', na_values=[''])
+    clinical_data = pd.read_csv(clinical_inputfile, sep='\t', na_values=[''], low_memory=False)
 
     # PMC data restructuring
     clinical_data = pmc_data_restructuring(clinical_data, clinical_type, description_map)
@@ -257,7 +254,7 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     ### In case of duplicates, rename them manually before or after header creation
     # TODO: Nice to have - Extract mapping dictionaries to external config, now they are hardcoded
     if not len(set(clinical_data.columns.tolist())) == len(clinical_data.columns.tolist()):
-        print('Attribute names are not unique, not writing data_clinical. Rename them using the remap dictionary.')
+        logger.error('Attribute names are not unique, not writing data_clinical. Rename them using the remap dictionary.')
         sys.exit(1)
 
     ##############################
@@ -274,14 +271,21 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     elif clinical_type == 'patient':
         meta_datatype = 'PATIENT_ATTRIBUTES'
     else:
-        print("Unknown clinical data type")
+        logger.error("Unknown clinical data type")
         sys.exit(1)
 
     ### Create meta file
     meta_filename = os.path.join(output_dir, 'meta_clinical_%s.txt' % clinical_type)
-    create_meta_content(meta_filename, study_id, 'CLINICAL', meta_datatype,
-                                                 'data_clinical_%s.txt' % clinical_type)
+    create_meta_content(file_name=meta_filename,
+                        cancer_study_identifier=study_id,
+                        genetic_alteration_type='CLINICAL',
+                        datatype=meta_datatype,
+                        data_filename='data_clinical_%s.txt' % clinical_type)
 
+    #
+    # patient_list = clinical_data['PATIENT_ID'].unique().tolist()
+    # sample_list = clinical_data['SAMPLE_ID'].unique().tolist()
+    # return patient_list, sample_list
     if clinical_type == 'sample':
         return clinical_data['SAMPLE_ID'].unique().tolist()
     else:

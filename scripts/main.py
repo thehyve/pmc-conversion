@@ -9,6 +9,7 @@ from luigi_commons import BaseTask, ExternalProgramTask
 from codebook_formatting import codebook_formatting
 from csr_transformations import csr_transformation
 from transmart_api_calls import TransmartApiCalls
+from cbioportal_transformation.cbio_wrapper import create_cbio_study
 import threading
 
 logger = logging.getLogger('luigi')
@@ -174,29 +175,30 @@ class TransmartDataTransformation(ExternalProgramTask):
                 '--security_required', config.security_required]
 
 
-class CbioportalDataTransformation(ExternalProgramTask):
+class CbioportalDataTransformation(BaseTask):
     """
     Task to transform data files for cBioPortal
     """
 
     cbioportal_header_descriptions = luigi.Parameter(description='JSON file with a description per column')
 
-    def program_args(self):
-        clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
-        ngs_dir = os.path.join(config.input_data_dir, 'NGS')
-        output_dir = config.cbioportal_staging_dir
-        description_mapping = os.path.join(config.config_json_dir, self.cbioportal_header_descriptions)
-
-        return [config.python,
-                'scripts/cbioportal_transformation/pmc_cbio_wrapper.py',
-                '-c', clinical_input_file,
-                '-n', ngs_dir,
-                '-o', output_dir,
-                '-d', description_mapping]
+    # Get NGS dir
+    for dir, dirs, files in os.walk(config.input_data_dir):
+        if 'NGS' in dirs:
+            ngs_dir = os.path.join(dir, dirs[dirs.index('NGS')])
+            logger.info('Found NGS data directory: {}'.format(ngs_dir))
+            break
 
 
     def run(self):
-        pass
+
+        clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
+        description_mapping = os.path.join(config.config_json_dir, self.cbioportal_header_descriptions)
+
+        create_cbio_study(clinical_input_file=clinical_input_file,
+                          ngs_dir=self.ngs_dir,
+                          output_dir=config.cbioportal_staging_dir,
+                          descriptions=description_mapping)
 
 
 class TransmartDataLoader(ExternalProgramTask):
@@ -298,24 +300,6 @@ class CbioportalDataLoading(ExternalProgramTask):
     server_name = luigi.Parameter(description='Server on which pipeline is running. If running docker locally, leave '
                                               'empty. PMC servers: pmc-cbioportal-test | '
                                               'pmc-cbioportal-acc | pmc-cbioportal-prod', significant=False)
-
-
-    # def program_args(self):
-    #
-    #     # Directory and file names for validation
-    #     input_dir = config.cbioportal_staging_dir
-    #
-    #     # Build the command for importer only
-    #     docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
-    #                      % (input_dir, self.docker_image)
-    #     python_command = 'python /cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
-    #
-    #     # Check if cBioPortal is running locally or on other server
-    #     if self.server_name == "":
-    #         restart_command = "; docker restart cbioportal"
-    #     else:
-    #         restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
-    #     return [docker_command, python_command, restart_command]
 
 
     def program_args(self):
