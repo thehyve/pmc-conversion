@@ -196,3 +196,4 @@ class ExternalProgramTask(BaseTask):
         if not success and self.stop_on_error:
             logger.error('Program failed with return code={}, args={}, environment={},'
                          'stdout={}, stderr={}'.format(proc.returncode, args, env, stdout, stderr))
+            sys.exit(1)
