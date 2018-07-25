@@ -266,6 +266,12 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
         logger.error('Attribute names not unique, not writing data_clinical. Rename them using the remap dictionary.')
         sys.exit(1)
 
+    # Drop duplicate rows, this does not check for duplicate sample ID's
+    cd_row_count = clinical_data.shape[0]
+    clinical_data = clinical_data.drop_duplicates(keep='first')
+    logger.debug('Found and dropped {} duplicates in the {} data'
+                 .format(cd_row_count - clinical_data.shape[0], clinical_type))
+
     ################
     # Write output #
     ################
