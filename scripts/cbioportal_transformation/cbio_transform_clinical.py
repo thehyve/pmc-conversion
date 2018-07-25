@@ -215,7 +215,7 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
 
     # Rename attributes after creating header
     # These are the attribute names for the database
-    clinical_data.rename(columns=RENAME_AFTER_CREATING_HEADER_MAP, inplace=True)
+    #clinical_data.rename(columns=RENAME_AFTER_CREATING_HEADER_MAP, inplace=True)
 
     # TODO: Major - Check FORCE_STRING_LIST assumption --> make configurable?
     # Set datatype of specific columns before after header
