@@ -7,7 +7,6 @@ from shutil import copyfile
 from .checksum import read_sha1_file, compute_sha1
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 checksum_algorithm = 'sha1'
 checksum_file_extension = '.' + checksum_algorithm
@@ -50,7 +49,10 @@ def get_data_checksum_file_pairs(files):
             checksum_files.remove(checksum_file)
             yield DataChecksumFilesPair(data_file, checksum_file)
         else:
-            raise FileNotFoundError('The data file {} does not have corresponding checksum file.'.format(data_file))
+            # TODO improve logging for the pipeline
+            logger.error('The data file {} does not have corresponding checksum file.'.format(data_file))
+            sys.exit(2)
+            # raise FileNotFoundError('The data file {} does not have corresponding checksum file.'.format(data_file))
     if checksum_files:
         checksum_files_csv = ', '.join(checksum_files)
         raise FileNotFoundError('The following checksum files does not have corresponding data file: '
@@ -69,19 +71,19 @@ def ensure_checksum_matches(data_checksum_files_pairs):
             raise ValueError('Checksum for {} file does not match.'.format(pair.data_file))
 
 
-def scan_files_checksums(dir):
-    if not os.path.exists(dir):
-        raise NotADirectoryError('{} is not a directory.'.format(dir))
-    for root, _, files in os.walk(dir):
+def scan_files_checksums(dir_):
+    if not os.path.exists(dir_):
+        raise NotADirectoryError('{} is not a directory.'.format(dir_))
+    for root, _, files in os.walk(dir_):
         for file in files:
             if not is_checksum_file(file) and not is_hiden_file(file):
                 path = os.path.join(root, file)
                 yield DataFileChecksumPair(path, compute_sha1(path))
 
 
-def scan_data_checksum_files_pairs(dir):
+def scan_data_checksum_files_pairs(dir_):
     pairs = []
-    for root, _, files in os.walk(dir):
+    for root, _, files in os.walk(dir_):
         paths = [os.path.join(root, file) for file in files]
         for pair in get_data_checksum_file_pairs(paths):
             pairs.append(pair)
@@ -95,14 +97,14 @@ def make_path_relative(parent_path, child_path):
             result = result[1:]
         return result
     else:
-        raise ValueError('{} is not sub directory of the {}.'.format(child_path,parent_path))
+        raise ValueError('{} is not sub directory of the {}.'.format(child_path, parent_path))
 
 
-def get_checksum_pairs_set(dir):
-    checksum_files = scan_files_checksums(dir)
+def get_checksum_pairs_set(dir_):
+    checksum_files = scan_files_checksums(dir_)
     result = set()
     for file, checksum in checksum_files:
-        result.add(DataFileChecksumPair(make_path_relative(dir, file), checksum))
+        result.add(DataFileChecksumPair(make_path_relative(dir_, file), checksum))
     return result
 
 

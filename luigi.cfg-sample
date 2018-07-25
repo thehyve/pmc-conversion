@@ -36,6 +36,7 @@ config_json_dir= <path_to>/pmc-conversion/config
 # intermediate files
 intermediate_file_dir=<path_to>/pmc-conversion/test_data/intermediate
 csr_data_file = csr_transformation_data.tsv
+study_registry_file = study_registry.tsv
 
 
 # Recommended version > python3.6
@@ -78,7 +79,6 @@ cm_map_file = codebook_mapping.json
 
 
 [MergeClinicalData]
-csr_transformation = csr_transformations.py
 data_model = data_model.json
 column_priority = column_priority.json
 file_headers = file_headers.json
