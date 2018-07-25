@@ -182,7 +182,6 @@ class ExternalProgramTask(BaseTask):
             proc.wait()
 
         success = proc.returncode in self.success_codes
-        logger.warning('FOUND RETURN CODE {} AND SUCCESS = {}'.format(proc.returncode, success))
 
         stdout = file_text_content_wo_nl(stdout_path)
         stderr = file_text_content_wo_nl(stderr_path)
@@ -196,5 +195,9 @@ class ExternalProgramTask(BaseTask):
         if not success and self.stop_on_error:
             logger.error('Program failed with return code={}, args={}, environment={},'
                          'stdout={}, stderr={}'.format(proc.returncode, args, env, stdout, stderr))
-            raise ExternalProgramRunError('Program failed with return code={}, args={}, environment={},'
-                         'stdout={}, stderr={}'.format(proc.returncode, args, env, stdout, stderr))
+            raise ExternalProgramRunError(message='External program failed with return code {}'.format(proc.returncode),
+                                          args=args,
+                                          env=None,
+                                          stdout=None,
+                                          stderr=None
+                                          )
