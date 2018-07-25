@@ -193,11 +193,10 @@ class ExternalProgramTask(BaseTask):
                 logger.info('Program stderr:\n{}'.format(stderr))
 
         if not success and self.stop_on_error:
-            logger.error('Program failed with return code={}, args={}, environment={},'
-                         'stdout={}, stderr={}'.format(proc.returncode, args, env, stdout, stderr))
+            logger.error('Program failed with return code={}'.format(proc.returncode))
             raise ExternalProgramRunError(message='External program failed with return code {}'.format(proc.returncode),
                                           args=args,
-                                          env=None,
-                                          stdout=None,
-                                          stderr=None
+                                          env=env,
+                                          stdout=stdout,
+                                          stderr=stderr
                                           )
