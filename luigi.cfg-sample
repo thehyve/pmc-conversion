@@ -87,8 +87,8 @@ columns_to_csr = columns_to_csr.json
 
 [TransmartDataTransformation]
 tm_transformation = transmart_transformation.py
-blueprint = blueprint_example.json
-modifiers = example_modifiers.txt
+blueprint = blueprint.json
+modifiers = modifiers.txt
 
 
 [TransmartApiTask]

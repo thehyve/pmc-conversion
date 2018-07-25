@@ -300,7 +300,9 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     if clinical_type == 'sample':
         return clinical_data['SAMPLE_ID'].unique().tolist()
     else:
-        return clinical_data['PATIENT_ID'].unique().tolist()
+        #return clinical_data['PATIENT_ID'].unique().tolist()
+        # Is not being used so returns an empty list
+        return []
 
 
 def main(clinical_inputfile, output_dir, clinical_type, study_id, description_map):
