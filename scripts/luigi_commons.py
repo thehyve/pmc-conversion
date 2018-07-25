@@ -1,7 +1,6 @@
 import logging
 import os
 import subprocess
-import sys
 import tempfile
 
 import luigi
@@ -197,4 +196,5 @@ class ExternalProgramTask(BaseTask):
         if not success and self.stop_on_error:
             logger.error('Program failed with return code={}, args={}, environment={},'
                          'stdout={}, stderr={}'.format(proc.returncode, args, env, stdout, stderr))
-            sys.exit(1)
+            raise ExternalProgramRunError('Program failed with return code={}, args={}, environment={},'
+                         'stdout={}, stderr={}'.format(proc.returncode, args, env, stdout, stderr))
