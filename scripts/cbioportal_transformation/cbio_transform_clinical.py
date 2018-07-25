@@ -25,14 +25,14 @@ logger.name = logger.name.rsplit('.', 1)[1]
 # This is useful for when the column name is too long, or if you just want to modify the text.
 # These will end up in the 1st and 2nd line of the staging file header,
 # thereby defining the 'name' and 'description' that will show up in the UI.
-RENAME_BEFORE_CREATING_HEADER_MAP = {'INDIVIDUAL_ID': 'Patient ID'}
+RENAME_BEFORE_CREATING_HEADER_MAP = {}
 
 # Rename attributes after creating header
 # These are the attribute names that will be saved as column names in the database
 # This is only necessary for cBioPortal specific columns, such as 'Overal Survival Status' - 'OS_STATUS'
 # Other columns are automatically parsed to cBioPortal format, for example '% tumor cells' -> 'TUMOR_CELLS'
 # Please make sure the SAMPLE_ID column name is created
-RENAME_AFTER_CREATING_HEADER_MAP = {}
+RENAME_AFTER_CREATING_HEADER_MAP = {'INDIVIDUAL_ID': 'Patient ID'}
 
 # Rename values in OS_STATUS and DFS_STATUS columns
 RENAME_OS_STATUS_MAP = {}
@@ -40,7 +40,7 @@ RENAME_DFS_STATUS_MAP = {}
 
 # Force some datatypes to be remappad to STRING
 FORCE_STRING_LIST = ['CENTER_TREATMENT', 'CID', 'DIAGNOSIS_ID', 'GENDER', 'IC_DATA', 'IC_LINKING_EXT', 'IC_MATERIAL',
-                     'IC_TYPE', 'IDAA', 'INDIVIDUAL_STUDY_ID', 'TOPOGRAPHY', 'TUMOR_TYPE']
+                     'IC_TYPE', 'INDIVIDUAL_STUDY_ID', 'TOPOGRAPHY', 'TUMOR_TYPE']
 
 
 def create_clinical_header(df):
@@ -76,10 +76,84 @@ def create_clinical_header(df):
     return header_data
 
 
+def pmc_data_restructuring(unfiltered_clinical_data, clinical_type, description_map):
+    mapped_columns = set()
+    for value in description_map.values():
+        mapped_columns.update(value.keys())
+
+    clinical_columns = unfiltered_clinical_data.columns.intersection(mapped_columns)
+
+    len_c_c = len(clinical_columns)
+    len_mp_c = len(mapped_columns)
+    len_unf_c = len(unfiltered_clinical_data.columns)
+
+    logger.info('Found {} out of total {} columns in mapping.'.format(len_c_c, len_mp_c))
+    if len_c_c < len_mp_c:
+        logger.warning('Columns defined in mapping but missing in the CSR data: {}'.format(
+            mapped_columns.difference(clinical_columns))
+        )
+    if len_c_c < len_unf_c:
+        logger.info('Columns found in the CSR data but not defined in the mapping: {}'.format(
+            set(unfiltered_clinical_data.columns.difference(clinical_columns))
+        ))
+
+    clinical_data = unfiltered_clinical_data[clinical_columns]
+
+    # Add entity of the row (Patient, Diagnosis, Biosource, Biomaterial)
+    # Use assign to avoid pandas errors
+    clinical_data = clinical_data.assign(Entity='')
+    for index, row in clinical_data.iterrows():
+        if pd.notnull(row['BIOMATERIAL_ID']):
+            clinical_data.loc[index, 'Entity'] = 'Biomaterial'
+        elif pd.notnull(row['BIOSOURCE_ID']):
+            clinical_data.loc[index, 'Entity'] = 'Biosource'
+        elif pd.notnull(row['DIAGNOSIS_ID']):
+            clinical_data.loc[index, 'Entity'] = 'Diagnosis'
+        else:
+            clinical_data.loc[index, 'Entity'] = 'Patient'
+
+    # Create separate data frames per entity
+    diagnosis_data = clinical_data.loc[clinical_data['Entity'] == 'Diagnosis', :].drop(
+        ['Entity', 'INDIVIDUAL_ID'], axis=1).dropna(axis=1, how='all')
+    biomaterial_data = clinical_data.loc[clinical_data['Entity'] == 'Biomaterial', :].drop(
+        ['Entity', 'DIAGNOSIS_ID'], axis=1).dropna(axis=1, how='all')
+    biosource_data = clinical_data.loc[clinical_data['Entity'] == 'Biosource', :].drop(
+        ['Entity', 'INDIVIDUAL_ID'], axis=1).dropna(axis=1, how='all')
+    study_data = clinical_data.loc[clinical_data['Entity'] == 'Study', :].drop(
+        'Entity', axis=1).dropna(axis=1, how='all')
+    patient_data = clinical_data.loc[clinical_data['Entity'] == 'Patient', :].drop(
+        'Entity', axis=1).dropna(axis=1, how='all')
+
+    # Rename column, else duplicate columns
+    entity_map = {
+        'diagnosis': diagnosis_data,
+        'biosource': biosource_data,
+        'biomaterial': biomaterial_data,
+        'individual': patient_data
+    }
+
+    for key, descriptions in description_map.items():
+        entity_map[key].rename(columns=descriptions, inplace=True)
+
+    # For patient data, no merging is required
+    if clinical_type == 'patient':
+        return patient_data
+    elif clinical_type == 'sample':
+        # Merge columns
+        biosource_data = pd.merge(biosource_data, diagnosis_data, how='left', on=['DIAGNOSIS_ID'])
+        biomaterial_data = pd.merge(biomaterial_data, biosource_data, how='left', on=['BIOSOURCE_ID'])
+        biomaterial_data['Sample ID'] = biomaterial_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
+
+        # In case of clinical sample data, return merged biomaterial dataframe
+        return biomaterial_data
+    else:
+        logger.error('Clinical type not recognized, exiting')
+        sys.exit(1)
+
+
 def check_integer_na_columns(numerical_column):
     """ Integer columns containing NA values are converted to Float in pandas
         This function checks for a column if it only contains integers (.0)
-
         In this case we attempt to convert all columns, not just the columns
         that contain an NA value, because we sliced the dataframes from a bigger
         dataframe that could contain NA values.
@@ -115,78 +189,6 @@ def fix_integer_na_columns(df):
     return df
 
 
-def pmc_data_restructuring(unfiltered_clinical_data, clinical_type, description_map):
-    mapped_columns = set()
-    for value in description_map.values():
-        mapped_columns.update(value.keys())
-
-    clinical_columns = unfiltered_clinical_data.columns.intersection(mapped_columns)
-
-    len_c_c = len(clinical_columns)
-    len_mp_c = len(mapped_columns)
-    len_unf_c = len(unfiltered_clinical_data.columns)
-
-    logger.info('Found {} out of total {} columns in mapping.'.format(len_c_c, len_mp_c))
-    if len_c_c < len_mp_c:
-        logger.warning('Columns defined in mapping but missing in the CSR data: {}'.format(
-            mapped_columns.difference(clinical_columns))
-        )
-    if len_c_c < len_unf_c:
-        logger.info('Columns found in the CSR data but not defined in the mapping: {}'.format(
-            set(unfiltered_clinical_data.columns.difference(clinical_columns))
-        ))
-
-    clinical_data = unfiltered_clinical_data[clinical_columns]
-
-    # Add entity of the row (Patient, Diagnosis, Biosource, Biomaterial)
-    # Use assign to avoid pandas errors
-    clinical_data = clinical_data.assign(Entity='')
-    for index, row in clinical_data.iterrows():
-        if pd.notnull(row['BIOMATERIAL_ID']):
-            clinical_data.loc[index, 'Entity'] = 'Biomaterial'
-        elif pd.notnull(row['BIOSOURCE_ID']):
-            clinical_data.loc[index, 'Entity'] = 'Biosource'
-        elif pd.notnull(row['DIAGNOSIS_ID']):
-                clinical_data.loc[index, 'Entity'] = 'Diagnosis'
-        else:
-            clinical_data.loc[index, 'Entity'] = 'Patient'
-
-    # Create separate data frames per entity
-    diagnosis_data = clinical_data.loc[clinical_data['Entity'] == 'Diagnosis', :].drop(
-        ['Entity', 'INDIVIDUAL_ID'], axis=1).dropna(axis=1, how='all')
-    biomaterial_data = clinical_data.loc[clinical_data['Entity'] == 'Biomaterial', :].drop(
-        ['Entity', 'DIAGNOSIS_ID'], axis=1).dropna(axis=1, how='all')
-    biosource_data = clinical_data.loc[clinical_data['Entity'] == 'Biosource', :].drop(
-        ['Entity', 'INDIVIDUAL_ID'], axis=1).dropna(axis=1, how='all')
-    study_data = clinical_data.loc[clinical_data['Entity'] == 'Study', :].drop(
-        'Entity', axis=1).dropna(axis=1, how='all')
-    patient_data = clinical_data.loc[clinical_data['Entity'] == 'Patient', :].drop(
-        'Entity', axis=1).dropna(axis=1, how='all')
-
-    # For patient data, no merging is required
-    if clinical_type == 'patient':
-        return patient_data
-
-    # Rename column, else duplicate columns
-    entity_map = {
-        'diagnosis': diagnosis_data,
-        'biosource': biosource_data,
-        'biomaterial': biomaterial_data,
-        'individual': patient_data,
-        'study': study_data
-    }
-    for key, descriptions in description_map.items():
-        entity_map[key].rename(columns=descriptions, inplace=True)
-
-    # Merge columns
-    biosource_data = pd.merge(biosource_data, diagnosis_data, how='left', on=['DIAGNOSIS_ID'])
-    biomaterial_data = pd.merge(biomaterial_data, biosource_data, how='left', on=['BIOSOURCE_ID'])
-    biomaterial_data['Sample ID'] = biomaterial_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
-
-    # In case of clinical sample data, return merged biomaterial dataframe
-    return biomaterial_data
-
-
 def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study_id, description_map):
     """ Converting the input file to a cBioPortal staging file.
     """
@@ -206,7 +208,7 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
 
     # Rename attributes before creating header
     # These are the attribute names that will show up in cBioPortal UI
-    clinical_data.rename(columns=RENAME_BEFORE_CREATING_HEADER_MAP, inplace=True)
+    #clinical_data.rename(columns=RENAME_BEFORE_CREATING_HEADER_MAP, inplace=True)
 
     # Create header
     clinical_header = create_clinical_header(clinical_data)
@@ -256,8 +258,6 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     if len(clinical_data.select_dtypes(include=[np.float64]).columns) > 0:
         clinical_data = fix_integer_na_columns(clinical_data)
 
-    # Fill NA values
-    clinical_data = clinical_data.fillna('NA')
 
     # Check if column names are unique.
     # In case of duplicates, rename them manually before or after header creation

@@ -21,7 +21,6 @@ import datetime as dt
 @click.option('--save_batch_study', is_flag=True)
 def main(csr_data_file, study_registry_data_file, output_dir,
          config_dir, blueprint, modifiers, study_id, top_node, security_required, save_batch_study):
-
     # Process Central subject registry data
     df = pd.read_csv(csr_data_file, sep='\t', encoding=get_encoding(csr_data_file), dtype=object)
     df = add_modifiers(df)
@@ -41,7 +40,7 @@ def main(csr_data_file, study_registry_data_file, output_dir,
         study.Clinical.Modifiers.df = pd.read_csv(modifier_file, sep='\t')
     except FileNotFoundError as fnfe:
         print('Modifier file, {} not found. {}'.format(modifier_file, fnfe))
-        #logger.error('')
+        # logger.error('')
         sys.exit(1)
 
     blueprint_file = os.path.join(config_dir, blueprint)
@@ -49,14 +48,15 @@ def main(csr_data_file, study_registry_data_file, output_dir,
         study.apply_blueprint(blueprint_file, omit_missing=True)
         study = add_meta_data(study)
     except FileNotFoundError as fnfe:
-        print('Blueprint file, {} not found. {}'.format(blueprint_file,fnfe))
-        #logger.error()
+        print('Blueprint file, {} not found. {}'.format(blueprint_file, fnfe))
+        # logger.error()
         sys.exit(1)
 
     # Process study registry data
-    std_reg = pd.read_csv(study_registry_data_file, sep='\t', encoding=get_encoding(study_registry_data_file), dtype=object)
+    std_reg = pd.read_csv(study_registry_data_file, sep='\t', encoding=get_encoding(study_registry_data_file),
+                          dtype=object)
     study_filename = 'study_data.txt'
-    with open(blueprint_file,'r') as bpf:
+    with open(blueprint_file, 'r') as bpf:
         bp = json.load(bpf)
     study_data, study_col_map = generate_study_column_mapping(std_reg, study_filename, bp)
 
@@ -80,9 +80,10 @@ def main(csr_data_file, study_registry_data_file, output_dir,
 
 
 def generate_study_column_mapping(study, filename, blueprint):
-    col_map = pd.DataFrame(columns=['filename','cat_cd','col_num','data_label','col5','col6','concept_type'],
-                           data={'filename': [filename],'cat_cd': ['Subjects'],'col_num': [1],'data_label': ['SUBJ_ID'],
-                            'col5': [''],'col6': [''],'concept_type': ['']}
+    col_map = pd.DataFrame(columns=['filename', 'cat_cd', 'col_num', 'data_label', 'col5', 'col6', 'concept_type'],
+                           data={'filename': [filename], 'cat_cd': ['Subjects'], 'col_num': [1],
+                                 'data_label': ['SUBJ_ID'],
+                                 'col5': [''], 'col6': [''], 'concept_type': ['']}
                            )
 
     # Set index to individual and update column index to multiindex (on per study basis)
@@ -92,7 +93,7 @@ def generate_study_column_mapping(study, filename, blueprint):
     # col_num starts at 2 as the first column will be the SUBJ_ID
     col_num = 2
     for study_id in study_.columns.get_level_values(0).unique():
-        subset = study_.loc[:,study_id]
+        subset = study_.loc[:, study_id]
         try:
             unique_acronym = subset['ACRONYM'].dropna().unique()
         except KeyError as ke:
@@ -109,7 +110,7 @@ def generate_study_column_mapping(study, filename, blueprint):
 
         for col in subset.columns:
             if col in blueprint:
-                cat_cd = '+'.join([blueprint[col]['path'],acronym])
+                cat_cd = '+'.join([blueprint[col]['path'], acronym])
                 data_label = blueprint[col]['label']
                 concept_type = 'CATEGORICAL' if blueprint[col]['force_categorical'] == 'Y' else ''
             else:
@@ -119,13 +120,13 @@ def generate_study_column_mapping(study, filename, blueprint):
                 concept_type = ''
 
             col_map = col_map.append({'filename': filename,
-                            'cat_cd': cat_cd,
-                            'col_num': col_num,
-                            'data_label': data_label,
-                            'col5': '',
-                            'col6': '',
-                            'concept_type': concept_type}, ignore_index=True)
-            col_num+=1
+                                      'cat_cd': cat_cd,
+                                      'col_num': col_num,
+                                      'data_label': data_label,
+                                      'col5': '',
+                                      'col6': '',
+                                      'concept_type': concept_type}, ignore_index=True)
+            col_num += 1
 
     # Change column mapping column names and set study data column index back to single index
     col_map.columns = tmtk.utils.Mappings.column_mapping_header
@@ -141,14 +142,12 @@ def set_study_index(study):
     for col in study_.columns:
         split = col.split('|')
         if len(split) == 2:
-            multi_index.append((split[1],split[0]))
+            multi_index.append((split[1], split[0]))
         else:
             print('Column {} does not provide 2 items when split on \'|\''.format(col))
     study_.columns = pd.MultiIndex.from_tuples(multi_index)
 
     return study_
-
-
 
 
 def get_encoding(file_name):
