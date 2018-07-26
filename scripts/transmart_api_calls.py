@@ -9,11 +9,12 @@ class TransmartApiException(Exception):
 
 class TransmartApiCalls(object):
 
-    def __init__(self, url, username, password):
-        self.url = url
+    def __init__(self, key_cloak_url, username, password, transmart_url):
+        self.url = key_cloak_url
         self.username = username
         self.password = password
         self.token = None
+        self.tm_url = transmart_url
 
     def get_token(self):
         """
@@ -29,11 +30,13 @@ class TransmartApiCalls(object):
         """
         Retrieve access token from the server.
         """
-        headers = {'Accept': 'application/json'}
-        url = self.url + '/oauth/token'
+        headers = {'Accept': 'application/json',
+                   'Contect-Type': 'application/x-www-form-urlencoded'
+                   }
+        url = self.url + '/protocol/openid-connect/token'
         params = {
             'grant_type': 'password',
-            'client_id': 'glowingbear-js',
+            'client_id': 'transmart-client',
             'client_secret': '',
             'username': self.username,
             'password': self.password
@@ -80,7 +83,7 @@ class TransmartApiCalls(object):
             'Accept': 'application/json',
             'Authorization': 'Bearer ' + str(token)
         }
-        url = self.url + path
+        url = self.tm_url + path
         response = None
         Console.warning(url)
         try:
@@ -104,7 +107,7 @@ class TransmartApiCalls(object):
             'Accept': 'application/json',
             'Authorization': 'Bearer ' + str(token)
         }
-        url = self.url + path
+        url = self.tm_url + path
         response = None
         try:
             response = requests.post(url, headers=headers)
