@@ -9,8 +9,8 @@ class TransmartApiException(Exception):
 
 class TransmartApiCalls(object):
 
-    def __init__(self, key_cloak_url, username, password, transmart_url):
-        self.url = key_cloak_url
+    def __init__(self, keycloak_url, username, password, transmart_url):
+        self.url = keycloak_url
         self.username = username
         self.password = password
         self.token = None
