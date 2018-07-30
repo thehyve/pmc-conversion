@@ -23,6 +23,8 @@ db_connection = sqlite:///pmc-luigi-db.sqlite
 [scheduler]
 record_task_history = True
 state_path = luigi-state.pickle
+# Update remove delay to 1 day instead of 10 minutes
+remove_delay=86400
 
 [GlobalConfig]
 ## NOTE: insert full absolute paths

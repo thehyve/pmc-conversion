@@ -124,7 +124,12 @@ def check_column_prio(column_prio_dict, col_file_dict):
 
 
 def get_filelist(dir_, skip=['NGS']):
-    # TODO docstring --> recursion
+    """
+
+    :param dir_:
+    :param skip: String value of files or
+    :return:
+    """
     ## Figure out how to get abs path names --> probably use dir_ as abs path
     file_list = []
     for filename in os.listdir(dir_):
@@ -272,6 +277,7 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
     clinical_files = get_filelist(clinical_data_dir)
 
     date_errors = []
+    file_type_error = False
     for file in clinical_files:
         # if not bool_is_file(filename, clinical_data_dir):
         #     continue
@@ -305,8 +311,13 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
         # Check if headers are present
         file_type = determine_file_type(columns, filename)
         if not file_type:
+            file_type_error=True
             continue
         files_per_entity[file_type].update({filename: df})
+
+    if file_type_error:
+        logger.error('Found error in file types')
+        sys.exit(1)
 
     check_file_list(files_found)
 
@@ -518,9 +529,9 @@ def csr_transformation(input_dir, output_dir, config_dir, data_model,
 
     if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
         logger.error('Found data rows with no individual or patient identifier')
-        #sys.exit(1) # TODO turn on exit status when test data correct
-        logger.warning('HEADSUP! for testing removing incorrect data')
-        subject_registry= subject_registry[~subject_registry.INDIVIDUAL_ID.isnull()]
+        sys.exit(1)
+        # logger.warning('HEADSUP! for testing removing incorrect data')
+        # subject_registry= subject_registry[~subject_registry.INDIVIDUAL_ID.isnull()]
 
     logger.info('Writing CSR data to {}'.format(output_file))
     subject_registry.to_csv(output_file, sep='\t', index=False)

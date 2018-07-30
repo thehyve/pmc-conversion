@@ -63,13 +63,21 @@ class TransmartApiCalls(object):
 
     def clear_tree_nodes_cache(self):
         """
-        Triggers a rebuild of the tree nodes cache of TranSMART.
-        Waits max `cache_rebuild_timeout` seconds for the rebuild to finish
-        before returning.
+        Triggers a clear of the tree nodes cache of TranSMART.
         """
 
         Console.info('Clearing tree nodes cache ...')
         self.get('/v2/tree_nodes/clear_cache')
+
+
+    def rebuild_tree_cache(self):
+        """
+        Triggers a rebuild of the tree nodes cache of TranSMART.
+        Waits max `cache_rebuild_timeout` seconds for the rebuild to finish
+        before returning.
+        """
+        Console.info('Rebuilding tree nodes cache ...')
+        self.get('/v2/tree_nodes/rebuild_cache')
 
 
     def get(self, path):

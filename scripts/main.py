@@ -231,8 +231,10 @@ class TransmartApiTask(BaseTask):
                                        password=self.transmart_password,
                                        transmart_url=self.transmart_url)
 
-        logger.info('Rebuilding tree cache')
+        logger.info('Clearing tree cache')
         reload_obj.clear_tree_nodes_cache()
+        logger.info('Rebuilding tree cache')
+        reload_obj.rebuild_tree_cache()
         logger.info('Scanning for new subscriptions')
         reload_obj.scan_subscription_queries()
 
@@ -395,6 +397,7 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         yield commit_cbio_load_logs
 
     def requires(self):
+        logger.error('Dependency tree: {}'.format(self.tasks_dependency_tree))
         return self.tasks_dependency_tree
 
 

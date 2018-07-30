@@ -176,7 +176,7 @@ def determine_file_type(columns, filename):
         logger.debug('Filetype {} for file {}'.format(id, filename))
         return id
     else:
-        logging.error(('No key identifier found (individual, diagnosis, study, biosource, '
+        logger.error(('No key identifier found (individual, diagnosis, study, biosource, '
                        'biomaterial) in {}'.format(filename)))
 
 
