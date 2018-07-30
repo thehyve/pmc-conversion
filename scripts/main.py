@@ -220,19 +220,25 @@ class TransmartDataLoader(ExternalProgramTask):
 
 
 class TransmartApiTask(BaseTask):
-    transmart_url = luigi.Parameter(description='Url of the tranSMART instance', significant=False)
+    keycloak_url = luigi.Parameter(description='URL of the keycloak instance, include the realm in the URL')
+    transmart_url = luigi.Parameter(description='URL of the tranSMART instance', significant=False)
     transmart_username = luigi.Parameter(description='Username for an admin account', significant=False)
     transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
 
     def run(self):
-        reload_obj = TransmartApiCalls(url=self.transmart_url,
+        reload_obj = TransmartApiCalls(keycloak_url=self.keycloak_url,
                                        username=self.transmart_username,
-                                       password=self.transmart_password)
+                                       password=self.transmart_password,
+                                       transmart_url=self.transmart_url)
 
-        logger.info('Rebuilding tree cache')
-        reload_obj.clear_tree_nodes_cache()
-        logger.info('Scanning for new subscriptions')
-        reload_obj.scan_subscription_queries()
+        #logger.info('Clearing tree cache')
+        #reload_obj.clear_tree_nodes_cache()
+        #logger.info('Rebuilding tree cache')
+        #reload_obj.rebuild_tree_cache()
+        #logger.info('Scanning for new subscriptions')
+        #reload_obj.scan_subscription_queries()
+        logger.info('After data loading update; clearing caches and scanning query subscriptions')
+        reload_obj.after_data_loading()
 
 
 class CbioportalDataValidation(ExternalProgramTask):
@@ -393,6 +399,7 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         yield commit_cbio_load_logs
 
     def requires(self):
+        logger.error('Dependency tree: {}'.format(self.tasks_dependency_tree))
         return self.tasks_dependency_tree
 
 

@@ -9,11 +9,12 @@ class TransmartApiException(Exception):
 
 class TransmartApiCalls(object):
 
-    def __init__(self, url, username, password):
-        self.url = url
+    def __init__(self, keycloak_url, username, password, transmart_url):
+        self.url = keycloak_url
         self.username = username
         self.password = password
         self.token = None
+        self.tm_url = transmart_url
 
     def get_token(self):
         """
@@ -29,11 +30,13 @@ class TransmartApiCalls(object):
         """
         Retrieve access token from the server.
         """
-        headers = {'Accept': 'application/json'}
-        url = self.url + '/oauth/token'
+        headers = {'Accept': 'application/json',
+                   'Contect-Type': 'application/x-www-form-urlencoded'
+                   }
+        url = self.url + '/protocol/openid-connect/token'
         params = {
             'grant_type': 'password',
-            'client_id': 'glowingbear-js',
+            'client_id': 'transmart-client',
             'client_secret': '',
             'username': self.username,
             'password': self.password
@@ -60,13 +63,29 @@ class TransmartApiCalls(object):
 
     def clear_tree_nodes_cache(self):
         """
-        Triggers a rebuild of the tree nodes cache of TranSMART.
-        Waits max `cache_rebuild_timeout` seconds for the rebuild to finish
-        before returning.
+        Triggers a clear of the tree nodes cache of TranSMART.
         """
 
         Console.info('Clearing tree nodes cache ...')
         self.get('/v2/tree_nodes/clear_cache')
+
+
+    def rebuild_tree_cache(self):
+        """
+        Triggers a rebuild of the tree nodes cache of TranSMART.
+        Waits max `cache_rebuild_timeout` seconds for the rebuild to finish
+        before returning.
+        """
+        Console.info('Rebuilding tree nodes cache ...')
+        self.get('/v2/tree_nodes/rebuild_cache')
+
+
+    def after_data_loading(self):
+        """
+        Trigger a clear of the caches of TranSMART and scans for query subscriptions
+        """
+        Console.info('After data loading update, clearing caches. Scanning query subscriptions')
+        self.get('/v2/system/after_data_loading_update')
 
 
     def get(self, path):
@@ -80,7 +99,7 @@ class TransmartApiCalls(object):
             'Accept': 'application/json',
             'Authorization': 'Bearer ' + str(token)
         }
-        url = self.url + path
+        url = self.tm_url + path
         response = None
         Console.warning(url)
         try:
@@ -104,7 +123,7 @@ class TransmartApiCalls(object):
             'Accept': 'application/json',
             'Authorization': 'Bearer ' + str(token)
         }
-        url = self.url + path
+        url = self.tm_url + path
         response = None
         try:
             response = requests.post(url, headers=headers)

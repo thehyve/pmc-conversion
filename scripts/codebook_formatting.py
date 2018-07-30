@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 import click
 import chardet
 import logging
@@ -49,7 +50,10 @@ def codebook_formatting(codebook_file, codebook_mapping, output_dir=tempfile.get
         lines = file.readlines()
 
     codebook = None
-    if codebook_type[basename] not in AVAILABLE_FORMATS:
+    if basename not in codebook_type:
+        logger.error('Codebook {} not found in codebook mapping, exiting'.format(basename))
+        sys.exit(1)
+    elif codebook_type[basename] not in AVAILABLE_FORMATS:
         logger.warning('Format {} not found for {}, skipping'.format(codebook_type[basename],codebook_file))
     else:
         if codebook_type[basename] == 'br_codebook_1':

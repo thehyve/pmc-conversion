@@ -25,14 +25,14 @@ logger.name = logger.name.rsplit('.', 1)[1]
 # This is useful for when the column name is too long, or if you just want to modify the text.
 # These will end up in the 1st and 2nd line of the staging file header,
 # thereby defining the 'name' and 'description' that will show up in the UI.
-RENAME_BEFORE_CREATING_HEADER_MAP = {}
+RENAME_BEFORE_CREATING_HEADER_MAP = {'INDIVIDUAL_ID': 'Patient ID'}
 
 # Rename attributes after creating header
 # These are the attribute names that will be saved as column names in the database
 # This is only necessary for cBioPortal specific columns, such as 'Overal Survival Status' - 'OS_STATUS'
 # Other columns are automatically parsed to cBioPortal format, for example '% tumor cells' -> 'TUMOR_CELLS'
 # Please make sure the SAMPLE_ID column name is created
-RENAME_AFTER_CREATING_HEADER_MAP = {'INDIVIDUAL_ID': 'Patient ID'}
+RENAME_AFTER_CREATING_HEADER_MAP = {}
 
 # Rename values in OS_STATUS and DFS_STATUS columns
 RENAME_OS_STATUS_MAP = {}
@@ -208,14 +208,14 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
 
     # Rename attributes before creating header
     # These are the attribute names that will show up in cBioPortal UI
-    #clinical_data.rename(columns=RENAME_BEFORE_CREATING_HEADER_MAP, inplace=True)
+    clinical_data.rename(columns=RENAME_BEFORE_CREATING_HEADER_MAP, inplace=True)
 
     # Create header
     clinical_header = create_clinical_header(clinical_data)
 
     # Rename attributes after creating header
     # These are the attribute names for the database
-    #clinical_data.rename(columns=RENAME_AFTER_CREATING_HEADER_MAP, inplace=True)
+    clinical_data.rename(columns=RENAME_AFTER_CREATING_HEADER_MAP, inplace=True)
 
     # TODO: Major - Check FORCE_STRING_LIST assumption --> make configurable?
     # Set datatype of specific columns before after header
@@ -300,7 +300,9 @@ def transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study
     if clinical_type == 'sample':
         return clinical_data['SAMPLE_ID'].unique().tolist()
     else:
-        return clinical_data['PATIENT_ID'].unique().tolist()
+        #return clinical_data['PATIENT_ID'].unique().tolist()
+        # Is not being used so returns an empty list
+        return []
 
 
 def main(clinical_inputfile, output_dir, clinical_type, study_id, description_map):

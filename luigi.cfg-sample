@@ -23,6 +23,8 @@ db_connection = sqlite:///pmc-luigi-db.sqlite
 [scheduler]
 record_task_history = True
 state_path = luigi-state.pickle
+# Update remove delay to 1 day instead of 10 minutes
+remove_delay=86400
 
 [GlobalConfig]
 ## NOTE: insert full absolute paths
@@ -87,11 +89,12 @@ columns_to_csr = columns_to_csr.json
 
 [TransmartDataTransformation]
 tm_transformation = transmart_transformation.py
-blueprint = blueprint_example.json
-modifiers = example_modifiers.txt
+blueprint = blueprint.json
+modifiers = modifiers.txt
 
 
 [TransmartApiTask]
+keycloak_url = https://somekeycloak.net/auth/realms/transmart-name
 transmart_url = https://transmart.thehyve.net
 transmart_username = admin
 transmart_password = admin
