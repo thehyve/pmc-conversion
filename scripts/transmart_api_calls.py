@@ -80,6 +80,14 @@ class TransmartApiCalls(object):
         self.get('/v2/tree_nodes/rebuild_cache')
 
 
+    def after_data_loading(self):
+        """
+        Trigger a clear of the caches of TranSMART and scans for query subscriptions
+        """
+        Console.info('After data loading update, clearing caches. Scanning query subscriptions')
+        self.get('/v2/system/after_data_loading_update')
+
+
     def get(self, path):
         """
         Performs a call to the server.

@@ -231,12 +231,14 @@ class TransmartApiTask(BaseTask):
                                        password=self.transmart_password,
                                        transmart_url=self.transmart_url)
 
-        logger.info('Clearing tree cache')
-        reload_obj.clear_tree_nodes_cache()
-        logger.info('Rebuilding tree cache')
-        reload_obj.rebuild_tree_cache()
-        logger.info('Scanning for new subscriptions')
-        reload_obj.scan_subscription_queries()
+        #logger.info('Clearing tree cache')
+        #reload_obj.clear_tree_nodes_cache()
+        #logger.info('Rebuilding tree cache')
+        #reload_obj.rebuild_tree_cache()
+        #logger.info('Scanning for new subscriptions')
+        #reload_obj.scan_subscription_queries()
+        logger.info('After data loading update; clearing caches and scanning query subscriptions')
+        reload_obj.after_data_loading()
 
 
 class CbioportalDataValidation(ExternalProgramTask):
