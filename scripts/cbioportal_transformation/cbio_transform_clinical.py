@@ -142,6 +142,12 @@ def pmc_data_restructuring(unfiltered_clinical_data, clinical_type, description_
         # Merge columns
         biosource_data = pd.merge(biosource_data, diagnosis_data, how='left', on=['DIAGNOSIS_ID'])
         biomaterial_data = pd.merge(biomaterial_data, biosource_data, how='left', on=['BIOSOURCE_ID'])
+        # remove suffixes for biomaterials and biosources
+        if 'SRC_BIOSOURCE_ID_x' in biomaterial_data.columns:
+            x_ = biomaterial_data['SRC_BIOSOURCE_ID_x']
+            y_ = biomaterial_data['SRC_BIOSOURCE_ID_y']
+            biomaterial_data['SRC_BIOSOURCE_ID'] = x_.combine_first(y_)
+            biomaterial_data = biomaterial_data.drop(columns=['SRC_BIOSOURCE_ID_x','SRC_BIOSOURCE_ID_y'])
         biomaterial_data['Sample ID'] = biomaterial_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
 
         # In case of clinical sample data, return merged biomaterial dataframe

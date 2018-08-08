@@ -73,7 +73,7 @@ def main(csr_data_file, study_registry_data_file, output_dir,
         study.write_to(os.path.join(study_dir, study_id), overwrite=True)
 
     tm_study = tmtk.toolbox.SkinnyExport(study, output_dir)
-    tm_study.build_observation_fact()
+    #tm_study.build_observation_fact()
     tm_study.to_disk()
 
     sys.exit(0)

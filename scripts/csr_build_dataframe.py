@@ -95,6 +95,7 @@ def build_study_registry(study, ind_study, csr_data_model):
                                    'study')
     else:
         study_ = study.popitem()[1].copy()
+    logger.info('No errors found in STUDY entity data')
 
     if len(ind_study.keys()) < 1:
         logger.error('Missing "individual study" entity data! Exiting')
@@ -109,6 +110,7 @@ def build_study_registry(study, ind_study, csr_data_model):
                                        'individual_study')
     else:
         ind_study_ = ind_study.popitem()[1].copy()
+    logger.debug('No errors found in INDIVIDUAL_STUDY entity data')
 
     df = enrich_study_entity(study_, ind_study_)
 
@@ -141,7 +143,7 @@ def enrich_study_entity(study, ind_study):
 
     logger.info('Combining INDIVIDUAL_STUDY and STUDY entity data')
     merged_ind_study = ind_study.merge(study, on=PK_STUDY, how='left')
-
+    logger.debug('Combining done')
 
     enriched_ind_study = None
     for study_id in merged_ind_study[PK_STUDY].unique():
@@ -157,5 +159,5 @@ def enrich_study_entity(study, ind_study):
             enriched_ind_study = enriched_ind_study.merge(subset, on=PK_IND, how='outer')
         else:
             enriched_ind_study = subset.copy()
-
+    logger.debug('Return study object')
     return enriched_ind_study

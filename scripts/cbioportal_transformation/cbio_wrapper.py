@@ -238,8 +238,8 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     return
 
 
-def main(clinical_input_file, ngs_dir, output_dir, description_mapping, logconfig):
-    fileConfig(logconfig)
+def main(clinical_input_file, ngs_dir, output_dir, description_mapping, loggerconfig):
+    fileConfig(loggerconfig)
     create_cbio_study(clinical_input_file, ngs_dir, output_dir, description_mapping)
 
 
@@ -271,4 +271,4 @@ if __name__ == '__main__':
                            help="Path to logging config file")
 
     args = parser.parse_args()
-    main(args.clinical_input_file, args.ngs_dir, args.output_dir, args.description_mapping, args.logconfig)
+    main(args.clinical_input_file, args.ngs_dir, args.output_dir, args.description_mapping, args.loggerconfig)

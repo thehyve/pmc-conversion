@@ -567,7 +567,10 @@ def main(input_dir, output_dir, config_dir, data_model,
                 print('Input argument missing: {}'.format(option_name))
         sys.exit(1)
 
+    # set logging when calling function directly, ugly hack
+    global logger
     fileConfig(logging_config)
+    logger = logging.getLogger('csr_transformations')
 
     csr_transformation(input_dir, output_dir, config_dir, data_model,
          column_priority, file_headers, columns_to_csr, output_filename, output_study_filename)
