@@ -517,6 +517,10 @@ def csr_transformation(input_dir, output_dir, config_dir, data_model,
 
     subject_registry = extend_subject_registry(subject_registry, input_dir)
 
+    # Drop columns from the subject registry that are captured in the study registry
+    columns_to_drop = {col for col_list in study_data_model.values() for col in col_list if col not in PK_COLUMNS}
+    subject_registry = subject_registry.drop(columns=columns_to_drop, errors='ignore')
+
     # Check if all fields expected in the CSR dataframe are present. The expected columns are derived from the CSR data
     # model
     csr_expected_header = []
@@ -567,7 +571,7 @@ def main(input_dir, output_dir, config_dir, data_model,
                 print('Input argument missing: {}'.format(option_name))
         sys.exit(1)
 
-    # set logging when calling function directly, ugly hack
+    # set logging when calling function directly, temporary ugly hack
     global logger
     fileConfig(logging_config)
     logger = logging.getLogger('csr_transformations')
