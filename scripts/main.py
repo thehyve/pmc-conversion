@@ -59,16 +59,12 @@ class GlobalConfig(luigi.Config):
         return os.path.join(self.repo_root_dir, TRANSMART_DIR_NAME, self.staging_dir_name)
 
     @property
-    def transmart_load_logs_dir(self):
-        return os.path.join(self.repo_root_dir, TRANSMART_DIR_NAME, self.load_logs_dir_name)
+    def load_logs_dir(self):
+        return os.path.join(self.repo_root_dir, self.load_logs_dir_name)
 
     @property
     def cbioportal_staging_dir(self):
         return os.path.join(self.repo_root_dir, CBIOPORTAL_DIR_NAME, self.staging_dir_name)
-
-    @property
-    def cbioportal_load_logs_dir(self):
-        return os.path.join(self.repo_root_dir, CBIOPORTAL_DIR_NAME, self.load_logs_dir_name)
 
 
 config = GlobalConfig()
@@ -162,6 +158,8 @@ class TransmartDataTransformation(ExternalProgramTask):
     blueprint = luigi.Parameter(description='Blueprint file to map the data to the tranSMART ontology')
     modifiers = luigi.Parameter(description='Modifiers used by tranSMART')
 
+    std_out_err_dir = os.path.join(config.load_logs_dir, 'transmart-transformation')
+
     def program_args(self):
         return [config.python, self.tm_transformation,
                 '--csr_data_file', os.path.join(config.intermediate_file_dir, config.csr_data_file),
@@ -205,7 +203,7 @@ class TransmartDataLoader(ExternalProgramTask):
     """
 
     wd = '.'
-    std_out_err_dir = config.transmart_load_logs_dir
+    std_out_err_dir = os.path.join(config.load_logs_dir, 'transmart-loader')
 
     def program_environment(self):
         os.environ['PGHOST'] = config.PGHOST
@@ -255,6 +253,7 @@ class CbioportalDataValidation(ExternalProgramTask):
 
     # Set specific docker image
     docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
+    std_out_err_dir = os.path.join(config.load_logs_dir, 'cbioportal-validation')
 
     # Success codes for validation
     success_codes = [0, 3]
@@ -289,8 +288,7 @@ class CbioportalDataLoading(ExternalProgramTask):
     4. A running cBioPortal instance
     5. A running cBioPortal database
     """
-    # TODO: Take care of this location in logging conf
-    std_out_err_dir = config.cbioportal_load_logs_dir
+    std_out_err_dir = os.path.join(config.load_logs_dir,'cbioportal-loading')
 
     # Variables
     docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
