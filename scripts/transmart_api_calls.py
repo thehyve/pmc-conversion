@@ -36,7 +36,7 @@ class TransmartApiCalls(object):
         url = self.url + '/protocol/openid-connect/token'
         params = {
             'grant_type': 'password',
-            'client_id': 'transmart-client',
+            'client_id': 'transmart',
             'client_secret': '',
             'username': self.username,
             'password': self.password
