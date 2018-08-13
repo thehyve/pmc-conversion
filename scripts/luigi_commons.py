@@ -162,6 +162,8 @@ class ExternalProgramTask(BaseTask):
 
         if not self.std_out_err_dir:
             self.std_out_err_dir = tempfile.mkdtemp()
+        else:
+            os.makedirs(self.std_out_err_dir, exist_ok=True)
 
         logger.info('Running command: %s', ' '.join(args))
         stdout_path = os.path.join(self.std_out_err_dir, 'stdout')

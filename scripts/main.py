@@ -59,16 +59,20 @@ class GlobalConfig(luigi.Config):
         return os.path.join(self.repo_root_dir, TRANSMART_DIR_NAME, self.staging_dir_name)
 
     @property
-    def transmart_load_logs_dir(self):
-        return os.path.join(self.repo_root_dir, TRANSMART_DIR_NAME, self.load_logs_dir_name)
+    def load_logs_dir(self):
+        return os.path.join(self.repo_root_dir, self.load_logs_dir_name)
 
     @property
     def cbioportal_staging_dir(self):
         return os.path.join(self.repo_root_dir, CBIOPORTAL_DIR_NAME, self.staging_dir_name)
 
     @property
+    def transmart_load_logs_dir(self):
+        return os.path.join(self.load_logs_dir, 'transmart-loader')
+
+    @property
     def cbioportal_load_logs_dir(self):
-        return os.path.join(self.repo_root_dir, CBIOPORTAL_DIR_NAME, self.load_logs_dir_name)
+        return os.path.join(self.load_logs_dir, '')
 
 
 config = GlobalConfig()
@@ -77,10 +81,10 @@ repo = get_git_repo(config.repo_root_dir)
 
 os.makedirs(config.input_data_dir, exist_ok=True)
 os.makedirs(config.cbioportal_staging_dir, exist_ok=True)
-os.makedirs(config.cbioportal_load_logs_dir, exist_ok=True)
 os.makedirs(config.transmart_staging_dir, exist_ok=True)
-os.makedirs(config.transmart_load_logs_dir, exist_ok=True)
 os.makedirs(config.intermediate_file_dir, exist_ok=True)
+os.makedirs(config.transmart_load_logs_dir, exist_ok=True)
+os.makedirs(config.cbioportal_load_logs_dir, exist_ok=True)
 
 
 def calc_done_signal_content(file_checksum_pairs):
@@ -162,6 +166,8 @@ class TransmartDataTransformation(ExternalProgramTask):
     blueprint = luigi.Parameter(description='Blueprint file to map the data to the tranSMART ontology')
     modifiers = luigi.Parameter(description='Modifiers used by tranSMART')
 
+    std_out_err_dir = os.path.join(config.transmart_load_logs_dir, 'transformations')
+
     def program_args(self):
         return [config.python, self.tm_transformation,
                 '--csr_data_file', os.path.join(config.intermediate_file_dir, config.csr_data_file),
@@ -205,7 +211,7 @@ class TransmartDataLoader(ExternalProgramTask):
     """
 
     wd = '.'
-    std_out_err_dir = config.transmart_load_logs_dir
+    std_out_err_dir = os.path.join(config.transmart_load_logs_dir, 'loader')
 
     def program_environment(self):
         os.environ['PGHOST'] = config.PGHOST
@@ -221,6 +227,8 @@ class TransmartDataLoader(ExternalProgramTask):
 
 class TransmartApiTask(BaseTask):
     keycloak_url = luigi.Parameter(description='URL of the keycloak instance, include the realm in the URL')
+    client_id = luigi.Parameter(description='client_id of transmart client configured in keycloak')
+    client_secret = luigi.Parameter(description='client_secret of transmart client configured in keycloak')
     transmart_url = luigi.Parameter(description='URL of the tranSMART instance', significant=False)
     transmart_username = luigi.Parameter(description='Username for an admin account', significant=False)
     transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
@@ -229,14 +237,16 @@ class TransmartApiTask(BaseTask):
         reload_obj = TransmartApiCalls(keycloak_url=self.keycloak_url,
                                        username=self.transmart_username,
                                        password=self.transmart_password,
-                                       transmart_url=self.transmart_url)
+                                       transmart_url=self.transmart_url,
+                                       client_id=self.client_id,
+                                       client_secret=self.client_secret)
 
-        #logger.info('Clearing tree cache')
-        #reload_obj.clear_tree_nodes_cache()
-        #logger.info('Rebuilding tree cache')
-        #reload_obj.rebuild_tree_cache()
-        #logger.info('Scanning for new subscriptions')
-        #reload_obj.scan_subscription_queries()
+        # logger.info('Clearing tree cache')
+        # reload_obj.clear_tree_nodes_cache()
+        # logger.info('Rebuilding tree cache')
+        # reload_obj.rebuild_tree_cache()
+        # logger.info('Scanning for new subscriptions')
+        # reload_obj.scan_subscription_queries()
         logger.info('After data loading update; clearing caches and scanning query subscriptions')
         reload_obj.after_data_loading()
 
@@ -255,6 +265,7 @@ class CbioportalDataValidation(ExternalProgramTask):
 
     # Set specific docker image
     docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
+    std_out_err_dir = os.path.join(config.cbioportal_load_logs_dir, 'validation')
 
     # Success codes for validation
     success_codes = [0, 3]
@@ -289,8 +300,7 @@ class CbioportalDataLoading(ExternalProgramTask):
     4. A running cBioPortal instance
     5. A running cBioPortal database
     """
-    # TODO: Take care of this location in logging conf
-    std_out_err_dir = config.cbioportal_load_logs_dir
+    std_out_err_dir = os.path.join(config.cbioportal_load_logs_dir, 'loader')
 
     # Variables
     docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
