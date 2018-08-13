@@ -85,7 +85,7 @@ class TransmartApiCalls(object):
         Trigger a clear of the caches of TranSMART and scans for query subscriptions
         """
         Console.info('After data loading update, clearing caches. Scanning query subscriptions')
-        self.get('/v2/system/after_data_loading_update')
+        self.get('/v2/admin/system/after_data_loading_update')
 
 
     def get(self, path):
