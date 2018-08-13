@@ -398,8 +398,8 @@ def extend_subject_registry(csr, input_dir):
         if row['_merge'] == 'right_only':
             missing_biomaterials.add(row['BIOMATERIAL_ID'])
     if missing_biomaterials != set():
-        logger.warning('Following biomaterials excluded from CSR due to missing clinical data: {}'.\
-                       format(missing_biomaterials))
+        logger.warning('Following biomaterials found in NGS data but excluded from CSR due to missing clinical data:'\
+                       ' {}'.format(missing_biomaterials))
     drop_index = csr_update.loc[csr_update['_merge']=='right_only',:].index
     csr_update = csr_update.drop(columns='_merge', index=drop_index)
 
