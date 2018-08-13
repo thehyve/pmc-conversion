@@ -227,6 +227,8 @@ class TransmartDataLoader(ExternalProgramTask):
 
 class TransmartApiTask(BaseTask):
     keycloak_url = luigi.Parameter(description='URL of the keycloak instance, include the realm in the URL')
+    client_id = luigi.Parameter(description='client_id of transmart client configured in keycloak')
+    client_secret = luigi.Parameter(description='client_secret of transmart client configured in keycloak')
     transmart_url = luigi.Parameter(description='URL of the tranSMART instance', significant=False)
     transmart_username = luigi.Parameter(description='Username for an admin account', significant=False)
     transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
@@ -235,7 +237,9 @@ class TransmartApiTask(BaseTask):
         reload_obj = TransmartApiCalls(keycloak_url=self.keycloak_url,
                                        username=self.transmart_username,
                                        password=self.transmart_password,
-                                       transmart_url=self.transmart_url)
+                                       transmart_url=self.transmart_url,
+                                       client_id=self.client_id,
+                                       client_secret=self.client_secret)
 
         # logger.info('Clearing tree cache')
         # reload_obj.clear_tree_nodes_cache()

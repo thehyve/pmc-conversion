@@ -9,12 +9,14 @@ class TransmartApiException(Exception):
 
 class TransmartApiCalls(object):
 
-    def __init__(self, keycloak_url, username, password, transmart_url):
+    def __init__(self, keycloak_url, username, password, transmart_url, client_id, client_secret):
         self.url = keycloak_url
         self.username = username
         self.password = password
         self.token = None
         self.tm_url = transmart_url
+        self.client_id = client_id
+        self.client_secret = client_secret
 
     def get_token(self):
         """
@@ -36,8 +38,8 @@ class TransmartApiCalls(object):
         url = self.url + '/protocol/openid-connect/token'
         params = {
             'grant_type': 'password',
-            'client_id': 'transmart',
-            'client_secret': '',
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
             'username': self.username,
             'password': self.password
         }
