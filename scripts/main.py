@@ -56,7 +56,7 @@ class GlobalConfig(luigi.Config):
 
     @property
     def transmart_staging_dir(self):
-        return os.path.join(self.repo_root_dir, TRANSMART_DIR_NAME, self.staging_dir_name)
+        return os.path.join(self.repo_root_dir, self.staging_dir_name, TRANSMART_DIR_NAME)
 
     @property
     def load_logs_dir(self):
@@ -64,15 +64,15 @@ class GlobalConfig(luigi.Config):
 
     @property
     def cbioportal_staging_dir(self):
-        return os.path.join(self.repo_root_dir, CBIOPORTAL_DIR_NAME, self.staging_dir_name)
+        return os.path.join(self.repo_root_dir, self.staging_dir_name, CBIOPORTAL_DIR_NAME)
 
     @property
     def transmart_load_logs_dir(self):
-        return os.path.join(self.load_logs_dir, 'transmart-loader')
+        return os.path.join(self.load_logs_dir, TRANSMART_DIR_NAME)
 
     @property
     def cbioportal_load_logs_dir(self):
-        return os.path.join(self.load_logs_dir, '')
+        return os.path.join(self.load_logs_dir, CBIOPORTAL_DIR_NAME)
 
 
 config = GlobalConfig()

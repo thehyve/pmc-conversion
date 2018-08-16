@@ -6,8 +6,8 @@ import pandas as pd
 
 
 SAMPLE_ID_COLUMNS = ['BIOSOURCE_ID', 'BIOMATERIAL_ID']
-SEQ_TYPE = 'SEQUENCING_TYPE'
-NGS_TYPE = 'NGS_DATATYPE'
+SEQ_TYPE = 'LIBRARY_STRATEGY'
+NGS_TYPE = 'ANALYSIS_TYPE'
 NGS_DF_COLUMNS = SAMPLE_ID_COLUMNS + [SEQ_TYPE, NGS_TYPE]
 
 logger = logging.getLogger(__name__)
@@ -173,8 +173,8 @@ def determine_sequencing_type(filename):
     :return: Type of sequencing event as string, default pd.np.nan
     """
     if '_WGS' in filename.upper():
-        return 'Whole genome'
+        return 'WGS'
     elif '_WXS' in filename.upper():
-        return 'Whole exome'
+        return 'WXS'
     else:
         return pd.np.nan

@@ -5,6 +5,7 @@
 
 import sys
 import os
+import errno
 import argparse
 from .cbio_transform_clinical import transform_clinical_data
 from .cbio_create_metafile import create_meta_content
@@ -31,9 +32,20 @@ TYPE_OF_CANCER = 'mixed'
 
 
 def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
-    # Create output directory
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    # Remove old output directory and recreate to ensure all NGS data is
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    try:
+        os.makedirs(output_dir, exist_ok=False)
+    except OSError as oe:
+        # Catch the error if the folder already exists as this indicates shutil.rmtree did something wrong
+        if oe.errno == errno.EEXIST:
+            logger.error('Failed to create the output directory {} as it already exists.\
+             It was not cleared successfully, Error {}'.format(output_dir, oe))
+            sys.exit(1)
+        # Raise all other errors as these could be caused by other issues like read only
+        else:
+            raise oe
 
     with open(descriptions, 'r') as des:
         descriptions_dict = json.loads(des.read())
