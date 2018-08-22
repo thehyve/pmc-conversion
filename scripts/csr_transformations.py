@@ -410,9 +410,9 @@ def extend_subject_registry(csr, input_dir):
     add_diagnosis_counts(csr_update, colname='DIAGNOSIS_COUNT')
 
     # Diff between date of birth and date of diagnosis (first diagnosis)
-    logger.info('Calculating days between date of birth and Date of first diagnosis')
+    logger.info('Calculating age at first diagnosis')
     # Adjusts the CSR inplace
-    date_error = calculate_days_between_dates(csr_update, 'DIFF_DAYS_DIAD_DOB')
+    date_error = calculate_age_at_diagnosis(csr_update, 'AGE_FIRST_DIAGNOSIS')
     if date_error:
         logger.error('Errors found during data processing, exiting')
         sys.exit(1)
@@ -431,7 +431,7 @@ def add_diagnosis_counts(csr, colname):
         csr.loc[(csr[ind]==individual) & (csr[dia].isnull()), colname] = count
 
 
-def calculate_days_between_dates(csr, colname, date_format='%Y-%m-%d'):
+def calculate_age_at_diagnosis(csr, colname, date_format='%Y-%m-%d'):
     error_found = False
     ind = 'INDIVIDUAL_ID'
     dia = 'DIAGNOSIS_ID'
@@ -461,10 +461,11 @@ def calculate_days_between_dates(csr, colname, date_format='%Y-%m-%d'):
         if birth_date.empty:
             continue
         try:
-            days = (first_diagnosis_date - birth_date).dt.days.values[0]
-            csr.loc[(csr[ind] == individual) & (csr[dia].isnull()), colname] = days
+            #days = (first_diagnosis_date - birth_date).dt.days.values[0]
+            years = pd.Series(first_diagnosis_date - birth_date).astype('<m8[Y]').values[0]
+            csr.loc[(csr[ind] == individual) & (csr[dia].isnull()), colname] = years
         except TypeError:
-            logger.error('Failed to calculate for {}. Diagnosis date: {} - Birth date: {}'.\
+            logger.error('Failed to calculate age at diagnosis for {}. Diagnosis date: {} - Birth date: {}'.\
                          format(individual, first_diagnosis_date, birth_date.values[0]))
             error_found = True
 
@@ -528,10 +529,11 @@ def csr_transformation(input_dir, output_dir, config_dir, data_model,
         csr_expected_header += list(csr_data_model[key])
     missing_header = [l for l in csr_expected_header if l not in subject_registry.columns]
     if len(missing_header) > 0:
-        logger.warning('Missing columns from Subject Registry data model: {}'.format(missing_header))
+        logger.warning('Missing columns from Central Subject Registry data model: {}'.format(missing_header))
         #sys.exit(1) #Should this exit?
 
     if pd.isnull(subject_registry['INDIVIDUAL_ID']).any():
+        # TODO extend error message here to include pointers to files?
         logger.error('Found data rows with no individual or patient identifier')
         sys.exit(1)
         # logger.warning('HEADSUP! for testing removing incorrect data')
