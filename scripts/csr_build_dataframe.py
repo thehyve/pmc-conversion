@@ -151,7 +151,7 @@ def enrich_study_entity(study, ind_study):
         if (subset[PK_IND].value_counts() > 2).any():
             logger.error('Individual_study entity has duplicate INDIVIDUALS IDs for study {}. INDIVIDUALS: {}'.format(
                 study_id,
-                subset[PK_IND].duplicated(keep='first'))
+                subset.loc[subset[PK_IND].duplicated(keep='first'),PK_IND])
             )
             sys.exit(1)
         if (subset[PK_IND].isna().any()):
