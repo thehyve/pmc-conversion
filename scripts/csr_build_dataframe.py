@@ -149,7 +149,10 @@ def enrich_study_entity(study, ind_study):
     for study_id in merged_ind_study[PK_STUDY].unique():
         subset = merged_ind_study[merged_ind_study.loc[:,PK_STUDY]==study_id]
         if (subset[PK_IND].value_counts() > 2).any():
-            logger.error('Individual_study entity has duplicate PMC IDs for study {}. Exiting'.format(study_id))
+            logger.error('Individual_study entity has duplicate INDIVIDUALS IDs for study {}. INDIVIDUALS: {}'.format(
+                study_id,
+                subset[PK_IND].duplicated(keep='first'))
+            )
             sys.exit(1)
         if (subset[PK_IND].isna().any()):
             logger.warning('Found empty PMC Patient IDs (INDIVIDUAL_IDs) for study {}. Skipping study'.format(study_id))
