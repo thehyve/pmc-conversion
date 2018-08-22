@@ -116,13 +116,18 @@
   },
   "study.txt": {
     "headers": [
-      "RECORD ID",
       "STUDY_ID",
-      "INDIVIDUAL_STUDY_ID",
       "ACRONYM",
       "TITLE",
       "DESCRIPTION",
       "DATADICTIONARY"
+    ]
+  },
+  "individual_study.txt": {
+    "headers": [
+      "RECORD ID",
+      "STUDY_ID",
+      "INDIVIDUAL_STUDY_ID"
     ]
   }
 }
