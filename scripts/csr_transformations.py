@@ -31,7 +31,7 @@ def read_dict_from_file(filename, path=None):
             logger.error('JSON file {} had unexpected characters. {}'.format(filename, ve))
             return None
     else:
-        logger.error('Config file: {} - not found. Aborting'.format(file))
+        logger.error('Expected config file: {} - not found. Aborting'.format(file))
         sys.exit(1)
 
 
@@ -86,7 +86,7 @@ def get_overlapping_columns(file_prop_dict, columns_to_csr_map):
     return col_file_dict
 
 
-def check_column_prio(column_prio_dict, col_file_dict):
+def check_column_prio(column_prio_dict, col_file_dict, col_prio_file, file_headers_file):
     """Compare the priority definition from column_priority.json with what was found in file_headers.json and log
     all mismatches."""
     found_error = False
@@ -97,13 +97,18 @@ def check_column_prio(column_prio_dict, col_file_dict):
     if missing_in_priority:
         found_error = True
         for col in missing_in_priority:
-            logger.error(('"{0}" column occurs in multiple data files: {1}, but no priority is '
-                           'defined.'.format(col, col_file_dict[col])))
+            logger.error(
+                ('{0!r} column occurs in multiple data files: {1}, but no priority is '
+                           'defined. Please specify the column priority in the {3!r} JSON file.').format(
+                    col, col_file_dict[col], col_prio_file
+                )
+            )
 
     if missing_in_file_headers:
         found_error = True
         for col in missing_in_file_headers:
-            logger.warning('Priority is defined for "{0}", but it not present in file_headers.json'.format(col))
+            logger.warning('Priority is defined for column {0!r}, but the column was not found in the expected columns.'
+                           'Expected columns are defined in {1!r}'.format(col, file_headers_file))
 
     # Priority present, but incomplete or unknown priority provided
     shared_columns = set(column_prio_dict.keys()).intersection(set(col_file_dict.keys()))
@@ -112,12 +117,21 @@ def check_column_prio(column_prio_dict, col_file_dict):
         files_only_in_prio = [filename for filename in column_prio_dict[col] if filename not in col_file_dict[col]]
         if files_missing_in_prio:
             found_error = True
-            logger.error(('Incomplete priority provided for column "{0}". It occurs in files: {1}, but priority '
-                           'found only for files: {2}').format(col, col_file_dict[col], column_prio_dict[col]))
+            logger.error(('Incomplete priority provided for column {0!r}. It occurs in these files: {1}, but '
+                          'priority found only for the following files: {2}. Please add the missing files {3} to the '
+                          'priority mapping: {4} for column: {0}').format(
+                col,
+                col_file_dict[col],
+                column_prio_dict[col],
+                list(set(col_file_dict[col]).difference(set(column_prio_dict[col]))),
+                col_prio_file)
+            )
 
         if files_only_in_prio:
-            logger.warning(('Provided priority for column "{0}" contains more files than present in '
-                             'file_headers.json. Priority files not used: {1}').format(col, files_only_in_prio))
+            logger.warning(('Provided priority for column {0!r} contains more files than present in '
+                            '{1}. The following priority files are not used: {2}').format(
+                col, file_headers_file, files_only_in_prio)
+            )
 
     if found_error:
         sys.exit(1)
@@ -130,7 +144,6 @@ def get_filelist(dir_, skip=['NGS']):
     :param skip: String value of files or
     :return:
     """
-    ## Figure out how to get abs path names --> probably use dir_ as abs path
     file_list = []
     for filename in os.listdir(dir_):
         if filename.startswith('.') or filename in skip or 'codebook' in filename:
@@ -261,7 +274,19 @@ def build_csr_dataframe(file_dict):
 
 
 def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, file_headers, file_headers_name):
-    # TODO: include docstring to explain what function is doing
+    """Loop over the clinical_data_dir and process all the clinical data. Check if all expected files and headers are in
+    the input data and remap the input columns to the expected Central Subject Registry(CSR) column headers.
+
+    :param clinical_data_dir: Path to the input directory with all clinical data
+    :param output_dir: Directory in which the codebooks are stored. By default the assumption is that the codebooks are
+    in the output directory
+    :param columns_to_csr: dictionary with the mapped column names to the expected column names in the CSR
+    :param file_list: List of expected input files
+    :param file_headers: dictionary with the expected columns per file.
+    :param file_headers_name: filename of the configuration file which contains the expected files and columns.
+    :return: dictionary with a DataFrame dictionary per entity. Example:
+    {'individual': {FILE1: DataFrame, FILE2: DataFrame},'diagnosis':{DIA DATAFILE: DataFrame}}
+    """
     # TODO: reconsider if check can be done separately from processing
     files_per_entity = {'individual': {},
                         'diagnosis': {},
@@ -277,11 +302,9 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
     clinical_files = get_filelist(clinical_data_dir)
 
     date_errors = []
+    incorrect_files = []
     file_type_error = False
     for file in clinical_files:
-        # if not bool_is_file(filename, clinical_data_dir):
-        #     continue
-        #file = os.path.join(clinical_data_dir, filename)
         filename = os.path.basename(file)
 
         if filename in files_found:
@@ -312,20 +335,22 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
         file_type = determine_file_type(columns, filename)
         if not file_type:
             file_type_error=True
+            incorrect_files.append(filename)
             continue
         files_per_entity[file_type].update({filename: df})
 
     if file_type_error:
-        logger.error('Found error in file types')
+        logger.error('Could not determine file types for {}. Please add one of the identifying keys {}'.format(
+            incorrect_files, ST_COLUMNS.update(PK_COLUMNS)))
         sys.exit(1)
 
     check_file_list(files_found)
 
-    if exit_after_process:
-        logger.error('Missing expected input files, exiting program.')
-
     if any(date_errors):
         logger.error('Found incorrect date formats for {} input files'.format(sum(date_errors)))
+
+    if exit_after_process:
+        logger.error('Missing expected input files, exiting program.')
 
     if exit_after_process or any(date_errors):
         sys.exit(1)
@@ -361,12 +386,12 @@ def get_configuration(data_model, file_headers, columns_to_csr, column_priority,
     if 'central_subject_registry' in data_model_:
         csr_data_model = data_model_['central_subject_registry']
     else:
-        logger.error('central_subject_registry missing from the data_model config file, exiting')
+        logger.error('"central_subject_registry" object missing from the {} JSON file, exiting'.format(data_model))
         sys.exit(1)
     if 'study_registry' in data_model_:
         study_data_model = data_model_['study_registry']
     else:
-        logger.error('study_registry missing from the data_model config file, exiting')
+        logger.error('"study_registry" object missing from the {} JSON file, exiting'.format(data_model))
         sys.exit(1)
 
     # Uppercase items in dictionaries
@@ -375,7 +400,10 @@ def get_configuration(data_model, file_headers, columns_to_csr, column_priority,
 
     # Check if there are overlapping columns and see if all columns are provided with conflict resolution rules.
     col_file_dict = get_overlapping_columns(file_prop_dict, columns_to_csr_map)
-    check_column_prio(column_prio_dict, col_file_dict)
+    check_column_prio(column_prio_dict=column_prio_dict,
+                      col_file_dict=col_file_dict,
+                      col_prio_file=column_priority,
+                      file_headers_file=file_headers)
 
     expected_files = file_prop_dict.keys()
 

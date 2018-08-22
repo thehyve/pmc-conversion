@@ -5,7 +5,7 @@ import chardet
 import logging
 
 # TODO update allowed encodings
-ALLOWED_ENCODINGS = {'utf-8', 'ascii', 'iso-8859-1'}
+ALLOWED_ENCODINGS = {'utf-8', 'ascii'}
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,6 @@ def input_file_to_df(file_name, encoding, seperator=None, codebook=None):
     logger.debug('Reading {} to a dataframe'.format(file_name))
     df = pd.read_csv(file_name, sep=seperator, encoding=encoding, dtype=object, engine="python")
     df.columns = map(lambda x: str(x).upper(), df.columns)
-    # TODO: write check to see if the df values are all captured in the codebook (check file headers)
     if codebook:
         df.replace(codebook, inplace=True)
     return df
@@ -51,7 +50,7 @@ def validate_source_file(file_prop_dict, path, file_headers_name):
     Expected file_prop_dict format: {FILENAME: {DATE_FORMAT: datetime strptime format, DATE_COLUMNS: ['col1', 'col2']}}
 
 
-    :param file_prop_dict: dicti with expected headers as a list, date_format and date_columns as list to update.
+    :param file_prop_dict: dict with expected headers as a list, date_format and date_columns as list to update.
     :param path: Path to the file
     :param file_headers_name: dict with list of expected file headers per dataframe
     :return: returns True if errors are found, else False
@@ -66,7 +65,7 @@ def validate_source_file(file_prop_dict, path, file_headers_name):
     # Check encoding
     encoding = get_encoding(path)
     if encoding not in ALLOWED_ENCODINGS:
-        logger.error('Invalid file encoding ({0}) detected for: {1}. Must be {2}.'.format(encoding,
+        logger.error('Invalid file encoding {0!r} detected for: {1}. Must be {2}.'.format(encoding,
                                                                                            filename,
                                                                                            '/'.join(ALLOWED_ENCODINGS))
                      )
@@ -131,9 +130,11 @@ def set_date_fields(df, file_prop_dict, filename):
             try:
                 df[col] = df[col].apply(get_date_as_string, args=(expected_date_format,))
             except ValueError as ve:
-                args = (filename, col, expected_date_format, ve)
-                logger.error('Incorrect date format for {0} in field {1}, expected {2}.'\
-                             'error message: {3}'.format(*args))
+                logger.error('Incorrect date format for {0} in column {1}, expected {2}.'\
+                             'error message: {3}'.format(filename,
+                                                         col,
+                                                         expected_date_format,
+                                                         ve))
                 date_error = True
                 continue
     else:
@@ -174,13 +175,14 @@ def determine_file_type(columns, filename):
 
     if id:
         logger.debug('Filetype {} for file {}'.format(id, filename))
-        return id
     else:
         logger.error(('No key identifier found (individual, diagnosis, study, biosource, '
                        'biomaterial) in {}'.format(filename)))
+
+    return id
 
 
 def check_file_list(files_found):
     for filename, found in files_found.items():
         if not found:
-            logger.error('Data file: {} expected but not found in source folder.'.format(filename))
+            logger.error('Data file: {!r} expected but not found in source folder.'.format(filename))
