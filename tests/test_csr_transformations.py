@@ -40,43 +40,7 @@ class CsrTransformationTests(unittest.TestCase):
         value = ct.validate_source_file(file_prop_dict, source_file, 'file_headers.json')
         self.assertIsNone(value)
 
-    def test_determine_file_type(self):
-        files = dict(
-            bm_file='biomaterial.txt',
-            bs_file='biosource.txt',
-            idv_file='individual.txt',
-            dia_file='diagnosis.txt',
-            st_file='study.txt'
-        )
-        correct_types = {
-            'bm_file': 'biomaterial',
-            'bs_file': 'biosource',
-            'idv_file': 'individual',
-            'dia_file': 'diagnosis',
-            'st_file': 'study'
-         }
 
-        checked_types = {}
-        for key, file in files.items():
-            filepath = os.path.join(self.dummy_test_data, file)
-            df = ct.input_file_to_df(filepath, ct.get_encoding(filepath), codebook=None)
-            checked_types.update({key: ct.determine_file_type(df.columns, file)})
-
-        self.assertEqual(correct_types, checked_types)
-
-
-    def test_apply_header_map(self):
-        filename = 'br_test.txt'
-        filepath = os.path.join(self.clinical_test_data, filename)
-        df = ct.input_file_to_df(filepath, ct.get_encoding(filepath), codebook=None)
-        header_map = ct.read_dict_from_file('columns_to_csr.json', self.config)
-        new_columns = ct.apply_header_map(df.columns, header_map[filename])
-
-        expected_columns = ['IDAA', 'CID', 'DIAGNOSIS_DATE', 'DIAGNOSIS_ID',
-                            'CENTER_TREATMENT', 'TUMOR_TYPE', 'TOPOGRAPHY',
-                            'TUMOR_STAGE', 'INDIVIDUAL_ID', 'TREATMENT_PROTOCOL']
-
-        self.assertEqual(new_columns, expected_columns)
 
     def test_get_overlapping_columns(self):
         file_prop_dict = ct.read_dict_from_file('file_headers.json', self.config)
