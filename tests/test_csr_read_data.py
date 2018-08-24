@@ -1,6 +1,5 @@
 import unittest
 import os
-import logging
 from scripts.csr_read_data import get_encoding, input_file_to_df, bool_is_file, validate_source_file, \
     check_for_codebook, set_date_fields, get_date_as_string, apply_header_map, check_file_list, determine_file_type
 
@@ -61,3 +60,6 @@ class CsrTransformationTests(unittest.TestCase):
             checked_types.update({key: determine_file_type(df.columns, file)})
 
         self.assertEqual(correct_types, checked_types)
+
+if __name__ == '__main__':
+    unittest.main()

@@ -3,14 +3,16 @@ import os
 
 import luigi
 import time
-from .git_commons import get_git_repo
-from .sync import sync_dirs, get_checksum_pairs_set
-from .luigi_commons import BaseTask, ExternalProgramTask
-from .codebook_formatting import codebook_formatting
-from .csr_transformations import csr_transformation
-from .transmart_api_calls import TransmartApiCalls
-from .cbioportal_transformation.cbio_wrapper import create_cbio_study
 import threading
+
+from .luigi_commons import BaseTask, ExternalProgramTask
+
+from scripts.git_commons import get_git_repo
+from scripts.sync import sync_dirs, get_checksum_pairs_set
+from scripts.codebook_formatting import codebook_formatting
+from scripts.csr_transformations import csr_transformation
+from scripts.transmart_api_calls import TransmartApiCalls
+from scripts.cbioportal_transformation.cbio_wrapper import create_cbio_study
 
 logger = logging.getLogger('luigi')
 
