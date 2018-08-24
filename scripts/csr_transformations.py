@@ -93,6 +93,11 @@ def check_column_prio(column_prio_dict, col_file_dict, col_prio_file, file_heade
     missing_in_priority = set(col_file_dict.keys()) - set(column_prio_dict.keys())
     missing_in_file_headers = set(column_prio_dict.keys()) - set(col_file_dict.keys())
 
+    if missing_in_file_headers:
+        for col in missing_in_file_headers:
+            logger.warning('Priority is defined for column {0!r}, but the column was not found in the expected columns. '
+                           'Expected columns are defined in {1!r}'.format(col, file_headers_file))
+
     # Column name missing entirely
     if missing_in_priority:
         found_error = True
@@ -103,12 +108,6 @@ def check_column_prio(column_prio_dict, col_file_dict, col_prio_file, file_heade
                     col, col_file_dict[col], col_prio_file
                 )
             )
-
-    if missing_in_file_headers:
-        found_error = True
-        for col in missing_in_file_headers:
-            logger.error('Priority is defined for column {0!r}, but the column was not found in the expected columns.'
-                           'Expected columns are defined in {1!r}'.format(col, file_headers_file))
 
     # Priority present, but incomplete or unknown priority provided
     shared_columns = set(column_prio_dict.keys()).intersection(set(col_file_dict.keys()))
