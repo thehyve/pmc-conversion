@@ -15,11 +15,8 @@ class CsrTransformationTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-
     def test_get_encodiing(self):
-        assert(True)
-
-
+        assert (True)
 
     def test_apply_header_map(self):
         filename = 'br_test.txt'
@@ -27,7 +24,17 @@ class CsrTransformationTests(unittest.TestCase):
         df = input_file_to_df(filepath, get_encoding(filepath), codebook=None)
 
         # Define header map
-        header_map = {}
+        header_map = {
+            "br_test.txt": {
+                "CIDDIAG2": "DIAGNOSIS_ID",
+                "IDAABA_pseudo": "DIAGNOSIS_DATE",
+                "HOSPDIAG": "CENTER_TREATMENT",
+                "DIAGCD": "TUMOR_TYPE",
+                "PLOCCD": "TOPOGRAPHY",
+                "DIAGGRSTX": "TUMOR_STAGE",
+                "IDAA_PMC": "INDIVIDUAL_ID"
+            }
+        }
         new_columns = apply_header_map(df.columns, header_map[filename])
 
         expected_columns = ['IDAA', 'CID', 'DIAGNOSIS_DATE', 'DIAGNOSIS_ID',
@@ -36,22 +43,23 @@ class CsrTransformationTests(unittest.TestCase):
 
         self.assertEqual(new_columns, expected_columns)
 
-
     def test_determine_file_type(self):
         files = dict(
             bm_file='biomaterial.txt',
             bs_file='biosource.txt',
             idv_file='individual.txt',
             dia_file='diagnosis.txt',
-            st_file='study.txt'
+            st_file='study.txt',
+            ist_file='individual_study.txt'
         )
         correct_types = {
             'bm_file': 'biomaterial',
             'bs_file': 'biosource',
             'idv_file': 'individual',
             'dia_file': 'diagnosis',
-            'st_file': 'study'
-         }
+            'st_file': 'study',
+            'ist_file': 'individual_study'
+        }
 
         checked_types = {}
         for key, file in files.items():
@@ -60,6 +68,7 @@ class CsrTransformationTests(unittest.TestCase):
             checked_types.update({key: determine_file_type(df.columns, file)})
 
         self.assertEqual(correct_types, checked_types)
+
 
 if __name__ == '__main__':
     unittest.main()
