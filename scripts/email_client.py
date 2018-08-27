@@ -56,11 +56,11 @@ def parse_log_file(log):
             if start == '':
                 start = index_
             else:
-                end = index_+1
+                end = index_
 
         elif 'ERROR' in item and 'luigi-interface' not in item:
             errors.append('Line: {} | {}'.format(index_, item))
-    summary = log[start:end]
+    summary = log[start+1:end]
 
     return summary, errors
 
