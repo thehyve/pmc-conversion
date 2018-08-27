@@ -83,11 +83,10 @@ def sendemail(cp, message):
 
 def build_header(cp):
     """Build the email header for a SMTP email message"""
-    print(cp.receiver)
     header = '\n'.join([
         'From: {}'.format(cp.sender),
-        'To: {}'.format(cp.receiver),
-        'Cc: ',
+        'To: {}'.format(''.join(cp.receiver)),
+        'Cc: {}'.format([]),
         'Subject: {}\n\n'.format(cp.subject)
     ])
     return header
@@ -104,10 +103,12 @@ def build_message_body(cp, summary, errors):
 
 def setup_logger(log_level):
     """Setup logger for the module"""
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger('email_client')
+    logger.setLevel(log_level)
     sh = logging.StreamHandler()
     sh.setLevel(log_level)
-    sh.setFormatter('%(asctime)s  %(levelname)-7s %(name)-10s %(message)s')
+    format = logging.Formatter('%(asctime)s  %(levelname)-7s %(name)-10s %(message)s')
+    sh.setFormatter(format)
     logger.addHandler(sh)
     return logger
 
@@ -124,7 +125,7 @@ def main(config, log_level):
     logger.info('Parsing log file {}'.format(cp.log_file))
     summary, errors = parse_log_file(cp.log)
 
-    logger.info('Found {} ERROR messages'.format(len(errors)))
+    logger.info('Found {} ERROR message(s)'.format(len(errors)))
 
     cp.set_subject(' - Run date: {}'.format(dt.date.today().strftime('%Y-%m-%d')))
 
@@ -135,8 +136,6 @@ def main(config, log_level):
     sendemail(cp, message)
 
     sys.exit(0)
-
-
 
 
 if __name__ == '__main__':
