@@ -294,7 +294,7 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
                         'study': {},
                         'individual_study':{}
                         }
-    exit_after_process = False
+    exit_after_process = []
 
     files_found = {filename: False for filename in file_list}
 
@@ -311,7 +311,7 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
 
         validate_error = validate_source_file(file_headers, file, file_headers_name)
         if validate_error:
-            exit_after_process = True
+            exit_after_process.append(file)
             continue
 
         # Check if codebook is available for filename, if not codebook will be None
@@ -338,20 +338,25 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
             continue
         files_per_entity[file_type].update({filename: df})
 
-    if file_type_error:
-        logger.error('Could not determine file types for {}. Please add one of the identifying keys {}'.format(
-            incorrect_files, ST_COLUMNS.update(PK_COLUMNS)))
-        sys.exit(1)
-
-    check_file_list(files_found)
-
+    # Check if any errors were found in the input data and provide error messages before exiting.
     if any(date_errors):
         logger.error('Found incorrect date formats for {} input files'.format(sum(date_errors)))
 
-    if exit_after_process:
-        logger.error('Missing expected input files, exiting program.')
+    if len(exit_after_process) > 0:
+        logger.error('Validation failed for the following files {}. Look at the error messages above for more detailed '
+                     'information.'.format(exit_after_process))
 
-    if exit_after_process or any(date_errors):
+    if file_type_error:
+        logger.error('Could not determine file types for {}, missing identifying keys. Please add one of the '
+                     'identifying keys {}'.format(incorrect_files, ST_COLUMNS.update(PK_COLUMNS)))
+
+    # if any of the errors are found the program should exit
+    if len(exit_after_process) > 0 or any(date_errors) or file_type_error:
+        sys.exit(1)
+
+    missing_expected_files = check_file_list(files_found)
+    if missing_expected_files:
+        logger.error('Missing expected files. For more information see errors above')
         sys.exit(1)
 
     return files_per_entity

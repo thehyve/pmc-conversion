@@ -95,6 +95,14 @@ def build_study_registry(study, ind_study, csr_data_model):
                                    'study')
     else:
         study_ = study.popitem()[1].copy()
+
+    # check if STUDY_ID is unique
+    if study_['STUDY_ID'].duplicated().any():
+        logger.error('Duplicated identifiers for STUDY_ID found, this will cause problems when merged with the '
+                     'INDIVIDUAL_STUDY entity. Please resolve the duplicates: '.format(
+            study_.loc[study_['STUDY_ID'].duplicated(),'STUDY_ID'].tolist())
+        )
+
     logger.info('No errors found in STUDY entity data')
 
     if len(ind_study.keys()) < 1:
@@ -122,6 +130,8 @@ def merge_study_files(df_dict, id_columns, ref_columns, entity):
     concat = {}
 
     for file,df in df_dict().items():
+        if entity == 'study' and df[id_columns].duplicated().any():
+            logger.error('Found duplicates in file {!r} for identifying columns {}.'.format(file, id_columns))
         concat[file] = all([True if col in ref_columns else False for col in df.columns])
 
     if all(concat.values()):
