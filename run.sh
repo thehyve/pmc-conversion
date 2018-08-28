@@ -7,5 +7,5 @@ cd ${SCRIPT_DIR}
 if python -m luigi --module luigi-pipeline LoadDataFromNewFilesTask; then
     echo "Pipeline finished successfully"
 else
-    python email_client.py --config config/email_config.cfg
+    python scripts/email_client.py --config config/email_config.cfg
 fi

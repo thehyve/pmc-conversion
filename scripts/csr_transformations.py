@@ -320,7 +320,7 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
 
         # Read data from file and create a pandas DataFrame. If a header mapping is provided the columns
         # are mapped before the DataFrame is returned
-        df, mapping_status = input_file_to_df(file_name=file, encoding=get_encoding(file), codebook=codebook)
+        df, mapping_status = input_file_to_df(filename=file, encoding=get_encoding(file), codebook=codebook)
         if not mapping_status:
             codebook_mapping_error.append(file)
 
