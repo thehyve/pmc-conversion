@@ -9,24 +9,39 @@ ALLOWED_ENCODINGS = {'utf-8', 'ascii'}
 logger = logging.getLogger(__name__)
 
 
-def get_encoding(file_name):
+def get_encoding(filename):
     """Open the file and determine the encoding, returns the encoding cast to lower"""
-    with open(file_name, 'rb') as file:
+    with open(filename, 'rb') as file:
         file_encoding = chardet.detect(file.read())['encoding']
-        logger.debug('Found {} encoding for {}'.format(file_encoding, os.path.basename(file_name)))
+        logger.debug('Found {} encoding for {}'.format(file_encoding, os.path.basename(filename)))
     return file_encoding.lower()
 
 
-def input_file_to_df(file_name, encoding, seperator=None, codebook=None):
+def input_file_to_df(filename, encoding, seperator=None, codebook=None):
     """Read in a DataFrame from a plain text file. Columns are cast to uppercase.
      If a column_mapping is specified the columns will also be tried to map.
      If a codebook was specified it will be applied before the column mapping"""
-    logger.debug('Reading {} to a dataframe'.format(file_name))
-    df = pd.read_csv(file_name, sep=seperator, encoding=encoding, dtype=object, engine="python")
+    logger.debug('Reading {} to a dataframe'.format(filename))
+    df = pd.read_csv(filename, sep=seperator, encoding=encoding, dtype=object, engine="python")
     df.columns = map(lambda x: str(x).upper(), df.columns)
+
+    # If codebook is not None, apply codebook
+    apply_map = True  # Flag to see if codebook is complete to apply
     if codebook:
-        df.replace(codebook, inplace=True)
-    return df
+        # Check if all values in data file are in the code books
+        for column_name,mapping in codebook.items():
+            print(column_name, filename)
+            column_data = df.get(column_name, None)
+            if column_data:
+                diff = set(column_data).difference(set(mapping.keys()))
+                if diff: # if the set is not empty
+                    apply_map = False
+                    logger.error('Value(s) {} in datafile {} not found in the provided codebook'.format(diff, filename))
+
+        if apply_map: # Skip if incomplete mapping
+            logger.debug('Applying codebook to {}'.format(filename))
+            df.replace(codebook, inplace=True)
+    return df, apply_map
 
 
 def bool_is_file(filename, path):

@@ -303,6 +303,7 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
     date_errors = []
     incorrect_files = []
     file_type_error = False
+    codebook_mapping_error = []
     for file in clinical_files:
         filename = os.path.basename(file)
 
@@ -319,7 +320,9 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
 
         # Read data from file and create a pandas DataFrame. If a header mapping is provided the columns
         # are mapped before the DataFrame is returned
-        df = input_file_to_df(file_name=file, encoding=get_encoding(file), codebook=codebook)
+        df, mapping_status = input_file_to_df(file_name=file, encoding=get_encoding(file), codebook=codebook)
+        if not mapping_status:
+            codebook_mapping_error.append(file)
 
         # Update date format
         date_errors.append(set_date_fields(df, file_headers, filename))
@@ -339,6 +342,10 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
         files_per_entity[file_type].update({filename: df})
 
     # Check if any errors were found in the input data and provide error messages before exiting.
+    if codebook_mapping_error:
+        logger.error('Found codebook mapping errors for {}. See ERRORs above for more information'.format(
+            codebook_mapping_error))
+
     if any(date_errors):
         logger.error('Found incorrect date formats for {} input files'.format(sum(date_errors)))
 
@@ -351,7 +358,7 @@ def read_data_files(clinical_data_dir, output_dir, columns_to_csr, file_list, fi
                      'identifying keys {}'.format(incorrect_files, ST_COLUMNS.update(PK_COLUMNS)))
 
     # if any of the errors are found the program should exit
-    if len(exit_after_process) > 0 or any(date_errors) or file_type_error:
+    if len(exit_after_process) > 0 or any(date_errors) or file_type_error or codebook_mapping_error:
         sys.exit(1)
 
     missing_expected_files = check_file_list(files_found)
