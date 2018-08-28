@@ -30,7 +30,6 @@ def input_file_to_df(filename, encoding, seperator=None, codebook=None):
     if codebook:
         # Check if all values in data file are in the code books
         for column_name,mapping in codebook.items():
-            print(column_name, filename)
             column_data = df.get(column_name, None)
             if column_data:
                 diff = set(column_data).difference(set(mapping.keys()))
