@@ -1,0 +1,14 @@
+[global]
+log_file=
+template_email=./config/template_email.txt
+
+[email]
+receiver=
+sender=pmc-notifications@thehyve.nl
+prefix=[CSR Data Loading Pipeline]
+
+[smtp]
+port=587
+username=
+password=
+host=smtp.gmail.com

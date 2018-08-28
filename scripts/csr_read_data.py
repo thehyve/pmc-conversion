@@ -4,7 +4,6 @@ import json
 import chardet
 import logging
 
-# TODO update allowed encodings
 ALLOWED_ENCODINGS = {'utf-8', 'ascii'}
 
 logger = logging.getLogger(__name__)
@@ -183,6 +182,10 @@ def determine_file_type(columns, filename):
 
 
 def check_file_list(files_found):
+    exit = False
     for filename, found in files_found.items():
         if not found:
+            exit = True
             logger.error('Data file: {!r} expected but not found in source folder.'.format(filename))
+
+    return exit
