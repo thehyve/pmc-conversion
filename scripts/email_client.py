@@ -127,7 +127,7 @@ def main(config, log_level):
 
     logger.info('Found {} ERROR message(s)'.format(len(errors)))
 
-    cp.set_subject(' - Run date: {}'.format(dt.date.today().strftime('%Y-%m-%d')))
+    cp.set_subject('ERRORS: {}'.format(len(errors)))
 
     logger.debug('Constructing message for email')
     message = build_message_body(cp, summary, errors)
