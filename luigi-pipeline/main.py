@@ -411,7 +411,6 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         yield commit_cbio_load_logs
 
     def requires(self):
-        #logger.error('Dependency tree: {}'.format(self.tasks_dependency_tree))
         return self.tasks_dependency_tree
 
 

@@ -102,13 +102,14 @@ def build_study_registry(study, ind_study, csr_data_model):
                      'INDIVIDUAL_STUDY entity. Please resolve the duplicates: '.format(
             study_.loc[study_['STUDY_ID'].duplicated(),'STUDY_ID'].tolist())
         )
+        sys.exit(1)
 
     logger.info('No errors found in STUDY entity data')
 
     if len(ind_study.keys()) < 1:
         logger.error('Missing "individual study" entity data! Exiting')
         sys.exit(1)
-    elif len(study.keys()) > 1:
+    elif len(ind_study.keys()) > 1:
         logger.warning('Found more than one input file for individual study entity, trying to merge and'
                        'resolve conflicts')
         # Merge individual_study_files
@@ -129,10 +130,15 @@ def merge_study_files(df_dict, id_columns, ref_columns, entity):
     logger.info('Concatenating data for {} entity'.format(entity))
     concat = {}
 
+    found_duplicate_in_study = []
     for file,df in df_dict().items():
         if entity == 'study' and df[id_columns].duplicated().any():
             logger.error('Found duplicates in file {!r} for identifying columns {}.'.format(file, id_columns))
+            found_duplicate_in_study.append(file)
         concat[file] = all([True if col in ref_columns else False for col in df.columns])
+    if len(found_duplicate_in_study) > 0:
+        logger.error('Found duplicated identifiers in the following files {}'.format(found_duplicate_in_study))
+        sys.exit(1)
 
     if all(concat.values()):
         mdf = pd.concat(df_dict.values())
