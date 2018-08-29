@@ -12,9 +12,22 @@ logger = logging.getLogger(__name__)
 def get_encoding(filename):
     """Open the file and determine the encoding, returns the encoding cast to lower"""
     with open(filename, 'rb') as file:
-        file_encoding = chardet.detect(file.read())['encoding']
+        # read file and determine encoding
+        read_file = file.read()
+        file_encoding = chardet.detect(read_file)['encoding'].lower()
         logger.debug('Found {} encoding for {}'.format(file_encoding, os.path.basename(filename)))
-    return file_encoding.lower()
+
+        if file_encoding == 'iso-8859-1':
+            try:
+                read_file.decode('utf-8')
+                logger.warning('Found iso-8859-1 encoding for {} but attempted decode with utf-8 successful, '
+                               'assuming utf-8'.format(filename))
+                return 'utf-8'
+            except UnicodeDecodeError as ude:
+                logger.error('Could not decode file with utf-8, keeping iso-8859-1 for {}. {}'.format(filename, ude))
+                return file_encoding
+        else:
+            return file_encoding
 
 
 def input_file_to_df(filename, encoding, seperator=None, codebook=None):
