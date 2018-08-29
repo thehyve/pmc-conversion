@@ -32,7 +32,8 @@ def input_file_to_df(filename, encoding, seperator=None, codebook=None):
         for column_name,mapping in codebook.items():
             column_data = df.get(column_name, pd.Series())
             if column_data.any():
-                diff = set(column_data).difference(set(mapping.keys()))
+                non_empty_columns =  column_data[~column_data.isin([pd.np.nan, ''])]
+                diff = set(non_empty_columns).difference(set(mapping.keys()))
                 if diff: # if the set is not empty
                     apply_map = False
                     logger.error('Value(s) {} in datafile {} not found in the provided codebook'.format(diff, filename))
