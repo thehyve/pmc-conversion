@@ -28,17 +28,14 @@
     "br_test.txt",
     "br_test2.txt"
   ],
-  "TREATMENT_PROTOCOL": [
-    "br_test.txt",
-    "br_test2.txt"
-  ],
   "IFCREF": [
     "br_test_copy.txt",
     "br_test_copy.txt"
   ],
   "DESCRIPTION": [
-    "biosource_test.txt",
-    "study.txt"
+    "biomaterial_test.txt",
+    "biomaterial_test2.txt",
+    "biosource_test.txt"
   ],
   "IDAA": [
     "br_test.txt",

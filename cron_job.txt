@@ -1,2 +1,2 @@
 # Default to trigger 2 AM. Output is logged in /home/pmc. USER to execute should be pmc
-* 2 * * * . /home/pmc/venv/bin/activate && cd /home/pmc/pmc-conversion && /home/pmc/venv/bin/python -m luigi --module scripts LoadDataFromNewFilesTask > /home/pmc/cron_job.log 2> /home/pmc/cron_error.log
+* 2 * * * . /home/pmc/venv/bin/activate && cd /home/pmc/pmc-conversion && /home/pmc/venv/bin/python -m luigi --module luigi-pipeline LoadDataFromNewFilesTask > /home/pmc/cron_job.log 2> /home/pmc/cron_error.log

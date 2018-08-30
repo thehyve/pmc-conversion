@@ -27,6 +27,9 @@
     "DTDEATH": "DEATH_DATE"
   },
   "study.txt": {
+    "Study_Id": "STUDY_ID"
+  },
+  "individual_study.txt": {
     "Record Id": "INDIVIDUAL_ID",
     "Study_Id": "STUDY_ID",
     "individual_study_Id": "INDIVIDUAL_STUDY_ID"

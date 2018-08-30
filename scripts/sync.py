@@ -50,13 +50,14 @@ def get_data_checksum_file_pairs(files):
             yield DataChecksumFilesPair(data_file, checksum_file)
         else:
             # TODO improve logging for the pipeline
-            logger.error('The data file {} does not have corresponding checksum file.'.format(data_file))
-            sys.exit(2)
-            # raise FileNotFoundError('The data file {} does not have corresponding checksum file.'.format(data_file))
+            emsg = 'The data file {} does not have corresponding checksum file.'.format(data_file)
+            logger.error(emsg)
+            raise FileNotFoundError(emsg)
     if checksum_files:
         checksum_files_csv = ', '.join(checksum_files)
-        raise FileNotFoundError('The following checksum files does not have corresponding data file: '
-                                + checksum_files_csv)
+        emsg = 'The following checksum files does not have corresponding data file: {}'.format(checksum_files_csv)
+        logger.error(emsg)
+        raise FileNotFoundError(emsg)
 
 
 DataFileChecksumPair = collections.namedtuple('DataFileChecksumPair', ['data_file', 'checksum'])
@@ -68,12 +69,16 @@ def ensure_checksum_matches(data_checksum_files_pairs):
         if computed_checksum == read_sha1_file(pair.checksum_file):
             yield DataFileChecksumPair(pair.data_file, computed_checksum)
         else:
-            raise ValueError('Checksum for {} file does not match.'.format(pair.data_file))
+            emsg = 'Checksum for {} file does not match.'.format(pair.data_file)
+            logger.error(emsg)
+            raise ValueError(emsg)
 
 
 def scan_files_checksums(dir_):
     if not os.path.exists(dir_):
-        raise NotADirectoryError('{} is not a directory.'.format(dir_))
+        emsg = '{} is not a directory.'.format(dir_)
+        logger.error(emsg)
+        raise NotADirectoryError(emsg)
     for root, _, files in os.walk(dir_):
         for file in files:
             if not is_checksum_file(file) and not is_hiden_file(file):
@@ -97,7 +102,9 @@ def make_path_relative(parent_path, child_path):
             result = result[1:]
         return result
     else:
-        raise ValueError('{} is not sub directory of the {}.'.format(child_path, parent_path))
+        emsg = '{} is not sub directory of the {}.'.format(child_path, parent_path)
+        logger.error(emsg)
+        raise ValueError(emsg)
 
 
 def get_checksum_pairs_set(dir_):
@@ -165,7 +172,9 @@ def sync_dirs(from_dir, to_dir):
 
     logger.info('Double checking whether we copied exactly the same content as we expected.')
     if not file_modifications.new_files == get_checksum_pairs_set(to_dir):
-        raise ValueError('It seems like source directory files have changed while their copying.')
+        emsg = 'It seems like source directory files have changed while their copying.'
+        logger.error(emsg)
+        raise ValueError(emsg)
 
     return file_modifications
 
