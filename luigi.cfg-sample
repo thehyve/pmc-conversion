@@ -1,21 +1,6 @@
 [core]
 logging_conf_file=logging.cfg
 
-[email]
-#Receiver can be a comma separated list
-receiver=
-force-send=True
-prefix=[CSR Data Loading Pipeline]
-
-[smtp]
-# default values:
-port=587
-timeout=10
-username=
-password=
-no_tls=False
-host=example.host.com
-
 [task_history]
 db_connection = sqlite:///pmc-luigi-db.sqlite
 
