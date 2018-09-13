@@ -1,56 +1,32 @@
 {
-  "CID": [
-    "br_test.txt",
-    "br_test2.txt",
-    "extra_file.txt"
-  ],
-  "DIAGNOSIS_DATE": [
-    "br_test.txt",
-    "br_test2.txt"
-  ],
-  "DIAGNOSIS_ID": [
-    "br_test.txt",
-    "br_test2.txt"
-  ],
-  "CENTER_TREATMENT": [
-    "br_test.txt",
-    "br_test2.txt"
-  ],
-  "TUMOR_TYPE": [
-    "br_test.txt",
-    "br_test2.txt"
-  ],
-  "TOPOGRAPHY": [
-    "br_test.txt",
-    "br_test2.txt"
-  ],
-  "TUMOR_STAGE": [
-    "br_test.txt",
-    "br_test2.txt"
-  ],
-  "IFCREF": [
-    "br_test_copy.txt",
-    "br_test_copy.txt"
-  ],
-  "DESCRIPTION": [
-    "biomaterial_test.txt",
-    "biomaterial_test2.txt",
-    "biosource_test.txt"
-  ],
+  "BIRTH_DATE": [
+    "RDP-Patient.tab",
+    "PMCST000AAA_individual.txt"],
+  "GENDER": [
+    "PMCST000AAA_individual.txt",
+    "RDP-Patient.tab"],
+  "DEATH_DATE": [
+    "PMCST000AAA_death.txt",
+    "RDP-Patient.tab"],
+  "ID": [
+  	"PMCST000AAA_death.txt",
+  	"PMCST000AAA_diagnosis.txt",
+  	"PMCST000AAA_individual.txt"],
   "IDAA": [
-    "br_test.txt",
-    "br_test2.txt",
-    "br_test_copy.txt",
-    "extra_file.txt"
-  ],
-  "LABEL":  [
-    "biomaterial_test.txt",
-    "biomaterial_test2.txt",
-    "biosource_test.txt"
-  ],
+  	"PMCST000AAA_death.txt",
+  	"PMCST000AAA_diagnosis.txt",
+  	"PMCST000AAA_individual.txt"],
+  "DESCRIPTION": [
+  	"biomaterial.txt",
+  	"biosource.txt"],
+  "MARK:": [
+  	"PMCST000AAA_death.txt",
+  	"PMCST000AAA_diagnosis.txt",
+  	"PMCST000AAA_individual.txt"],
   "SRC_BIOSOURCE_ID": [
-    "biomaterial_test.txt",
-    "biomaterial_test2.txt",
-    "biosource_test.txt"
-  ]
+  	"biomaterial.txt",
+  	"biosource.txt"],
+  "LABEL": [
+  	"biomaterial.txt",
+  	"biosource.txt"]
 }
