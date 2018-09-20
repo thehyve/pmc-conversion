@@ -75,23 +75,13 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
             study_files.append(study_file)
 
     # Create sample list, required for cnaseq case list
-    mutation_samples = []
     cna_samples = []
 
-    # Transform mutation data files
-    maf_result_df = pd.DataFrame()
-    for study_file in study_files:
-        logger.debug('Processing NGS data file: {}'.format(study_file))
-        if study_file.split('.')[-2:] == ['maf', 'gz']:
-            maf_file_location = os.path.join(ngs_dir, study_file)
-            maf_df = pd.read_csv(maf_file_location, comment='#', sep='\t', low_memory=False)
-            maf_result_df = pd.concat([maf_result_df, maf_df], ignore_index=True)
+    output_file = 'data_mutations.maf'
+    output_file_location = os.path.join(output_dir, output_file)
+    mutation_samples = combine_maf(ngs_dir, output_file_location)
 
-    if maf_result_df.shape[0] > 0:
-        output_file = 'data_mutations.maf'
-        output_file_location = os.path.join(output_dir, output_file)
-        maf_result_df.to_csv(output_file_location, sep="\t", index=False, header=True)
-
+    if mutation_samples:
         # Create meta file
         meta_filename = os.path.join(output_dir, 'meta_mutations.txt')
         create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
@@ -102,7 +92,6 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
                             swissprot_identifier='accession')
 
         # Create case list
-        mutation_samples = maf_result_df['Tumor_Sample_Barcode'].unique().tolist()
         create_caselist(output_dir=output_dir, file_name='cases_sequenced.txt',
                         cancer_study_identifier=STUDY_ID,
                         stable_id='%s_sequenced' % STUDY_ID, case_list_name='Sequenced samples',
@@ -248,6 +237,29 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     # Transformation completed
     logger.info('Transformation of studies complete.')
     return
+
+
+def combine_maf(ngs_dir, output_file_location):
+    '''
+    combines all found NGS files in one
+    :param ngs_dir: directory with NGS files
+    :param output_file_location: the result NGS file
+    :return: unique list of samples in the result file
+    '''
+    maf_result_df = pd.DataFrame()
+    for study_file in os.listdir(ngs_dir):
+        if study_file.startswith('.'):
+            continue
+        logger.debug('Processing NGS data file: {}'.format(study_file))
+        if study_file.split('.')[-2:] == ['maf', 'gz']:
+            maf_file_location = os.path.join(ngs_dir, study_file)
+            maf_df = pd.read_csv(maf_file_location, comment='#', sep='\t', low_memory=False)
+            maf_result_df = pd.concat([maf_result_df, maf_df], ignore_index=True)
+    if maf_result_df.shape[0] > 0:
+        maf_result_df.to_csv(output_file_location, sep="\t", index=False, header=True)
+        return maf_result_df['Tumor_Sample_Barcode'].unique().tolist()
+    else:
+        return []
 
 
 def main(clinical_input_file, ngs_dir, output_dir, description_mapping, loggerconfig):
