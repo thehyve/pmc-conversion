@@ -106,7 +106,8 @@ class CbioTransformationsTest(unittest.TestCase):
             output_file_location=result_maf_file)
 
         self.assertTrue(os.path.exists(result_maf_file))
-        self.assertEqual(samples, ['A'])
+        self.assertEqual(1, len(samples))
+        self.assertIn('A', samples)
 
     def test_skip_variants_without_hugo_symbol(self):
         ngs_dir = tempfile.mkdtemp()

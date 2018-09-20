@@ -16,6 +16,8 @@ import time
 import json
 import logging
 from logging.config import fileConfig
+import gzip
+import csv
 
 sys.dont_write_bytecode = True
 
@@ -246,21 +248,49 @@ def combine_maf(ngs_dir, output_file_location):
     :param output_file_location: the result NGS file
     :return: unique list of samples in the result file
     '''
-    maf_result_df = pd.DataFrame()
-    for study_file in os.listdir(ngs_dir):
-        if study_file.startswith('.'):
-            continue
-        logger.debug('Processing NGS data file: {}'.format(study_file))
-        if study_file.split('.')[-2:] == ['maf', 'gz']:
-            maf_file_location = os.path.join(ngs_dir, study_file)
-            maf_df = pd.read_csv(maf_file_location, comment='#', sep='\t', low_memory=False)
-            maf_df = maf_df[pd.notna(maf_df['Hugo_Symbol'])]
-            maf_result_df = pd.concat([maf_result_df, maf_df], ignore_index=True)
-    if maf_result_df.shape[0] > 0:
-        maf_result_df.to_csv(output_file_location, sep="\t", index=False, header=True)
-        return maf_result_df['Tumor_Sample_Barcode'].unique().tolist()
-    else:
+    paths_to_process = get_paths_to_non_hidden_maf_gz_files(ngs_dir)
+
+    if not paths_to_process:
         return []
+
+    header = get_complete_header(paths_to_process)
+
+    if not header:
+        return []
+
+    samples = set()
+    with open(output_file_location, 'w') as result_maf:
+        writer = csv.DictWriter(result_maf, delimiter='\t', fieldnames=header)
+        for study_file in paths_to_process:
+            logger.debug('Processing NGS data file: {}'.format(study_file))
+            with gzip.open(study_file, 'rt') as file:
+                reader = csv.DictReader(filter(lambda r: r[0] != '#', file), delimiter='\t')
+                for row in reader:
+                    if row['Hugo_Symbol'].strip() and row['Tumor_Sample_Barcode']:
+                        if len(samples) == 0:
+                            writer.writeheader()
+                        samples.add(row['Tumor_Sample_Barcode'])
+                        writer.writerow(row)
+        return samples
+
+
+def get_paths_to_non_hidden_maf_gz_files(ngs_dir):
+    paths_to_process = []
+    for study_file in os.listdir(ngs_dir):
+        if not study_file.startswith('.') and study_file.split('.')[-2:] == ['maf', 'gz']:
+            paths_to_process.append(os.path.join(ngs_dir, study_file))
+    return paths_to_process
+
+
+def get_complete_header(paths_to_process):
+    fieldnames = []
+    for study_file in paths_to_process:
+        with gzip.open(study_file, 'rt') as file:
+            header = next(csv.reader(file, delimiter='\t'))
+            for column in header:
+                if column not in fieldnames:
+                    fieldnames.append(column)
+    return fieldnames
 
 
 def main(clinical_input_file, ngs_dir, output_dir, description_mapping, loggerconfig):
