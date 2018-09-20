@@ -241,7 +241,7 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
 def combine_maf(ngs_dir, output_file_location):
     '''
-    combines all found NGS files in one
+    combines all found NGS files in one. It filters out variants without hugo symbol.
     :param ngs_dir: directory with NGS files
     :param output_file_location: the result NGS file
     :return: unique list of samples in the result file
@@ -254,6 +254,7 @@ def combine_maf(ngs_dir, output_file_location):
         if study_file.split('.')[-2:] == ['maf', 'gz']:
             maf_file_location = os.path.join(ngs_dir, study_file)
             maf_df = pd.read_csv(maf_file_location, comment='#', sep='\t', low_memory=False)
+            maf_df = maf_df[pd.notna(maf_df['Hugo_Symbol'])]
             maf_result_df = pd.concat([maf_result_df, maf_df], ignore_index=True)
     if maf_result_df.shape[0] > 0:
         maf_result_df.to_csv(output_file_location, sep="\t", index=False, header=True)
