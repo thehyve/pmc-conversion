@@ -266,11 +266,10 @@ def combine_maf(ngs_dir, output_file_location):
             with gzip.open(study_file, 'rt') as file:
                 reader = csv.DictReader(filter(lambda r: r[0] != '#', file), delimiter='\t')
                 for row in reader:
-                    if row['Hugo_Symbol'].strip() and row['Tumor_Sample_Barcode']:
-                        if len(samples) == 0:
-                            writer.writeheader()
-                        samples.add(row['Tumor_Sample_Barcode'])
-                        writer.writerow(row)
+                    if len(samples) == 0:
+                        writer.writeheader()
+                    samples.add(row['Tumor_Sample_Barcode'])
+                    writer.writerow(row)
         return samples
 
 

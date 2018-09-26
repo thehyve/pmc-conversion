@@ -109,29 +109,6 @@ class CbioTransformationsTest(unittest.TestCase):
         self.assertEqual(1, len(samples))
         self.assertIn('A', samples)
 
-    def test_skip_variants_without_hugo_symbol(self):
-        ngs_dir = tempfile.mkdtemp()
-        maf_file_1 = os.path.join(ngs_dir, 'test1.maf')
-        create_tsv_file(maf_file_1, [
-            ['Hugo_Symbol', 'Tumor_Sample_Barcode'],
-            ['H1', 'A'],
-            ['', 'B'],
-            ['H2', 'C'],
-            ['', 'D']
-        ])
-        gz_file(maf_file_1)
-        out_dir = tempfile.mkdtemp()
-        result_maf_file = os.path.join(out_dir, 'result.maf')
-
-        samples = cbio_wrapper.combine_maf(
-            ngs_dir=ngs_dir,
-            output_file_location=result_maf_file)
-
-        self.assertTrue(os.path.exists(result_maf_file))
-        self.assertEqual(2, len(samples))
-        self.assertIn('A', samples)
-        self.assertIn('C', samples)
-
 
 if __name__ == '__main__':
     unittest.main()
