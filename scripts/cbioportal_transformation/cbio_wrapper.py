@@ -261,13 +261,12 @@ def combine_maf(ngs_dir, output_file_location):
     samples = set()
     with open(output_file_location, 'w') as result_maf:
         writer = csv.DictWriter(result_maf, delimiter='\t', fieldnames=header)
+        writer.writeheader()
         for study_file in paths_to_process:
             logger.debug('Processing NGS data file: {}'.format(study_file))
             with gzip.open(study_file, 'rt') as file:
                 reader = csv.DictReader(filter(lambda r: r[0] != '#', file), delimiter='\t')
                 for row in reader:
-                    if len(samples) == 0:
-                        writer.writeheader()
                     samples.add(row['Tumor_Sample_Barcode'])
                     writer.writerow(row)
         return samples
