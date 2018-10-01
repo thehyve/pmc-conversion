@@ -102,9 +102,9 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
                         case_list_ids="\t".join(mutation_samples))
 
         # Test for samples in MAF files that are not in clinical data
-        if not set(sample_ids).issuperset(set(mutation_samples)):
+        if not set(sample_ids).issuperset(mutation_samples):
             logger.error("Found samples in MAF files that are not in clinical data: {}".format(
-                         ", ".join(set(mutation_samples).difference(set(sample_ids)))))
+                         ", ".join(mutation_samples.difference(set(sample_ids)))))
             sys.exit(1)
 
     # Transform CNA data files
@@ -221,7 +221,7 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
             logger.warning("Unknown file type: %s" % study_file)
 
     # Create cnaseq case list
-    cnaseq_samples = list(set(mutation_samples + cna_samples))
+    cnaseq_samples = list(mutation_samples.union(cna_samples))
     if len(cnaseq_samples) > 0:
         create_caselist(output_dir=output_dir, file_name='cases_cnaseq.txt', cancer_study_identifier=STUDY_ID,
                         stable_id='%s_cnaseq' % STUDY_ID, case_list_name='Sequenced and CNA samples',
