@@ -265,11 +265,17 @@ def combine_maf(ngs_dir, output_file_location):
         for study_file in paths_to_process:
             logger.debug('Processing NGS data file: {}'.format(study_file))
             with gzip.open(study_file, 'rt') as file:
-                reader = csv.DictReader(filter(lambda r: r[0] != '#', file), delimiter='\t')
+                reader = csv.DictReader(not_commented_lines(file), delimiter='\t')
                 for row in reader:
                     samples.add(row['Tumor_Sample_Barcode'])
                     writer.writerow(row)
         return samples
+
+
+def not_commented_lines(iter):
+    for line in iter:
+        if not line.lstrip().startswith('#'):
+            yield line
 
 
 def get_paths_to_non_hidden_maf_gz_files(ngs_dir):
@@ -284,7 +290,7 @@ def get_complete_header(paths_to_process):
     fieldnames = []
     for study_file in paths_to_process:
         with gzip.open(study_file, 'rt') as file:
-            header = next(csv.reader(file, delimiter='\t'))
+            header = next(csv.reader(not_commented_lines(file), delimiter='\t'))
             for column in header:
                 if column not in fieldnames:
                     fieldnames.append(column)

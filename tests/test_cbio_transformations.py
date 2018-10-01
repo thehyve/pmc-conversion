@@ -35,6 +35,7 @@ class CbioTransformationsTest(unittest.TestCase):
         ngs_dir = tempfile.mkdtemp()
         maf_file_1 = os.path.join(ngs_dir, 'test1.maf')
         create_tsv_file(maf_file_1, [
+            ['#version 2.4'],
             ['Hugo_Symbol', 'Tumor_Sample_Barcode', 'Q', 'W'],
             ['H1', 'A', '1', '2'],
             ['H2', 'B', '3', '4']
@@ -42,6 +43,7 @@ class CbioTransformationsTest(unittest.TestCase):
         gz_file(maf_file_1)
         maf_file_2 = os.path.join(ngs_dir, 'test2.maf')
         create_tsv_file(maf_file_2, [
+            ['#version 2.4'],
             ['Hugo_Symbol', 'Tumor_Sample_Barcode', 'W', 'Z'],
             ['H3', 'C', '5', '6'],
             ['H4', 'D', '7', '8']
