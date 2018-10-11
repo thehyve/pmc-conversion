@@ -248,17 +248,18 @@ def combine_maf(ngs_dir, output_file_location):
     :param output_file_location: the result NGS file
     :return: unique list of samples in the result file
     '''
+    samples = set()
+
     paths_to_process = get_paths_to_non_hidden_maf_gz_files(ngs_dir)
 
     if not paths_to_process:
-        return []
+        return samples
 
     header = get_complete_header(paths_to_process)
 
     if not header:
-        return []
+        return samples
 
-    samples = set()
     with open(output_file_location, 'w') as result_maf:
         writer = csv.DictWriter(result_maf, delimiter='\t', fieldnames=header)
         writer.writeheader()
