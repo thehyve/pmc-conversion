@@ -16,6 +16,8 @@ import time
 import json
 import logging
 from logging.config import fileConfig
+import gzip
+import csv
 
 sys.dont_write_bytecode = True
 
@@ -75,23 +77,13 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
             study_files.append(study_file)
 
     # Create sample list, required for cnaseq case list
-    mutation_samples = []
     cna_samples = []
 
-    # Transform mutation data files
-    maf_result_df = pd.DataFrame()
-    for study_file in study_files:
-        logger.debug('Processing NGS data file: {}'.format(study_file))
-        if study_file.split('.')[-2:] == ['maf', 'gz']:
-            maf_file_location = os.path.join(ngs_dir, study_file)
-            maf_df = pd.read_csv(maf_file_location, comment='#', sep='\t', low_memory=False)
-            maf_result_df = pd.concat([maf_result_df, maf_df], ignore_index=True)
+    output_file = 'data_mutations.maf'
+    output_file_location = os.path.join(output_dir, output_file)
+    mutation_samples = combine_maf(ngs_dir, output_file_location)
 
-    if maf_result_df.shape[0] > 0:
-        output_file = 'data_mutations.maf'
-        output_file_location = os.path.join(output_dir, output_file)
-        maf_result_df.to_csv(output_file_location, sep="\t", index=False, header=True)
-
+    if mutation_samples:
         # Create meta file
         meta_filename = os.path.join(output_dir, 'meta_mutations.txt')
         create_meta_content(meta_filename, cancer_study_identifier=STUDY_ID,
@@ -102,7 +94,6 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
                             swissprot_identifier='accession')
 
         # Create case list
-        mutation_samples = maf_result_df['Tumor_Sample_Barcode'].unique().tolist()
         create_caselist(output_dir=output_dir, file_name='cases_sequenced.txt',
                         cancer_study_identifier=STUDY_ID,
                         stable_id='%s_sequenced' % STUDY_ID, case_list_name='Sequenced samples',
@@ -111,9 +102,9 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
                         case_list_ids="\t".join(mutation_samples))
 
         # Test for samples in MAF files that are not in clinical data
-        if not set(sample_ids).issuperset(set(mutation_samples)):
+        if not set(sample_ids).issuperset(mutation_samples):
             logger.error("Found samples in MAF files that are not in clinical data: {}".format(
-                         ", ".join(set(mutation_samples).difference(set(sample_ids)))))
+                         ", ".join(mutation_samples.difference(set(sample_ids)))))
             sys.exit(1)
 
     # Transform CNA data files
@@ -230,7 +221,7 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
             logger.warning("Unknown file type: %s" % study_file)
 
     # Create cnaseq case list
-    cnaseq_samples = list(set(mutation_samples + cna_samples))
+    cnaseq_samples = list(mutation_samples.union(cna_samples))
     if len(cnaseq_samples) > 0:
         create_caselist(output_dir=output_dir, file_name='cases_cnaseq.txt', cancer_study_identifier=STUDY_ID,
                         stable_id='%s_cnaseq' % STUDY_ID, case_list_name='Sequenced and CNA samples',
@@ -248,6 +239,63 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     # Transformation completed
     logger.info('Transformation of studies complete.')
     return
+
+
+def combine_maf(ngs_dir, output_file_location):
+    '''
+    combines all found NGS files in one. It filters out variants without hugo symbol.
+    :param ngs_dir: directory with NGS files
+    :param output_file_location: the result NGS file
+    :return: unique list of samples in the result file
+    '''
+    samples = set()
+
+    paths_to_process = get_paths_to_non_hidden_maf_gz_files(ngs_dir)
+
+    if not paths_to_process:
+        return samples
+
+    header = get_complete_header(paths_to_process)
+
+    if not header:
+        return samples
+
+    with open(output_file_location, 'w') as result_maf:
+        writer = csv.DictWriter(result_maf, delimiter='\t', fieldnames=header)
+        writer.writeheader()
+        for study_file in paths_to_process:
+            logger.debug('Processing NGS data file: {}'.format(study_file))
+            with gzip.open(study_file, 'rt') as file:
+                reader = csv.DictReader(not_commented_lines(file), delimiter='\t')
+                for row in reader:
+                    samples.add(row['Tumor_Sample_Barcode'])
+                    writer.writerow(row)
+        return samples
+
+
+def not_commented_lines(iter):
+    for line in iter:
+        if not line.lstrip().startswith('#'):
+            yield line
+
+
+def get_paths_to_non_hidden_maf_gz_files(ngs_dir):
+    paths_to_process = []
+    for study_file in os.listdir(ngs_dir):
+        if not study_file.startswith('.') and study_file.split('.')[-2:] == ['maf', 'gz']:
+            paths_to_process.append(os.path.join(ngs_dir, study_file))
+    return paths_to_process
+
+
+def get_complete_header(paths_to_process):
+    fieldnames = []
+    for study_file in paths_to_process:
+        with gzip.open(study_file, 'rt') as file:
+            header = next(csv.reader(not_commented_lines(file), delimiter='\t'))
+            for column in header:
+                if column not in fieldnames:
+                    fieldnames.append(column)
+    return fieldnames
 
 
 def main(clinical_input_file, ngs_dir, output_dir, description_mapping, loggerconfig):
