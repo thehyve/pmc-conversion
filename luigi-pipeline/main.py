@@ -223,7 +223,7 @@ class TransmartDataLoader(ExternalProgramTask):
         os.environ['PGPASSWORD'] = config.PGPASSWORD
 
     def program_args(self):
-        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '--re-upload',
+        return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar), '--directory',
                 '{!r}'.format(config.transmart_staging_dir)]
 
 
