@@ -62,14 +62,14 @@ unhandled_exception=40
 
 
 [FormatCodeBooks]
-cm_map_file = codebook_mapping.json
+cm_map_file = ptp_codebook_mapping.json
 
 
 [MergeClinicalData]
 data_model = data_model.json
-column_priority = column_priority.json
-file_headers = file_headers.json
-columns_to_csr = columns_to_csr.json
+column_priority = ptp_column_priority.json
+file_headers = ptp_file_headers.json
+columns_to_csr = ptp_columns_to_csr.json
 
 
 [TransmartDataTransformation]
