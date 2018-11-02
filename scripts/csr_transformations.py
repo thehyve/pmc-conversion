@@ -423,11 +423,15 @@ def get_configuration(data_model, file_headers, columns_to_csr, column_priority,
 
 def extend_subject_registry(csr, input_dir):
     # NGS DATA
+    ngs_data_dir = None
     for dir, dirs, files in os.walk(input_dir):
         if 'NGS' in dirs:
             ngs_data_dir = os.path.join(dir, dirs[dirs.index('NGS')])
             logger.info('Found NGS data directory: {}'.format(ngs_data_dir))
             break
+    if ngs_data_dir is None:
+        logger.info('No NGS data found.')
+        return csr
     ngs_data = process_ngs_dir(ngs_data_dir)
     csr_update = csr.merge(ngs_data, on=['BIOSOURCE_ID','BIOMATERIAL_ID'], how='outer', indicator=True)
 
