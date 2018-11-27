@@ -26,10 +26,10 @@ logger.name = logger.name.rsplit('.', 1)[1]
 
 # Define study properties
 # TODO: Move study properties to configuration file
-STUDY_ID = 'pmc_test'
-NAME = "PMC - Test Study"
-NAME_SHORT = "PMC - Test Study"
-DESCRIPTION = '%s Transformed from PMC Test Data to cBioPortal format.' % time.strftime("%d-%m-%Y %H:%M")
+STUDY_ID = 'csr'
+NAME = "Central Subject Registry"
+NAME_SHORT = "Central Subject Registry"
+DESCRIPTION = 'Transformed to cBioPortal format on: %s' % time.strftime("%d-%m-%Y %H:%M")
 TYPE_OF_CANCER = 'mixed'
 
 
