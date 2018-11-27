@@ -90,11 +90,11 @@ transmart_password = admin
 cbioportal_header_descriptions=cbioportal_header_descriptions.json
 
 [CbioportalDataValidation]
-docker_image = cbioportal-hg38:1.10.2
+docker_image = cbioportal-image
 
 
 [CbioportalDataLoading]
-docker_image = cbioportal-hg38:1.10.2
+docker_image = cbioportal-image
 server_name = pmc-cbioportal-test
 
 [E2eTest]

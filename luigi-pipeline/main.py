@@ -280,7 +280,7 @@ class CbioportalDataValidation(ExternalProgramTask):
         report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
 
         # Build the command for validation
-        docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
+        docker_command = 'docker run --network="host" --rm -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
                          '-v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
                          % (input_dir, db_info_dir, report_dir, self.docker_image)
 
@@ -319,12 +319,12 @@ class CbioportalDataLoading(ExternalProgramTask):
         # Check if cBioPortal is running locally or on other server
         if self.server_name == "":
             # Build the command for importer only
-            docker_command = 'docker run --rm -v %s:/study/ --net cbio-net %s' \
+            docker_command = 'docker run --network="host" --rm -v %s:/study/ --net cbio-net %s' \
                              % (input_dir, self.docker_image)
 
             restart_command = "; docker restart cbioportal"
         else:
-            docker_command = 'docker run --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
+            docker_command = 'docker run --network="host" --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
                              % (input_dir, self.docker_image)
 
             restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
