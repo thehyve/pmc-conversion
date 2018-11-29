@@ -279,9 +279,8 @@ class CbioportalDataValidation(ExternalProgramTask):
         db_info_dir = os.path.join(config.config_json_dir, 'cbioportal_db_info')
         report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
 
-        # Build the command for validation
-        docker_command = 'docker run --network="host" --rm -v %s:/study/ -v /etc/hosts:/etc/hosts ' \
-                         '-v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
+        # Build validation command. No connection has to be made to the database or web server.
+        docker_command = 'docker run --rm -v %s:/study/ -v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
                          % (input_dir, db_info_dir, report_dir, self.docker_image)
 
         python_command = 'python /cbioportal/core/src/main/scripts/importer/validateData.py -s /study/ ' \
@@ -318,15 +317,18 @@ class CbioportalDataLoading(ExternalProgramTask):
 
         # Check if cBioPortal is running locally or on other server
         if self.server_name == "":
-            # Build the command for importer only
-            docker_command = 'docker run --network="host" --rm -v %s:/study/ --net cbio-net %s' \
+            # Build import command for running the pipeline locally
+            docker_command = 'docker run --rm -v %s:/study/ --net cbio-net %s' \
                              % (input_dir, self.docker_image)
 
+            # Restart cBioPortal web server docker container on the local machine
             restart_command = "; docker restart cbioportal"
         else:
+            # Build the import command for running the pipeline on the PMC staging server
             docker_command = 'docker run --network="host" --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
                              % (input_dir, self.docker_image)
 
+            # Restart cBioPortal web server docker container which runs on a different machine
             restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
         return [docker_command, python_command, restart_command]
 
