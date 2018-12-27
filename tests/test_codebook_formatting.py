@@ -7,8 +7,8 @@ from codebook_formatting import *
 class CodebookFormattingTests(unittest.TestCase):
 
     def setUp(self):
-        self.br_codebook_filename = '../test_data/dropzone/CLINICAL/br_test_codebook.txt'
-        self.output_check = '../test_data/intermediate/br_test_codebook.txt.json'
+        self.br_codebook_filename = './test_data/dropzone/CLINICAL/br_test_codebook.txt'
+        self.output_check = './test_data/intermediate/br_test_codebook.txt.json'
         self.tmp = tempfile.gettempdir()
 
         # correct_mapping = {"br_test_codebook.txt": "br_codebook_1"}
@@ -43,5 +43,6 @@ class CodebookFormattingTests(unittest.TestCase):
             outcome = codebook_formatting(self.br_codebook_filename, incorrect_mapping_file, self.tmp)
         self.assertFalse(outcome)
 
-
+if __name__ == '__main__':
+    unittest.main()
 

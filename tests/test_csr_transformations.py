@@ -9,10 +9,10 @@ import csr_transformations as ct
 class CsrTransformationTests(unittest.TestCase):
 
     def setUp(self):
-        self.clinical_test_data = '../test_data/input_data/CLINICAL'
-        self.dummy_test_data = '../test_data/dummy_data'
-        self.test_config = '../test_data/test_config'
-        self.config = '../config'
+        self.clinical_test_data = './test_data/input_data/CLINICAL'
+        self.dummy_test_data = './test_data/dummy_data'
+        self.test_config = './test_data/test_config'
+        self.config = './config'
 
     def tearDown(self):
         pass
@@ -75,3 +75,7 @@ class CsrTransformationTests(unittest.TestCase):
 
     def test_resolve_data_conflicts(self):
         self.assertFalse(True)
+
+
+if __name__ == '__main__':
+    unittest.main()

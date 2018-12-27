@@ -7,10 +7,10 @@ from scripts.csr_read_data import get_encoding, input_file_to_df, bool_is_file, 
 class CsrTransformationTests(unittest.TestCase):
 
     def setUp(self):
-        self.clinical_test_data = '../test_data/input_data/CLINICAL'
-        self.dummy_test_data = '../test_data/dummy_data'
-        self.test_config = '../test_data/test_config'
-        self.config = '../config'
+        self.clinical_test_data = './test_data/input_data/CLINICAL'
+        self.dummy_test_data = './test_data/dummy_data'
+        self.test_config = './test_data/test_config'
+        self.config = './config'
 
     def tearDown(self):
         pass
