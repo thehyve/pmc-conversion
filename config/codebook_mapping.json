@@ -1,5 +1,3 @@
 {
-  "PMCST000AAA_death_codebook.txt": "br_codebook_1",
-  "PMCST000AAA_diagnosis_codebook.txt": "br_codebook_1",
-  "PMCST000AAA_individual_codebook.txt": "br_codebook_1"
+  "codebook.txt": "br_codebook_1"
 }

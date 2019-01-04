@@ -1,6 +1,4 @@
 import unittest
-import json
-import tempfile
 from codebook_formatting import *
 
 
@@ -39,10 +37,10 @@ class CodebookFormattingTests(unittest.TestCase):
         with open(incorrect_mapping_file, 'w') as cim:
             json.dump(incorrect_mapping, cim)
 
-        with self.assertLogs('codebook_formatting','WARN'):
+        with self.assertLogs('codebook_formatting', 'WARN'):
             outcome = codebook_formatting(self.br_codebook_filename, incorrect_mapping_file, self.tmp)
         self.assertFalse(outcome)
 
+
 if __name__ == '__main__':
     unittest.main()
-
