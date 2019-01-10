@@ -1,16 +1,10 @@
 {
-  "RDP-IC.tab": {
-    "00003_Naam ingestemde studie": "TITLE",
-    "00007_Datum toestemming": "IC_GIVE_DATE",
-    "00010_Datum geen toestemming": "IC_WITHDRAWN_DATE",
-    "00012_Datum einde deelname": "REPORT_HER_SUSC"
+  "individual.tsv": {
+    "gender": "GENDER",
+    "birth_date": "BIRTH_DATE",
+    "death_date": "DEATH_DATE"
   },
-  "RDP-Patient.tab": {
-    "Gebdat": "BIRTH_DATE",
-    "Geslacht": "GENDER",
-    "Overldat": "DEATH_DATE"
-  },
-  "biomaterial.txt": {
+  "biomaterial.tsv": {
     "biomaterial_id": "BIOMATERIAL_ID",
     "biomaterial_date": "BIOMATERIAL_DATE",
     "type": "TYPE",
@@ -18,7 +12,7 @@
     "src_biomaterial_id": "SRC_BIOMATERIAL_ID",
     "title": "BIOMATERIAL_TITLE"
   },
-  "biosource.txt": {
+  "biosource.tsv": {
     "biosource_id": "BIOSOURCE_ID",
     "biosource_dedicated": "BIOSOURCE_DEDICATED",
     "tissue": "TISSUE",
@@ -28,25 +22,6 @@
     "diagnosis_id": "DIAGNOSIS_ID",
     "src_biosource_id": "SRC_BIOSOURCE_ID",
     "tumor_percentage": "TUMOR_PERCENTAGE"
-  },
-  "PMCST000AAA_death.txt": {
-    "DTDEATH": "DEATH_DATE"
-  },
-  "PMCST000AAA_diagnosis.txt": {
-    "CIDDIAG": "DIAGNOSIS_ID",
-    "HOSPDIAG": "CENTER_TREATMENT",
-    "DIAGCD": "TUMOR_TYPE",
-    "PLOCCD": "TOPOGRAPHY",
-    "DIAGGRSTX": "TUMOR_STAGE",
-    "IDAABA": "DIAGNOSIS_DATE"
-  },
-  "PMCST000AAA_individual.txt": {
-    "SEX": "GENDER",
-    "IFCDATR": "IC_TYPE",
-    "IFCGIV": "IC_DATA",
-    "IFCMAT": "IC_MATERIAL",
-    "IFCCOM": "IC_LINKING_EXT",
-    "DTOB": "BIRTH_DATE"
   },
   "study.txt": {
     "acronym": "ACRONYM",

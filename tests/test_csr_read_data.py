@@ -6,11 +6,12 @@ from scripts.csr_read_data import get_encoding, input_file_to_df, bool_is_file, 
 
 class CsrTransformationTests(unittest.TestCase):
 
+
     def setUp(self):
-        self.clinical_test_data = '../test_data/input_data/CLINICAL'
-        self.dummy_test_data = '../test_data/dummy_data'
-        self.test_config = '../test_data/test_config'
-        self.config = '../config'
+        self.clinical_test_data = './test_data/input_data/CLINICAL'
+        self.dummy_test_data = './test_data/dummy_data'
+        self.test_config = './test_data/test_config'
+        self.config = './config'
 
     def tearDown(self):
         pass
@@ -21,7 +22,7 @@ class CsrTransformationTests(unittest.TestCase):
     def test_apply_header_map(self):
         filename = 'br_test.txt'
         filepath = os.path.join(self.clinical_test_data, filename)
-        df = input_file_to_df(filepath, get_encoding(filepath), codebook=None)
+        df, _ = input_file_to_df(filepath, get_encoding(filepath), codebook=None)
 
         # Define header map
         header_map = {
@@ -64,7 +65,7 @@ class CsrTransformationTests(unittest.TestCase):
         checked_types = {}
         for key, file in files.items():
             filepath = os.path.join(self.dummy_test_data, file)
-            df = input_file_to_df(filepath, get_encoding(filepath), codebook=None)
+            df, _ = input_file_to_df(filepath, get_encoding(filepath), codebook=None)
             checked_types.update({key: determine_file_type(df.columns, file)})
 
         self.assertEqual(correct_types, checked_types)

@@ -1,126 +1,87 @@
 {
-  "RDP-IC.tab": {
+  "study.tsv": {
     "headers": [
-      "INDIVIDUAL_ID",
-      "00003_Naam ingestemde studie",
-      "00004_Toestemmingsstatus",
-      "00007_Datum toestemming",
-      "00010_Datum geen toestemming",
-      "00012_Datum einde deelname"
-    ],
-    "date_format": "%d/%m/%Y",
-    "date_columns": [
-      "00007_Datum toestemming",
-      "00010_Datum geen toestemming",
-      "00012_Datum einde deelname"]
+      "study_id",
+      "acronym",
+      "title",
+      "datadictionary"
+    ]
   },
-  "RDP-Patient.tab": {
+  "individual_study.tsv": {
     "headers": [
-      "INDIVIDUAL_ID",
-      "Gebdat",
-      "Geslacht",
-      "Overleden",
-      "Overldat"
-    ],
-    "date_format": "%d%b%Y",
-    "date_columns": [
-      "Gebdat",
-      "Overldat"]
+      "study_id",
+      "individual_id",
+      "individual_study_id"
+    ]
   },
-  "biomaterial.txt": {
+  "individual.tsv": {
     "headers": [
-      "biomaterial_id",
-      "biomaterial_date",
-      "type",
-      "src_biosource_id",
-      "src_biomaterial_id",
-      "description",
-      "label"
+      "individual_id",
+      "taxonomy",
+      "birth_date",
+      "gender",
+      "death_date",
+      "IC_type",
+      "IC_given_date",
+      "IC_withdrawn_date",
+      "IC_material",
+      "IC_data",
+      "IC_linking_ext",
+      "report_her_susc",
+      "report_inc_findings"
     ],
-    "date_format": "%d/%m/%Y",
+    "date_format": "%d-%m-%Y",
     "date_columns": [
-      "biomaterial_date"]
+      "birth_date",
+      "death_date",
+      "IC_given_date",
+      "IC_withdrawn_date"
+    ]
   },
-  "biosource.txt": {
+  "diagnosis.tsv": {
+    "headers": [
+      "diagnosis_id",
+      "individual_id",
+      "topography",
+      "treatment_protocol",
+      "tumor_type",
+      "tumor_stage",
+      "diagnosis_date",
+      "center_treatment"
+    ],
+    "date_format": "%d-%m-%Y",
+    "date_columns": [
+      "diagnosis_date"
+    ]
+  },
+  "biosource.tsv": {
     "headers": [
       "biosource_id",
       "biosource_dedicated",
-      "tissue",
-      "biosource_date",
-      "disease_status",
       "individual_id",
       "diagnosis_id",
       "src_biosource_id",
-      "tumor_percentage",
-      "label",
-      "description"
+      "tissue",
+      "biosource_date",
+      "disease_status",
+      "tumor_percentage"
     ],
-    "date_format": "%d/%m/%Y",
+    "date_format": "%d-%m-%Y",
     "date_columns": [
-    "biosource_date"]
-  },
-  "individual_study.txt": {
-    "headers": [
-      "STUDY_ID",
-      "INDIVIDUAL_ID",
-      "INDIVIDUAL_STUDY_ID"
+      "biosource_date"
     ]
   },
-  "PMCST000AAA_death.txt": {
+  "biomaterial.tsv": {
     "headers": [
-      "MARK:",
-      "ID",
-      "IDAA",
-      "INDIVIDUAL_ID",
-      "STATUSA",
-      "IDAABB",
-      "DTDEATH"
+      "biomaterial_id",
+      "src_biosource_id",
+      "src_biomaterial_id",
+      "type",
+      "biomaterial_date"
     ],
-    "date_format": "%d/%m/%Y %H:%M:%S",
+    "date_format": "%d-%m-%Y",
     "date_columns": [
-      "IDAABB",
-      "DTDEATH"]
-  },
-  "PMCST000AAA_diagnosis.txt": {
-    "headers": [
-      "MARK:",
-      "ID",
-      "IDAA",
-      "INDIVIDUAL_ID",
-      "CIDDIAG",
-      "HOSPDIAG",
-      "DIAGCD",
-      "PLOCCD",
-      "DIAGGRSTX",
-      "IDAABA"
-    ],
-    "date_format": "%d/%m/%Y %H:%M:%S",
-    "date_columns": [
-      "IDAABA"]
-  },
-  "PMCST000AAA_individual.txt": {
-    "headers": [
-      "MARK:",
-      "ID",
-      "IDAA",
-      "INDIVIDUAL_ID",
-      "SEX",
-      "IFCDATR",
-      "IFCGIV",
-      "IFCMAT",
-      "IFCCOM",
-      "DTOB"
-    ],
-    "date_format": "%d/%m/%Y %H:%M:%S",
-    "date_columns": ["DTOB"]
-  },
-  "study.txt": {
-    "headers": [
-      "STUDY_ID",
-      "acronym",
-      "title",
-      "description",
-      "datadictionary"
+      "biomaterial_date"
     ]
   }
 }

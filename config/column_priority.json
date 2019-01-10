@@ -1,32 +1,6 @@
 {
-  "BIRTH_DATE": [
-    "RDP-Patient.tab",
-    "PMCST000AAA_individual.txt"],
-  "GENDER": [
-    "PMCST000AAA_individual.txt",
-    "RDP-Patient.tab"],
-  "DEATH_DATE": [
-    "PMCST000AAA_death.txt",
-    "RDP-Patient.tab"],
-  "ID": [
-  	"PMCST000AAA_death.txt",
-  	"PMCST000AAA_diagnosis.txt",
-  	"PMCST000AAA_individual.txt"],
-  "IDAA": [
-  	"PMCST000AAA_death.txt",
-  	"PMCST000AAA_diagnosis.txt",
-  	"PMCST000AAA_individual.txt"],
-  "DESCRIPTION": [
-  	"biomaterial.txt",
-  	"biosource.txt"],
-  "MARK:": [
-  	"PMCST000AAA_death.txt",
-  	"PMCST000AAA_diagnosis.txt",
-  	"PMCST000AAA_individual.txt"],
   "SRC_BIOSOURCE_ID": [
-  	"biomaterial.txt",
-  	"biosource.txt"],
-  "LABEL": [
-  	"biomaterial.txt",
-  	"biosource.txt"]
+    "biosource.tsv",
+    "biomaterial.tsv"
+  ]
 }
