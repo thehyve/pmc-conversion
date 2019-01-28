@@ -24,6 +24,6 @@ python scripts/transmart_transformation.py \
 	--config_dir config \
 	--blueprint blueprint.json \
 	--modifiers modifiers.txt \
-	--study_id CSR_TEST \
-	--top_node CSR_TEST \
-	--security_required Y
+	--study_id CSR \
+	--top_node "\\Public Studies\\CSR\\" \
+	--security_required N
