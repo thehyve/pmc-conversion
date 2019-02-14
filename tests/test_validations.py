@@ -1,7 +1,9 @@
 import unittest
-from scripts.validations import collect_tree_node_dimension_violations
+from scripts.validations import BlueprintValidations
 
-class ValidationsTestCase(unittest.TestCase):
+extra_dimensions = {'Diagnosis Id', 'Biosource Id', 'Biomaterial Id'}
+
+class BlueprintValidationsTestCase(unittest.TestCase):
 
     def test_valid_tree_dimensions(self):
         # given
@@ -28,7 +30,7 @@ class ValidationsTestCase(unittest.TestCase):
             },
         }
         # when
-        violations = list(collect_tree_node_dimension_violations(blueprint))
+        violations = list(BlueprintValidations(extra_dimensions).collect_tree_node_dimension_violations(blueprint))
         # then
         self.assertEqual(violations, [])
 
@@ -40,7 +42,7 @@ class ValidationsTestCase(unittest.TestCase):
             'no_dim_meta_column3': { 'metadata_tags': { 'key': 'value' } },
         }
         # when
-        violations = list(collect_tree_node_dimension_violations(blueprint))
+        violations = list(BlueprintValidations(extra_dimensions).collect_tree_node_dimension_violations(blueprint))
         # then
         self.assertEqual(violations, [
             'no_dim_meta_column1: No dimension metadata tag specified.',
@@ -56,7 +58,7 @@ class ValidationsTestCase(unittest.TestCase):
             'unknown_dim_meta_column3': { 'metadata_tags': { 'dimension': 'DIAGNOSIS ID' } },
         }
         # when
-        violations = list(collect_tree_node_dimension_violations(blueprint))
+        violations = list(BlueprintValidations(extra_dimensions).collect_tree_node_dimension_violations(blueprint))
         # then
         self.assertEqual(violations, [
             'unknown_dim_meta_column1: "diagnosis" dimension is not recognised.',
