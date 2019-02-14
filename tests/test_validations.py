@@ -32,6 +32,21 @@ class ValidationsTestCase(unittest.TestCase):
         # then
         self.assertEqual(violations, [])
 
+    def test_no_dimension_specified_violations(self):
+        # given
+        blueprint = {
+            'no_dim_meta_column1': {},
+            'no_dim_meta_column2': { 'metadata_tags': {} },
+            'no_dim_meta_column3': { 'metadata_tags': { 'key': 'value' } },
+        }
+        # when
+        violations = collect_tree_node_dimension_violations(blueprint)
+        # then
+        self.assertEqual(violations, [
+            'no_dim_meta_column1: No dimension metadata tag specified.',
+            'no_dim_meta_column2: No dimension metadata tag specified.',
+            'no_dim_meta_column3: No dimension metadata tag specified.',
+        ])
 
 if __name__ == '__main__':
     unittest.main()
