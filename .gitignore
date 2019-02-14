@@ -1,5 +1,8 @@
 # Created by .ignore support plugin (hsz.mobi)
 
+# vim system files
+*.swp
+
 # output directory for to_transmart_copy.sh file
 out/
 
