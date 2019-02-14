@@ -1,5 +1,9 @@
 import unittest
-from scripts.validations import BlueprintValidations
+import os
+import tempfile
+from tests.file_helpers import create_tsv_file
+from scripts.validations import BlueprintValidations, get_blueprint_validatior_intilised_with_modifiers
+
 
 extra_dimensions = {'Diagnosis Id', 'Biosource Id', 'Biomaterial Id'}
 
@@ -66,6 +70,21 @@ class BlueprintValidationsTestCase(unittest.TestCase):
             # dimension matters
             'unknown_dim_meta_column3: "DIAGNOSIS ID" dimension is not recognised.'
         ])
+
+
+class BlueprintValidatorFromModFileTestCase(unittest.TestCase):
+
+    def test_init(self):
+        tmp_dir = tempfile.mkdtemp()
+        modifiers_table_file = os.path.join(tmp_dir, 'modifiers.tsv')
+        create_tsv_file(modifiers_table_file, [
+                ['modifier_path', 'modifier_cd', 'name_char', 'Data Type'],
+                ['\\mod1', 'MOD1', 'MoDiFiEr #1', 'CATEGORICAL'],
+                ['\\mod2', 'MOD2', 'modifier #2', 'NUMERICAL'],
+        ])
+        validator = get_blueprint_validatior_intilised_with_modifiers(modifiers_table_file)
+        self.assertTrue(validator)
+        self.assertEqual(validator.dimensions, {'patient', 'MoDiFiEr #1', 'modifier #2'})
 
 
 if __name__ == '__main__':

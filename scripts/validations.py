@@ -14,3 +14,10 @@ class BlueprintValidations:
 
     def _get_dimension(self, column_declarations):
         return column_declarations['metadata_tags']['dimension']
+
+
+def get_blueprint_validatior_intilised_with_modifiers(modifiers_table_file):
+    import pandas
+    mod_df = pandas.read_csv(modifiers_table_file, sep='\t')
+    modifier_dimension_names = set(mod_df['name_char'])
+    return BlueprintValidations(modifier_dimension_names)
