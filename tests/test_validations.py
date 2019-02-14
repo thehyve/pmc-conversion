@@ -48,5 +48,20 @@ class ValidationsTestCase(unittest.TestCase):
             'no_dim_meta_column3: No dimension metadata tag specified.',
         ])
 
+    def test_unknown_dimension_specified_violations(self):
+        # given
+        blueprint = {
+            'unknown_dim_meta_column1': { 'metadata_tags': { 'dimension': 'diagnosis' } },
+            'unknown_dim_meta_column2': { 'metadata_tags': { 'dimension': 'Patient Id' } },
+        }
+        # when
+        violations = collect_tree_node_dimension_violations(blueprint)
+        # then
+        self.assertEqual(violations, [
+            'unknown_dim_meta_column1: "diagnosis" dimension is not recognised.',
+            'unknown_dim_meta_column2: "Patient Id" dimension is not recognised.'
+        ])
+
+
 if __name__ == '__main__':
     unittest.main()
