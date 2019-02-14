@@ -5,15 +5,15 @@ class BlueprintValidations:
     def collect_tree_node_dimension_violations(self, blueprint):
         for column, declarations in blueprint.items():
             if self._no_dimension_field(declarations):
-                yield f"{column}: No dimension metadata tag specified."
+                yield f"{column}: No subject dimension metadata tag specified."
             elif self._get_dimension(declarations) not in self.dimensions:
-                yield f"{column}: \"{self._get_dimension(declarations)}\" dimension is not recognised."
+                yield f"{column}: \"{self._get_dimension(declarations)}\" subject dimension is not recognised."
 
     def _no_dimension_field(self, column_declarations):
-        return 'metadata_tags' not in column_declarations or 'dimension' not in column_declarations['metadata_tags']
+        return 'metadata_tags' not in column_declarations or 'subject_dimension' not in column_declarations['metadata_tags']
 
     def _get_dimension(self, column_declarations):
-        return column_declarations['metadata_tags']['dimension']
+        return column_declarations['metadata_tags']['subject_dimension']
 
 
 def get_blueprint_validatior_intilised_with_modifiers(modifiers_table_file):
