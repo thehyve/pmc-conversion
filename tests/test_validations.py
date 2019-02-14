@@ -28,7 +28,7 @@ class ValidationsTestCase(unittest.TestCase):
             },
         }
         # when
-        violations = collect_tree_node_dimension_violations(blueprint)
+        violations = list(collect_tree_node_dimension_violations(blueprint))
         # then
         self.assertEqual(violations, [])
 
@@ -40,7 +40,7 @@ class ValidationsTestCase(unittest.TestCase):
             'no_dim_meta_column3': { 'metadata_tags': { 'key': 'value' } },
         }
         # when
-        violations = collect_tree_node_dimension_violations(blueprint)
+        violations = list(collect_tree_node_dimension_violations(blueprint))
         # then
         self.assertEqual(violations, [
             'no_dim_meta_column1: No dimension metadata tag specified.',
@@ -56,7 +56,7 @@ class ValidationsTestCase(unittest.TestCase):
             'unknown_dim_meta_column3': { 'metadata_tags': { 'dimension': 'DIAGNOSIS ID' } },
         }
         # when
-        violations = collect_tree_node_dimension_violations(blueprint)
+        violations = list(collect_tree_node_dimension_violations(blueprint))
         # then
         self.assertEqual(violations, [
             'unknown_dim_meta_column1: "diagnosis" dimension is not recognised.',
