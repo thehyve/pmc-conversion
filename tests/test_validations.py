@@ -4,7 +4,7 @@ from scripts.validations import collect_tree_node_dimension_violations
 class ValidationsTestCase(unittest.TestCase):
 
     def test_valid_tree_dimensions(self):
-        # given valid dimensions in different character case
+        # given
         blueprint = {
             'patient_lvl_column': {
                 'metadata_tags': {
@@ -13,17 +13,17 @@ class ValidationsTestCase(unittest.TestCase):
             },
             'diagnosis_lvl_column': {
                 'metadata_tags': {
-                    'dimension': 'diagnosis id'
+                    'dimension': 'Diagnosis Id'
                 }
             },
             'biosource_lvl_column': {
                 'metadata_tags': {
-                    'dimension': 'BIOSOURCE ID'
+                    'dimension': 'Biosource Id'
                 }
             },
             'biomaterial_lvl_column': {
                 'metadata_tags': {
-                    'dimension': 'Biomaterial ID'
+                    'dimension': 'Biomaterial Id'
                 }
             },
         }
@@ -53,13 +53,16 @@ class ValidationsTestCase(unittest.TestCase):
         blueprint = {
             'unknown_dim_meta_column1': { 'metadata_tags': { 'dimension': 'diagnosis' } },
             'unknown_dim_meta_column2': { 'metadata_tags': { 'dimension': 'Patient Id' } },
+            'unknown_dim_meta_column3': { 'metadata_tags': { 'dimension': 'DIAGNOSIS ID' } },
         }
         # when
         violations = collect_tree_node_dimension_violations(blueprint)
         # then
         self.assertEqual(violations, [
             'unknown_dim_meta_column1: "diagnosis" dimension is not recognised.',
-            'unknown_dim_meta_column2: "Patient Id" dimension is not recognised.'
+            'unknown_dim_meta_column2: "Patient Id" dimension is not recognised.',
+            # dimension matters
+            'unknown_dim_meta_column3: "DIAGNOSIS ID" dimension is not recognised.'
         ])
 
 

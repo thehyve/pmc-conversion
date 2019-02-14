@@ -1,4 +1,4 @@
-dimensions = {'patient', 'diagnosis id', 'biosource id', 'biomaterial id'}
+dimensions = {'patient', 'Diagnosis Id', 'Biosource Id', 'Biomaterial Id'}
 
 
 def collect_tree_node_dimension_violations(blueprint):
@@ -6,7 +6,7 @@ def collect_tree_node_dimension_violations(blueprint):
     for column, declarations in blueprint.items():
         if _no_dimension_field(declarations):
             violations.append(f"{column}: No dimension metadata tag specified.")
-        elif _get_dimension(declarations).lower() not in dimensions:
+        elif _get_dimension(declarations) not in dimensions:
             violations.append(f"{column}: \"{_get_dimension(declarations)}\" dimension is not recognised.")
     return violations
 
