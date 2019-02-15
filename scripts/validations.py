@@ -4,6 +4,8 @@ class BlueprintValidations:
 
     def collect_tree_node_dimension_violations(self, blueprint):
         for column, declarations in blueprint.items():
+            if 'label' in declarations and declarations['label'] == 'MODIFIER':
+                continue
             if self._no_dimension_field(declarations):
                 yield f"{column}: No subject dimension metadata tag specified."
             elif self._get_dimension(declarations) not in self.dimensions:
