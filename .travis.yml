@@ -1,0 +1,13 @@
+language: python
+matrix:
+  include:
+    - python: 3.7
+      dist: xenial
+      sudo: true
+
+install:
+    - pip install -r requirements.txt
+
+script:
+    - ./run_tests.sh
+    - ./to_transmart_copy.sh
