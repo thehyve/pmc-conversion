@@ -6,7 +6,10 @@ import click
 import chardet
 import pandas as pd
 import datetime as dt
+import logging
+from scripts.validations import get_blueprint_validator_initialised_with_modifiers
 
+logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option('--csr_data_file', type=click.Path(exists=True))
@@ -21,6 +24,12 @@ import datetime as dt
 @click.option('--save_batch_study', is_flag=True)
 def main(csr_data_file, study_registry_data_file, output_dir,
          config_dir, blueprint, modifiers, study_id, top_node, security_required, save_batch_study):
+    modifier_file = os.path.join(config_dir, modifiers)
+    blueprint_file = os.path.join(config_dir, blueprint)
+    with open(blueprint_file, 'r') as bpf:
+        bp = json.load(bpf)
+    check_if_blueprint_valid(modifier_file, bp)
+
     # Process Central subject registry data
     df = pd.read_csv(csr_data_file, sep='\t', encoding=get_encoding(csr_data_file), dtype=object)
     df = add_modifiers(df)
@@ -35,7 +44,6 @@ def main(csr_data_file, study_registry_data_file, output_dir,
         study.security_required = True
 
     study.Clinical.add_datafile(filename='csr_study.txt', dataframe=df)
-    modifier_file = os.path.join(config_dir, modifiers)
     try:
         study.Clinical.Modifiers.df = pd.read_csv(modifier_file, sep='\t')
     except FileNotFoundError as fnfe:
@@ -43,7 +51,6 @@ def main(csr_data_file, study_registry_data_file, output_dir,
         # logger.error('')
         sys.exit(1)
 
-    blueprint_file = os.path.join(config_dir, blueprint)
     try:
         study.apply_blueprint(blueprint_file, omit_missing=True)
         study = add_meta_data(study)
@@ -56,8 +63,6 @@ def main(csr_data_file, study_registry_data_file, output_dir,
     std_reg = pd.read_csv(study_registry_data_file, sep='\t', encoding=get_encoding(study_registry_data_file),
                           dtype=object)
     study_filename = 'study_data.txt'
-    with open(blueprint_file, 'r') as bpf:
-        bp = json.load(bpf)
     study_data, study_col_map = generate_study_column_mapping(std_reg, study_filename, bp)
 
     # Combine CSR and study registry data in study object
@@ -77,6 +82,16 @@ def main(csr_data_file, study_registry_data_file, output_dir,
     tm_study.to_disk()
 
     sys.exit(0)
+
+
+def check_if_blueprint_valid(modifier_file, blueprint):
+    logger.info('Validating blueprint file')
+    blueprint_validator = get_blueprint_validator_initialised_with_modifiers(modifier_file)
+    violations = list(blueprint_validator.collect_tree_node_dimension_violations(blueprint))
+    if violations:
+       all_err_messages = '\n'.join(violations)
+       logger.error('{} tree node violations have found:\n{}'.format(len(violations), all_err_messages))
+       sys.exit(1)
 
 
 def generate_study_column_mapping(study, filename, blueprint):
