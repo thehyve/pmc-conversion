@@ -7,7 +7,7 @@ import chardet
 import pandas as pd
 import datetime as dt
 import logging
-from scripts.validations import get_blueprint_validatior_intilised_with_modifiers
+from scripts.validations import get_blueprint_validator_initialised_with_modifiers
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ def main(csr_data_file, study_registry_data_file, output_dir,
 
 def check_if_blueprint_valid(modifier_file, blueprint):
     logger.info('Validating blueprint file')
-    blueprint_validator = get_blueprint_validatior_intilised_with_modifiers(modifier_file)
+    blueprint_validator = get_blueprint_validator_initialised_with_modifiers(modifier_file)
     violations = list(blueprint_validator.collect_tree_node_dimension_violations(blueprint))
     if violations:
        all_err_messages = '\n'.join(violations)

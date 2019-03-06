@@ -2,7 +2,7 @@ import unittest
 import os
 import tempfile
 from tests.file_helpers import create_tsv_file
-from scripts.validations import BlueprintValidations, get_blueprint_validatior_intilised_with_modifiers
+from scripts.validations import BlueprintValidations, get_blueprint_validator_initialised_with_modifiers
 
 
 extra_dimensions = {'Diagnosis Id', 'Biosource Id', 'Biomaterial Id'}
@@ -82,7 +82,7 @@ class BlueprintValidatorFromModFileTestCase(unittest.TestCase):
                 ['\\mod1', 'MOD1', 'MoDiFiEr #1', 'CATEGORICAL'],
                 ['\\mod2', 'MOD2', 'modifier #2', 'NUMERICAL'],
         ])
-        validator = get_blueprint_validatior_intilised_with_modifiers(modifiers_table_file)
+        validator = get_blueprint_validator_initialised_with_modifiers(modifiers_table_file)
         self.assertTrue(validator)
         self.assertEqual(validator.dimensions, {'patient', 'MoDiFiEr #1', 'modifier #2'})
 
