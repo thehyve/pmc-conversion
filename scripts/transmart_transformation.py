@@ -24,6 +24,11 @@ logger = logging.getLogger(__name__)
 @click.option('--save_batch_study', is_flag=True)
 def main(csr_data_file, study_registry_data_file, output_dir,
          config_dir, blueprint, modifiers, study_id, top_node, security_required, save_batch_study):
+         transmart_transformation(csr_data_file, study_registry_data_file, output_dir,
+         config_dir, blueprint, modifiers, study_id, top_node, security_required, save_batch_study)
+
+def transmart_transformation(csr_data_file, study_registry_data_file, output_dir,
+         config_dir, blueprint, modifiers, study_id, top_node, security_required, save_batch_study):
     modifier_file = os.path.join(config_dir, modifiers)
     blueprint_file = os.path.join(config_dir, blueprint)
     with open(blueprint_file, 'r') as bpf:
@@ -80,8 +85,6 @@ def main(csr_data_file, study_registry_data_file, output_dir,
     # omit_fas=True will create study node with FA instead of FAS for c_visualattributes
     tm_study = tmtk.toolbox.SkinnyExport(study, output_dir, omit_fas=True)
     tm_study.to_disk()
-
-    sys.exit(0)
 
 
 def check_if_blueprint_valid(modifier_file, blueprint):

@@ -10,7 +10,6 @@ install:
 
 script:
     - ./run_tests.sh
-    - ./to_transmart_copy.sh
 
 after_success:
   - codecov
