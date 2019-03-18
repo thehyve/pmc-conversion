@@ -7,7 +7,7 @@ import chardet
 import pandas as pd
 import datetime as dt
 import logging
-from scripts.validations import get_blueprint_validator_initialised_with_modifiers
+from validations import get_blueprint_validator_initialised_with_modifiers
 
 logger = logging.getLogger(__name__)
 
