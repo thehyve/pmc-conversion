@@ -97,7 +97,7 @@ def check_if_blueprint_valid(modifier_file, blueprint):
        sys.exit(1)
 
 
-def generate_study_column_mapping(study, filename, blueprint):
+def generate_study_column_mapping(study_registry, filename, blueprint):
     col_map = pd.DataFrame(columns=['filename', 'cat_cd', 'col_num', 'data_label', 'col5', 'col6', 'concept_type'],
                            data={'filename': [filename], 'cat_cd': ['Subjects'], 'col_num': [1],
                                  'data_label': ['SUBJ_ID'],
@@ -105,9 +105,9 @@ def generate_study_column_mapping(study, filename, blueprint):
                            )
 
     # Set index to individual and update column index to multiindex (on per study basis)
-    study_ = set_study_index(study)
+    study_ = set_study_index(study_registry)
 
-    # Build column mapping by looping over studies, and or each study looping over the columns
+    # Build column mapping by looping over studies, and for each study looping over the columns
     # col_num starts at 2 as the first column will be the SUBJ_ID
     col_num = 2
     for study_id in study_.columns.get_level_values(0).unique():
