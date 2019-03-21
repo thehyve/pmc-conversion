@@ -183,19 +183,31 @@ def add_modifiers(df):
 
 
 def add_meta_data(study):
-    date = dt.datetime.now().strftime('%d-%m-%Y')
-    study.ensure_metadata()
+
+    """
+    Add metadata about study entity and loading date to study.Tags;
+    other entities (patient, diagnosis, biosource, biomaterial) obtain their metadata tags
+    automatically when applying the blueprint to the study object
+    """
 
     header = study.Tags.header
-    study_meta_data = [
+
+    # Check that study.Tags is present
+
+    study.ensure_metadata()
+
+
+    # Add loading date to metadata
+    date = dt.datetime.now().strftime('%d-%m-%Y')
+    study_date_tag = [
         ['\\'],
         ['Load date'],
         [date],
         ['3']
     ]
 
-    meta_data_df = pd.DataFrame.from_items(list((zip(header, study_meta_data))))
-    study.Tags.df = study.Tags.df.append(meta_data_df, ignore_index=True)
+    date_meta_data_df = pd.DataFrame.from_items(list((zip(header, study_date_tag))))
+    study.Tags.df = study.Tags.df.append(date_meta_data_df, ignore_index=True)
 
     return study
 
