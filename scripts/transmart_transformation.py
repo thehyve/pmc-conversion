@@ -58,7 +58,7 @@ def transmart_transformation(csr_data_file, study_registry_data_file, output_dir
 
     try:
         study.apply_blueprint(blueprint_file, omit_missing=True)
-        study = add_meta_data(study)
+        study = add_date_tag(study)
     except FileNotFoundError as fnfe:
         print('Blueprint file, {} not found. {}'.format(blueprint_file, fnfe))
         # logger.error()
@@ -182,12 +182,10 @@ def add_modifiers(df):
     return df
 
 
-def add_meta_data(study):
+def add_date_tag(study):
 
     """
-    Add metadata about study entity and loading date to study.Tags;
-    other entities (patient, diagnosis, biosource, biomaterial) obtain their metadata tags
-    automatically when applying the blueprint to the study object
+    Add loading date to study.Tags
     """
 
     header = study.Tags.header
@@ -195,7 +193,6 @@ def add_meta_data(study):
     # Check that study.Tags is present
 
     study.ensure_metadata()
-
 
     # Add loading date to metadata
     date = dt.datetime.now().strftime('%d-%m-%Y')
