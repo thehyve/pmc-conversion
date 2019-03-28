@@ -68,7 +68,7 @@ def transmart_transformation(csr_data_file, study_registry_data_file, output_dir
     std_reg = pd.read_csv(study_registry_data_file, sep='\t', encoding=get_encoding(study_registry_data_file),
                           dtype=object)
     study_filename = 'study_data.txt'
-    study_data, study_col_map, study_tags = generate_study_column_mapping(std_reg, study_filename, bp)
+    study_data, study_col_map, study_tags = generate_study_specific_mappings(std_reg, study_filename, bp)
 
     # Combine CSR and study registry data in study object
     study.Clinical.add_datafile(filename=study_filename, dataframe=study_data)
@@ -101,7 +101,7 @@ def check_if_blueprint_valid(modifier_file, blueprint):
        sys.exit(1)
 
 
-def generate_study_column_mapping(study_registry, filename, blueprint):
+def generate_study_specific_mappings(study_registry, filename, blueprint):
 
     """
     Generate dataframes containing study-specific information as follows:
