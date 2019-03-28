@@ -186,7 +186,7 @@
     "force_categorical": "N",
     "word_map": {}
   },
-  "DATADICTNIONARY": {
+  "DATADICTIONARY": {
     "path": "05. Study information",
     "label": "Study datadictionary",
     "metadata_tags": {
