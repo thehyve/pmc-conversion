@@ -58,7 +58,7 @@ def transmart_transformation(csr_data_file, study_registry_data_file, output_dir
 
     try:
         study.apply_blueprint(blueprint_file, omit_missing=True)
-        study = add_meta_data(study)
+        study = add_date_tag(study)
     except FileNotFoundError as fnfe:
         print('Blueprint file, {} not found. {}'.format(blueprint_file, fnfe))
         # logger.error()
@@ -68,15 +68,19 @@ def transmart_transformation(csr_data_file, study_registry_data_file, output_dir
     std_reg = pd.read_csv(study_registry_data_file, sep='\t', encoding=get_encoding(study_registry_data_file),
                           dtype=object)
     study_filename = 'study_data.txt'
-    study_data, study_col_map = generate_study_column_mapping(std_reg, study_filename, bp)
+    study_data, study_col_map, study_tags = generate_study_specific_mappings(std_reg, study_filename, bp)
 
     # Combine CSR and study registry data in study object
     study.Clinical.add_datafile(filename=study_filename, dataframe=study_data)
+    # Add studies column mapping info to study object
     study_cm = study.Clinical.ColumnMapping.df.copy()
     study_cm = study_cm.drop(index=(study_filename,)).reset_index(drop=True)
     study_cm = study_cm.append(study_col_map, ignore_index=True)
     col_map_index = tmtk.utils.Mappings.column_mapping_header[0:3:2]
     study.Clinical.ColumnMapping.df = study_cm.set_index(col_map_index, drop=False)
+    # Add studies metadata tags to study object
+    study_tags.columns = study.Tags.header
+    study.Tags.df = study.Tags.df.append(study_tags, ignore_index=True)
 
     if save_batch_study:
         study_dir = os.path.dirname(csr_data_file)
@@ -97,17 +101,33 @@ def check_if_blueprint_valid(modifier_file, blueprint):
        sys.exit(1)
 
 
-def generate_study_column_mapping(study, filename, blueprint):
+def generate_study_specific_mappings(study_registry, filename, blueprint):
+
+    """
+    Generate dataframes containing study-specific information as follows:
+    - col_map       -> individual studies column mapping info, to be added to study.Clinical.ColumnMapping.df
+    - study_tags    -> individual studies metadata info, to be added to study.Tags.df
+    - study_        -> same as study_registry, except 1st column is INDIVIDUAL_ID and other columns
+                       are named STUDY_ID|<column name> (in study_registry it's <column name>|STUDY_ID)
+
+    Other entities (patient, diagnosis, biosource, biomaterial) obtain column mapping and metadata tags info
+    automatically when the blueprint is applied to the study object
+    """
+
     col_map = pd.DataFrame(columns=['filename', 'cat_cd', 'col_num', 'data_label', 'col5', 'col6', 'concept_type'],
                            data={'filename': [filename], 'cat_cd': ['Subjects'], 'col_num': [1],
                                  'data_label': ['SUBJ_ID'],
                                  'col5': [''], 'col6': [''], 'concept_type': ['']}
                            )
 
-    # Set index to individual and update column index to multiindex (on per study basis)
-    study_ = set_study_index(study)
+    study_tags = pd.DataFrame(columns=['concept_path', 'title', 'description', 'weight'],
+                              data={'concept_path': [], 'title': [], 'description': [], 'weight': []}
+                              )
 
-    # Build column mapping by looping over studies, and or each study looping over the columns
+    # Set index to individual and update column index to multiindex (on per study basis)
+    study_ = set_study_index(study_registry)
+
+    # Build column mapping by looping over studies, and for each study looping over the columns
     # col_num starts at 2 as the first column will be the SUBJ_ID
     col_num = 2
     for study_id in study_.columns.get_level_values(0).unique():
@@ -128,9 +148,24 @@ def generate_study_column_mapping(study, filename, blueprint):
 
         for col in subset.columns:
             if col in blueprint:
-                cat_cd = '+'.join([blueprint[col]['path'], acronym])
+
+                #shared between column mapping & metadata tags
                 data_label = blueprint[col]['label']
+
+                # column mapping-specific
+                cat_cd = '+'.join([blueprint[col]['path'], acronym])
                 concept_type = 'CATEGORICAL' if blueprint[col]['force_categorical'] == 'Y' else ''
+
+                # metadata tags-specific
+                concept_path = '\\'.join(blueprint[col]['path'].split('+'))
+                study_path = '\\' + '\\'.join([concept_path, acronym, data_label])
+                description = blueprint[col]['metadata_tags']['subject_dimension']
+
+                # NOTE: study_tags info added here rather than below with column mapping to prevent incomplete rows in study.Tags if no mapping is found
+                study_tags = study_tags.append({'concept_path': study_path,
+                                                'title': 'subject_dimension',
+                                                'description': description,
+                                                'weight': '5'}, ignore_index=True)
             else:
                 print('Error, no mapping found for {} in blueprint.json. Setting to OMIT'.format(col))
                 cat_cd = ''
@@ -151,7 +186,7 @@ def generate_study_column_mapping(study, filename, blueprint):
     study_.columns = ['|'.join(col) for col in study_.columns]
     study_ = study_.reset_index(drop=False)
 
-    return study_, col_map
+    return study_, col_map, study_tags
 
 
 def set_study_index(study):
@@ -182,20 +217,29 @@ def add_modifiers(df):
     return df
 
 
-def add_meta_data(study):
-    date = dt.datetime.now().strftime('%d-%m-%Y')
-    study.ensure_metadata()
+def add_date_tag(study):
+
+    """
+    Add loading date to study.Tags
+    """
 
     header = study.Tags.header
-    study_meta_data = [
+
+    # Check that study.Tags is present
+
+    study.ensure_metadata()
+
+    # Add loading date to metadata
+    date = dt.datetime.now().strftime('%d-%m-%Y')
+    study_date_tag = [
         ['\\'],
         ['Load date'],
         [date],
         ['3']
     ]
 
-    meta_data_df = pd.DataFrame.from_items(list((zip(header, study_meta_data))))
-    study.Tags.df = study.Tags.df.append(meta_data_df, ignore_index=True)
+    date_meta_data_df = pd.DataFrame.from_items(list((zip(header, study_date_tag))))
+    study.Tags.df = study.Tags.df.append(date_meta_data_df, ignore_index=True)
 
     return study
 

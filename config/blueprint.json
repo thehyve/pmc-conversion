@@ -134,7 +134,7 @@
   },
   "IC_LINKING_EXT": {
     "path": "01. Patient_information+Informed_consent",
-    "label": "06. Informed concent linking external database",
+    "label": "06. Informed consent linking external database",
     "metadata_tags": {
       "subject_dimension": "patient"
     },
@@ -143,7 +143,7 @@
   },
   "REPORT_HER_SUSC": {
     "path": "01. Patient_information+Informed_consent",
-    "label": "07. Report heriditary susceptibility",
+    "label": "07. Report hereditary susceptibility",
     "metadata_tags": {
       "subject_dimension": "patient"
     },
@@ -186,7 +186,7 @@
     "force_categorical": "N",
     "word_map": {}
   },
-  "DATADICTNIONARY": {
+  "DATADICTIONARY": {
     "path": "05. Study information",
     "label": "Study datadictionary",
     "metadata_tags": {
