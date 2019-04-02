@@ -81,6 +81,7 @@ modifiers = modifiers.txt
 [TransmartApiTask]
 keycloak_url = https://somekeycloak.net/auth/realms/transmart-name
 transmart_url = https://transmart.thehyve.net
+gb_backend_url = https://gb-backend.thehyve.net
 client_id = transmart
 client_secret = ''
 transmart_username = admin

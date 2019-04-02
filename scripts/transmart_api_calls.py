@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import requests
+import asyncio
 
 
 class TransmartApiException(Exception):
@@ -9,12 +10,13 @@ class TransmartApiException(Exception):
 
 class TransmartApiCalls(object):
 
-    def __init__(self, keycloak_url, username, password, transmart_url, client_id, client_secret):
+    def __init__(self, keycloak_url, username, password, transmart_url, gb_backend_url, client_id, client_secret):
         self.url = keycloak_url
         self.username = username
         self.password = password
         self.token = None
         self.tm_url = transmart_url
+        self.gb_backend_url = gb_backend_url
         self.client_id = client_id
         self.client_secret = client_secret
 
@@ -57,10 +59,10 @@ class TransmartApiCalls(object):
 
     def scan_subscription_queries(self):
         """
-        Triggers the scan of stored set queries in TranSMART.
+        Triggers the scan of stored set queries in Gb Backend app.
 
         """
-        self.post('/v2/queries/sets/scan')
+        self.post('/queries/sets/scan', server_url=self.gb_backend_url)
 
 
     def clear_tree_nodes_cache(self):
@@ -84,13 +86,43 @@ class TransmartApiCalls(object):
 
     def after_data_loading(self):
         """
-        Trigger a clear of the caches of TranSMART and scans for query subscriptions
+        Triggers a clear of the caches of TranSMART and scans for query subscriptions
         """
-        Console.info('After data loading update, clearing caches. Scanning query subscriptions')
+        Console.info('After data loading update, clearing and rebuilding caches.')
         self.get('/v2/admin/system/after_data_loading_update')
 
 
-    def get(self, path):
+    def update_status(self):
+        """
+        Gets a status report about the current after data loading update task
+        """
+        Console.info('After data loading update status check.')
+        response = self.get('/v2/admin/system/update_status')
+        return response.json()
+
+
+    async def check_status(self, n, sleep=30.0):
+        """
+        Checks the after data loading task status periodically every $sleep seconds
+        Waits max `sleep*n` seconds for the status to be `COMPLETED` or `FAILED`
+        :param n: max status call retrials
+        :param sleep: number of seconds before update_status is called again, default: 30s.
+        """
+        for i in range(n):
+            update_status = self.update_status()
+            if update_status['status'] == 'COMPLETED':
+                return
+            elif update_status['status'] == 'FAILED':
+                Console.error('After data loading update failed. Error: %s' % (update_status['message']))
+                raise TransmartApiException('After data loading update failed. Error: %s' % (update_status['message']))
+            Console.info('%s/%s Current status of the update: %s. Sleeping for %s seconds ...' %
+                         (i, n, update_status['status'], sleep))
+            await asyncio.sleep(sleep)
+        Console.error('After data loading update took too long: %s seconds. Transmart Api task interrupted.' % (n*sleep))
+        raise TransmartApiException('Timeout. Not able to finish an update task within %s seconds.' % (n*sleep))
+
+
+    def get(self, path, **kwargs):
         """
         Performs a call to the server.
         :param path: the API path to call.
@@ -101,20 +133,20 @@ class TransmartApiCalls(object):
             'Accept': 'application/json',
             'Authorization': 'Bearer ' + str(token)
         }
-        url = self.tm_url + path
+        url = kwargs.get('server_url', self.tm_url) + path
         response = None
-        Console.warning(url)
+        Console.info('Making a get call to: %s' % url)
         try:
             response = requests.get(url, headers=headers)
             if not response.ok:
                 response.raise_for_status()
             return response
         except Exception as e:
-            Console.error('Retrieving %s failed: %s' % (path, response))
+            Console.error('Retrieving %s failed: %s' % (url, response))
             raise TransmartApiException(e)
 
 
-    def post(self, path):
+    def post(self, path, **kwargs):
         """
         Performs a post call to the server
         :param path: the API path to call
@@ -125,15 +157,16 @@ class TransmartApiCalls(object):
             'Accept': 'application/json',
             'Authorization': 'Bearer ' + str(token)
         }
-        url = self.tm_url + path
+        url = kwargs.get('server_url', self.tm_url) + path
         response = None
+        Console.info('Making a post call to: %s' % url)
         try:
             response = requests.post(url, headers=headers)
             if not response.ok:
                 response.raise_for_status()
             return response
         except Exception as e:
-            Console.error('Retrieving %s failed: %s' % (path, response))
+            Console.error('Retrieving %s failed: %s' % (url, response))
             raise TransmartApiException(e)
 
 
