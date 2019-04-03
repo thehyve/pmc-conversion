@@ -4,6 +4,7 @@ import os
 import luigi
 import time
 import threading
+import asyncio
 
 from .luigi_commons import BaseTask, ExternalProgramTask
 
@@ -234,23 +235,31 @@ class TransmartApiTask(BaseTask):
     transmart_url = luigi.Parameter(description='URL of the tranSMART instance', significant=False)
     transmart_username = luigi.Parameter(description='Username for an admin account', significant=False)
     transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
+    gb_backend_url = luigi.Parameter(description='URL of the gb backend instance', significant=False)
+
+    max_status_check_retrial = 240
 
     def run(self):
         reload_obj = TransmartApiCalls(keycloak_url=self.keycloak_url,
                                        username=self.transmart_username,
                                        password=self.transmart_password,
                                        transmart_url=self.transmart_url,
+                                       gb_backend_url=self.gb_backend_url,
                                        client_id=self.client_id,
                                        client_secret=self.client_secret)
 
-        # logger.info('Clearing tree cache')
-        # reload_obj.clear_tree_nodes_cache()
-        # logger.info('Rebuilding tree cache')
-        # reload_obj.rebuild_tree_cache()
-        # logger.info('Scanning for new subscriptions')
-        # reload_obj.scan_subscription_queries()
-        logger.info('After data loading update; clearing caches and scanning query subscriptions')
+        logger.info('After data loading update; clearing and rebuilding caches, rebuilding subject sets')
         reload_obj.after_data_loading()
+
+        logger.info('Waiting for the update to complete ...')
+        loop = asyncio.get_event_loop()
+        try:
+            loop.run_until_complete(reload_obj.check_status(self.max_status_check_retrial))
+        finally:
+            loop.close()
+
+        logger.info('Scanning for new subscriptions')
+        reload_obj.scan_subscription_queries()
 
 
 class CbioportalDataValidation(ExternalProgramTask):
