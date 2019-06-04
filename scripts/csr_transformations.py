@@ -510,7 +510,8 @@ def calculate_age_at_diagnosis(csr, colname, date_format='%Y-%m-%d'):
         except TypeError:
             logger.error('Failed to calculate age at diagnosis for {}. Diagnosis date: {} - Birth date: {}'.\
                          format(individual, first_diagnosis_date, birth_date.values[0]))
-            error_found = True
+            #error_found = True
+            csr.loc[(csr[ind] == individual) & (csr[dia].isnull()), colname] = pd.np.nan
 
     return error_found
 
