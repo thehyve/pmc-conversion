@@ -1,6 +1,9 @@
 import unittest
 import os
-import csr_transformations as ct
+#import csr_transformations as ct
+import scripts.csr_transformations as ct
+from pathlib import Path
+from definitions import ROOT_DIR, TEST_DATA_DIR
 
 import tempfile
 
@@ -10,10 +13,10 @@ import tempfile
 class CsrTransformationTests(unittest.TestCase):
 
     def setUp(self):
-        self.default_data = './test_data/default_data'
-        self.dummy_test_data = './test_data/dummy_data'
-        self.test_config = './test_data/test_config'
-        self.config = './config'
+        self.default_data = TEST_DATA_DIR.joinpath('default_data')
+        self.dummy_test_data = TEST_DATA_DIR.joinpath('dummy_data')
+        self.test_config = TEST_DATA_DIR.joinpath('test_config')
+        self.config = ROOT_DIR.joinpath('config')
 
     def tearDown(self):
         pass
@@ -64,8 +67,6 @@ class CsrTransformationTests(unittest.TestCase):
         file_prop_dict = ct.read_dict_from_file('file_headers.json', self.config)
         value = ct.validate_source_file(file_prop_dict, source_file, 'file_headers.json')
         self.assertTrue(value)
-
-
 
     def test_get_overlapping_columns(self):
         file_prop_dict = ct.read_dict_from_file('file_headers.json', self.config)
