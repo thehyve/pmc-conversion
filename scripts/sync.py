@@ -75,6 +75,9 @@ def ensure_checksum_matches(data_checksum_files_pairs):
 
 
 def scan_files_checksums(dir_):
+    """
+    Yield all data files with their checksums based on file content.
+    """
     if not os.path.exists(dir_):
         emsg = '{} is not a directory.'.format(dir_)
         logger.error(emsg)

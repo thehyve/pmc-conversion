@@ -9,10 +9,14 @@ from scripts import sync
 
 class SyncTests(unittest.TestCase):
     def setUp(self):
+        """
+         Create 3 data files with checksum files one of which is wrong.
+        """
         self.test_dir = tempfile.mkdtemp()
 
         self.checksum_matches = path.join(self.test_dir, 'checksum_matches')
         makedirs(self.checksum_matches)
+
         self.data_file1 = path.join(self.checksum_matches, 'data1.txt')
         with open(self.data_file1, 'w') as data_file1:
             data_file1.write('data comes here')
@@ -57,7 +61,7 @@ class SyncTests(unittest.TestCase):
             'data2.txt.sha1'
         ]))
 
-        self.assertTrue(len(result), 2)
+        self.assertEqual(len(result), 2)
         self.assertTrue(('data.txt', 'data.txt.sha1') in result)
         self.assertTrue(('data2.txt', 'data2.txt.sha1') in result)
 
@@ -72,7 +76,7 @@ class SyncTests(unittest.TestCase):
 
     def test_ensure_checksum_matches(self):
         result = list(sync.ensure_checksum_matches([sync.DataChecksumFilesPair(self.data_file1, self.checksum_file1)]))
-        self.assertTrue(1, len(result))
+        self.assertEqual(len(result), 1)
         self.assertTrue((self.data_file1, self.checksum1) in result)
 
         with self.assertRaises(ValueError) as ctx1:
@@ -81,9 +85,10 @@ class SyncTests(unittest.TestCase):
 
     def test_read_files_checksums(self):
         result = list(sync.scan_files_checksums(self.test_dir))
-        self.assertTrue(len(result), 2)
-        self.assertTrue((self.data_file1, self.checksum1) in result)
-        self.assertTrue((self.data_file3, self.checksum3) in result)
+        self.assertEqual(len(result), 3)
+        self.assertIn((self.data_file1, self.checksum1), result)
+        self.assertIn((self.data_file2, self.checksum2), result)
+        self.assertIn((self.data_file3, self.checksum3), result)
 
     def test_make_path_relative(self):
         self.assertEqual('def/data.txt', sync.make_path_relative('/abc', '/abc/def/data.txt'))
