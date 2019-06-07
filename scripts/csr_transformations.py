@@ -496,12 +496,18 @@ def calculate_age_at_diagnosis(csr, colname, date_format='%Y-%m-%d'):
 
     for individual in dt_csr[ind].unique():
         subset = dt_csr[dt_csr[ind]==individual]
+
+        # Skip if individual does not have diagnosis data
         if subset.empty:
             continue
+
         subset = subset.sort_values('DIAGNOSIS_DATE')
         birth_date = subset.loc[(subset['BIRTH_DATE'].notnull()) & (subset[dia].isnull()),'BIRTH_DATE']
         first_diagnosis_date = subset.loc[subset.first_valid_index(),'DIAGNOSIS_DATE']
-        if birth_date.empty:
+        if birth_date.empty or pd.isnull(first_diagnosis_date):
+            logger.warning('Assigning NaN age at diagnosis for {}. Diagnosis date: {} - Birth date: {}'. \
+                         format(individual, first_diagnosis_date, birth_date.values[0]))
+            csr.loc[(csr[ind] == individual) & (csr[dia].isnull()), colname] = pd.np.nan
             continue
         try:
             #days = (first_diagnosis_date - birth_date).dt.days.values[0]

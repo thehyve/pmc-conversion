@@ -1,8 +1,11 @@
-import unittest
 import os
-import csr_transformations as ct
-
 import tempfile
+import unittest
+
+import pandas as pd
+
+import scripts.csr_transformations as ct
+from definitions import ROOT_DIR, TEST_DATA_DIR, TEST_EXPECTED_OUT_DIR
 
 
 # TODO: Refactor test cases to not rely on production config
@@ -10,10 +13,11 @@ import tempfile
 class CsrTransformationTests(unittest.TestCase):
 
     def setUp(self):
-        self.default_data = './test_data/default_data'
-        self.dummy_test_data = './test_data/dummy_data'
-        self.test_config = './test_data/test_config'
-        self.config = './config'
+        self.default_data = TEST_DATA_DIR.joinpath('default_data')
+        self.dummy_test_data = TEST_DATA_DIR.joinpath('dummy_data')
+        self.missing_diag_data = TEST_DATA_DIR.joinpath('missing_diagnosis_date')
+        self.test_config = TEST_DATA_DIR.joinpath('test_config')
+        self.config = ROOT_DIR.joinpath('config')
 
     def tearDown(self):
         pass
@@ -45,6 +49,39 @@ class CsrTransformationTests(unittest.TestCase):
         output_study_filename_path = os.path.join(output_dir, output_study_filename)
         self.assertTrue(os.path.exists(output_study_filename_path))
 
+    def test_calculate_age_at_diagnosis(self):
+        """Test that the CSR pipeline correctly handles missing first diagnosis date data
+        by comparing the resulting csr_transformation_data.tsv file with the expected output."""
+        # given
+        output_dir = tempfile.mkdtemp()
+        output_filename = 'csr_transformation_data.tsv'
+        output_study_filename = 'study_registry.tsv'
+
+        # when
+        ct.csr_transformation(
+            input_dir=self.missing_diag_data,
+            output_dir=output_dir,
+
+            config_dir=self.config,
+            data_model='data_model.json',
+            column_priority='column_priority.json',
+            file_headers='file_headers.json',
+            columns_to_csr='columns_to_csr.json',
+
+            output_filename=output_filename,
+            output_study_filename=output_study_filename
+        )
+
+        # then
+        reference_df_path = TEST_EXPECTED_OUT_DIR.joinpath('missing_diagnosis_date', 'csr_transformation_data.tsv')
+        reference_df = pd.read_csv(reference_df_path, sep='\t')
+        reference_df = reference_df.reindex(sorted(reference_df.columns), axis=1)
+
+        csr_output_path = os.path.join(output_dir, output_filename)
+        csr_df = pd.read_csv(csr_output_path, sep='\t')
+        csr_df = csr_df.reindex(sorted(csr_df.columns), axis=1)
+        self.assertTrue(reference_df.equals(csr_df))
+
     def test_read_dict_from_file(self):
         ref_dict = {'patient': ['age', 'date', 'gender'],
                     'single_item': 'item',
@@ -64,8 +101,6 @@ class CsrTransformationTests(unittest.TestCase):
         file_prop_dict = ct.read_dict_from_file('file_headers.json', self.config)
         value = ct.validate_source_file(file_prop_dict, source_file, 'file_headers.json')
         self.assertTrue(value)
-
-
 
     def test_get_overlapping_columns(self):
         file_prop_dict = ct.read_dict_from_file('file_headers.json', self.config)
