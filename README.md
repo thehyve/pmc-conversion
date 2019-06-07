@@ -11,7 +11,7 @@ Likely later:
 ## Installation
 
 ``` bash
-$ python -m pip install -r requirements.txt
+$ python -m pip install -r requirements/requirements.txt
 ```
 
 ## File system requirements
