@@ -1,12 +1,6 @@
 # PMC conversion
 
-This conversion pipeline uses features of
-- Python 3.6+
-- luigi >= 2.7
-
-Likely later:
-- _pandas_ >= 0.21.0.
-- tmtk >= 0.4.0
+This conversion pipeline requires Python 3.6.
 
 ## Installation
 
