@@ -15,9 +15,10 @@ from scripts.csr_build_dataframe import add_biosource_identifiers, merge_entity_
     build_study_registry
 
 ST_COLUMNS = {'STUDY_ID'}
-PK_COLUMNS = {'INDIVIDUAL_ID','DIAGNOSIS_ID','BIOMATERIAL_ID','BIOSOURCE_ID'}
+PK_COLUMNS = {'INDIVIDUAL_ID', 'DIAGNOSIS_ID', 'BIOMATERIAL_ID', 'BIOSOURCE_ID'}
 
 logger = logging.getLogger(__name__)
+
 
 def read_dict_from_file(filename, path=None):
     logger.debug('Reading json file {}'.format(filename))
@@ -49,7 +50,6 @@ def get_study_files(file_prop_dict, columns_to_csr_map):
         if determine_file_type(item_list, filename) in ['study', 'individual_study']:
             exemption_set.add(filename)
     return exemption_set
-
 
 
 def get_overlapping_columns(file_prop_dict, columns_to_csr_map):
@@ -104,7 +104,7 @@ def check_column_prio(column_prio_dict, col_file_dict, col_prio_file, file_heade
         for col in missing_in_priority:
             logger.error(
                 ('{0!r} column occurs in multiple data files: {1}, but no priority is '
-                           'defined. Please specify the column priority in the {3!r} JSON file.').format(
+                           'defined. Please specify the column priority in the {2!r} JSON file.').format(
                     col, col_file_dict[col], col_prio_file
                 )
             )
