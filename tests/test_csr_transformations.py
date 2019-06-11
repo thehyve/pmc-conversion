@@ -5,7 +5,7 @@ import unittest
 import pandas as pd
 
 import scripts.csr_transformations as ct
-from definitions import ROOT_DIR, TEST_DATA_DIR, TEST_EXPECTED_OUT_DIR
+from definitions import TEST_DATA_DIR, TEST_EXPECTED_OUT_DIR, CONFIG_DIR
 
 
 # TODO: Refactor test cases to not rely on production config
@@ -17,7 +17,7 @@ class CsrTransformationTests(unittest.TestCase):
         self.dummy_test_data = TEST_DATA_DIR.joinpath('dummy_data')
         self.missing_diag_data = TEST_DATA_DIR.joinpath('missing_diagnosis_date')
         self.test_config = TEST_DATA_DIR.joinpath('test_config')
-        self.config = ROOT_DIR.joinpath('config')
+        self.config = CONFIG_DIR
 
     def tearDown(self):
         pass
@@ -110,9 +110,47 @@ class CsrTransformationTests(unittest.TestCase):
         self.assertIn('SRC_BIOSOURCE_ID', overlap.keys())
         self.assertEqual(sorted(overlap['SRC_BIOSOURCE_ID']), sorted(['biomaterial.tsv', 'biosource.tsv']))
 
-    @unittest.skip('todo')
-    def test_check_column_priority(self):
-        self.assertFalse(True)
+    def test_col_prio_triggers_unknown_prio_col_warning(self):
+        """Test that provided priority for a column not present in the data triggers a warning."""
+        with self.assertLogs(level='WARNING') as log:
+            ct.check_column_prio(column_prio_dict={'COL2': ['FILE_A', 'FILE_B']},
+                                 col_file_dict={},
+                                 col_prio_file='cp.txt', file_headers_file='fh.txt')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("'COL2', but the column was not found in the expected columns", log.output[0])
+
+    def test_col_prio_triggers_unknown_file_warning(self):
+        """Test that column priority containing more files than there are files
+        that actually have that column triggers a warning."""
+        # Unknown file in priority warning
+        with self.assertLogs(level='WARNING') as log:
+            ct.check_column_prio(column_prio_dict={'COL1': ['FILE_A', 'FILE_B']},
+                                 col_file_dict={'COL1': ['FILE_A']},
+                                 col_prio_file='cp.txt', file_headers_file='fh.txt')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The following priority files are not used: ['FILE_B']", log.output[0])
+
+    def test_col_prio_triggers_absent_priority_error(self):
+        """Test that absent column priority for a column that occurs in multiple files
+        triggers an error log statement and results in SystemExit."""
+        with self.assertRaises(SystemExit) as cm, self.assertLogs(level='WARNING') as log:
+            ct.check_column_prio(column_prio_dict={},
+                                 col_file_dict={'COL1': ['FILE_A', 'FILE_B']},
+                                 col_prio_file='cp.txt', file_headers_file='fh.txt')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("'COL1' column occurs in multiple data files: ['FILE_A', 'FILE_B'], but no prio", log.output[0])
+        self.assertEqual(cm.exception.code, 1)
+
+    def test_col_prio_triggers_incomplete_priority_error(self):
+        """Test that incomplete column priority for a column that occurs in more files
+        than priority was provided triggers an error log statement and results in SystemExit."""
+        with self.assertRaises(SystemExit) as cm, self.assertLogs(level='WARNING') as log:
+            ct.check_column_prio(column_prio_dict={'COL1': ['FILE_A', 'FILE_B']},
+                                 col_file_dict={'COL1': ['FILE_A', 'FILE_B', 'FILE_C']},
+                                 col_prio_file='cp.txt', file_headers_file='fh.txt')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("Incomplete priority provided for column 'COL1'", log.output[0])
+        self.assertEqual(cm.exception.code, 1)
 
     @unittest.skip('todo')
     def test_merge_entity_data_frames(self):
