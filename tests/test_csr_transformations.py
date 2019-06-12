@@ -5,7 +5,7 @@ import unittest
 import pandas as pd
 
 import scripts.csr_transformations as ct
-from definitions import TEST_DATA_DIR, TEST_EXPECTED_OUT_DIR, CONFIG_DIR
+from definitions import TEST_DATA_DIR, TEST_EXPECTED_OUT_DIR, ROOT_DIR
 
 
 # TODO: Refactor test cases to not rely on production config
@@ -17,7 +17,7 @@ class CsrTransformationTests(unittest.TestCase):
         self.dummy_test_data = TEST_DATA_DIR.joinpath('dummy_data')
         self.missing_diag_data = TEST_DATA_DIR.joinpath('missing_diagnosis_date')
         self.test_config = TEST_DATA_DIR.joinpath('test_config')
-        self.config = CONFIG_DIR
+        self.config = ROOT_DIR.joinpath('config')
 
     def tearDown(self):
         pass
