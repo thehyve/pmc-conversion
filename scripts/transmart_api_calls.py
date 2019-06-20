@@ -10,15 +10,13 @@ class TransmartApiException(Exception):
 
 class TransmartApiCalls(object):
 
-    def __init__(self, keycloak_url, username, password, transmart_url, gb_backend_url, client_id, client_secret):
+    def __init__(self, keycloak_url, transmart_url, gb_backend_url, client_id, offline_token):
         self.url = keycloak_url
-        self.username = username
-        self.password = password
         self.token = None
         self.tm_url = transmart_url
         self.gb_backend_url = gb_backend_url
         self.client_id = client_id
-        self.client_secret = client_secret
+        self.offline_token = offline_token
 
     def get_token(self):
         """
@@ -32,18 +30,18 @@ class TransmartApiCalls(object):
 
     def retrieve_token(self):
         """
-        Retrieve access token from the server.
+        Retrieve an access token from Keycloak based on the client_id and the offline token,
+        which is stored in the config.
         """
         headers = {'Accept': 'application/json',
                    'Contect-Type': 'application/x-www-form-urlencoded'
                    }
         url = self.url + '/protocol/openid-connect/token'
         params = {
-            'grant_type': 'password',
+            'grant_type': 'refresh_token',
+            'scope': 'offline_access',
             'client_id': self.client_id,
-            'client_secret': self.client_secret,
-            'username': self.username,
-            'password': self.password
+            'refresh_token': self.offline_token
         }
         try:
             response = requests.post(url, params, headers=headers)

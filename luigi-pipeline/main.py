@@ -231,22 +231,19 @@ class TransmartDataLoader(ExternalProgramTask):
 class TransmartApiTask(BaseTask):
     keycloak_url = luigi.Parameter(description='URL of the keycloak instance, include the realm in the URL')
     client_id = luigi.Parameter(description='client_id of transmart client configured in keycloak')
-    client_secret = luigi.Parameter(description='client_secret of transmart client configured in keycloak')
+    offline_token = luigi.Parameter(description='offline_token used as refresh token to receive an actual access token,'
+                                                'configured in keycloak')
     transmart_url = luigi.Parameter(description='URL of the tranSMART instance', significant=False)
-    transmart_username = luigi.Parameter(description='Username for an admin account', significant=False)
-    transmart_password = luigi.Parameter(description='Password for the admin account', significant=False)
     gb_backend_url = luigi.Parameter(description='URL of the gb backend instance', significant=False)
 
     max_status_check_retrial = 240
 
     def run(self):
         reload_obj = TransmartApiCalls(keycloak_url=self.keycloak_url,
-                                       username=self.transmart_username,
-                                       password=self.transmart_password,
                                        transmart_url=self.transmart_url,
                                        gb_backend_url=self.gb_backend_url,
                                        client_id=self.client_id,
-                                       client_secret=self.client_secret)
+                                       offline_token=self.offline_token)
 
         logger.info('After data loading update; clearing and rebuilding caches, rebuilding subject sets')
         reload_obj.after_data_loading()
