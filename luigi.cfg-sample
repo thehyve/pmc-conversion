@@ -72,12 +72,6 @@ file_headers = ptp_file_headers.json
 columns_to_csr = ptp_columns_to_csr.json
 
 
-[TransmartDataTransformation]
-tm_transformation = transmart_transformation.py
-blueprint = blueprint.json
-modifiers = modifiers.txt
-
-
 [TransmartApiTask]
 keycloak_url = https://somekeycloak.net/auth/realms/transmart-name
 transmart_url = https://transmart.thehyve.net

@@ -1,9 +1,7 @@
-import tempfile
 import csv
 import gzip
-import os
-from scripts.cbioportal_transformation import cbio_wrapper
 import shutil
+
 
 def create_tsv_file(file, table):
     with open(file, 'w') as tsvfile:

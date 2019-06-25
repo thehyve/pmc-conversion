@@ -6,12 +6,13 @@ import time
 import threading
 import asyncio
 
+from csr2transmart import csr2transmart
+
 from .luigi_commons import BaseTask, ExternalProgramTask
 
 from scripts.git_commons import get_git_repo
 from scripts.sync import sync_dirs, get_checksum_pairs_set
 from scripts.codebook_formatting import codebook_formatting
-from scripts.csr_transformations import csr_transformation
 from scripts.transmart_api_calls import TransmartApiCalls
 from scripts.cbioportal_transformation.cbio_wrapper import create_cbio_study
 
@@ -151,37 +152,7 @@ class MergeClinicalData(BaseTask):
         description='Data file columns mapped to expected fields in the central subject registry', significant=False)
 
     def run(self):
-        csr_transformation(input_dir=config.input_data_dir,
-                           output_dir=config.intermediate_file_dir,
-                           config_dir=config.config_json_dir,
-                           data_model=self.data_model,
-                           column_priority=self.column_priority,
-                           file_headers=self.file_headers,
-                           columns_to_csr=self.columns_to_csr,
-                           output_filename=config.csr_data_file,
-                           output_study_filename=config.study_registry_file)
-
-
-class TransmartDataTransformation(ExternalProgramTask):
-    wd = os.path.join(os.getcwd(), 'scripts')
-
-    tm_transformation = luigi.Parameter(description='tranSMART data transformation script name', significant=False)
-    blueprint = luigi.Parameter(description='Blueprint file to map the data to the tranSMART ontology')
-    modifiers = luigi.Parameter(description='Modifiers used by tranSMART')
-
-    std_out_err_dir = os.path.join(config.transmart_load_logs_dir, 'transformations')
-
-    def program_args(self):
-        return [config.python, self.tm_transformation,
-                '--csr_data_file', os.path.join(config.intermediate_file_dir, config.csr_data_file),
-                '--study_registry_data_file', os.path.join(config.intermediate_file_dir, config.study_registry_file),
-                '--output_dir', config.transmart_staging_dir,
-                '--config_dir', config.config_json_dir,
-                '--blueprint', self.blueprint,
-                '--modifiers', self.modifiers,
-                '--study_id', config.study_id,
-                '--top_node', '{!r}'.format(config.top_node),
-                '--security_required', config.security_required]
+        csr2transmart.csr2transmart(config.input_data_dir, config.intermediate_file_dir, config.config_json_dir)
 
 
 class CbioportalDataTransformation(BaseTask):
@@ -379,12 +350,9 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         merge_clinical_data.required_tasks = [format_codebook]
         yield merge_clinical_data
 
-        transmart_data_transformation = TransmartDataTransformation()
-        transmart_data_transformation.required_tasks = [merge_clinical_data]
-        yield transmart_data_transformation
         commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
                                              commit_message='Add transmart data.')
-        commit_transmart_staging.required_tasks = [transmart_data_transformation]
+        commit_transmart_staging.required_tasks = [merge_clinical_data]
         yield commit_transmart_staging
 
         load_transmart_study = TransmartDataLoader()
@@ -444,12 +412,9 @@ class e2e_LoadDataFromNewFilesTaskTransmartOnly(luigi.WrapperTask):
         merge_clinical_data.required_tasks = [format_codebook]
         yield merge_clinical_data
 
-        transmart_data_transformation = TransmartDataTransformation()
-        transmart_data_transformation.required_tasks = [merge_clinical_data]
-        yield transmart_data_transformation
         commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
                                              commit_message='Add transmart data.')
-        commit_transmart_staging.required_tasks = [transmart_data_transformation]
+        commit_transmart_staging.required_tasks = [merge_clinical_data]
         yield commit_transmart_staging
 
         load_transmart_study = TransmartDataLoader()
