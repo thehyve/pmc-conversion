@@ -104,3 +104,10 @@ $ git checkout master
 ```
 
 Please note that above example won't leave any sign in the git history of the fact of data load.
+
+
+## License
+
+Copyright (c) 2018, 2019 The Hyve B.V.
+
+The PMC conversion pipeline is licensed under the MIT License. See the file `<LICENSE>`_.
