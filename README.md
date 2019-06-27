@@ -8,30 +8,39 @@ This conversion pipeline requires Python 3.6.
 $ python -m pip install -r requirements/requirements.txt
 ```
 
-## File system requirements
+## Keycloak settings
 
+### Identity server
+
+Keycloak settings have to be set in luigi.cfg file (TransmartApiTask section), so the pipeline can access GB Backend 
+and tranSMART REST APIs.
+
+| key | description |
+|-----------|-------------|
+| `keycloak_url` | keycloak url that used. e.g. `https://keycloak.example.com/auth/realms/transmart-dev` |
+| `client_id` | keycloak client id. |
+| `offline_token` | keycloak offline token. |
+
+
+### Offline token
+
+The application requires an offline token to exchange it for an access token to communicate with tranSMART and GB Backend.
+
+Below is `curl` command to generate an offline token for `USERNAME` user.
+To get the token the user needs to have the role mapping for the realm-level: `"offline_access"`.
+Before using the command you have to substitute words in uppercase with proper ones.
+
+```bash
+    curl \
+      -d 'client_id=CLIENT_ID' \
+      -d 'username=USERNAME' \
+      -d 'password=PASSWORD' \
+      -d 'grant_type=password' \
+      -d 'scope=offline_access' \
+      'https://<KEYCLOAK_URL>/protocol/openid-connect/token'
 ```
-<data_root>
-    │
-    └───...
-    │       ...
-    │       ...
-    │
-    └───...
-    │       ...
-    │       ...
-    │
-    └───...
-        │
-        └───...
-        │       ...
-        │       ...
-        │
-        └───...
-        │       ...
-        │       ...
-        ...
-```
+
+The value of the `refresh_token` field in the response is the offline token.
 
 ## Usage
 
