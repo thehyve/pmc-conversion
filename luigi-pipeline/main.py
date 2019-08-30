@@ -170,7 +170,7 @@ class CbioportalDataTransformation(BaseTask):
             break
 
     def run(self):
-        clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
+        clinical_input_file = os.path.join(config.intermediate_file_dir)
         description_mapping = os.path.join(config.config_json_dir, self.cbioportal_header_descriptions)
 
         create_cbio_study(clinical_input_file=clinical_input_file,

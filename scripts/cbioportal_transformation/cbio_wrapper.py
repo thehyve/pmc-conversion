@@ -57,18 +57,19 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
     # Transform patient file
     # TODO: Nice to have - Duplicate steps by calling function twice --> Change flow of program. Data input read twice
-    patient_ids = transform_clinical_data(clinical_inputfile=clinical_input_file,
-                                          output_dir=output_dir,
-                                          clinical_type='patient',
-                                          study_id=STUDY_ID,
-                                          description_map=descriptions_dict)
+    transform_clinical_data(input_dir=clinical_input_file,
+                            output_dir=output_dir,
+                            clinical_type='patient',
+                            study_id=STUDY_ID,
+                            description_map=descriptions_dict)
 
     # Transform sample file
-    sample_ids = transform_clinical_data(clinical_inputfile=clinical_input_file,
+    sample_clinical_data = transform_clinical_data(input_dir=clinical_input_file,
                                          clinical_type='sample',
                                          output_dir=output_dir,
                                          study_id=STUDY_ID,
                                          description_map=descriptions_dict)
+    sample_ids = sample_clinical_data['SAMPLE_ID'].unique().tolist()
 
     # Select NGS study files
     study_files = []
@@ -111,7 +112,6 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
     for study_file in study_files:
         if study_file.endswith('sha1'):
             continue
-        file_type = study_file.split('.')[0]
         study_file_location = os.path.join(ngs_dir, study_file)
 
         # CNA Segment data
