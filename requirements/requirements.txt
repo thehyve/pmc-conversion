@@ -6,9 +6,7 @@ python-daemon==2.1.2
 SQLAlchemy==1.3.0
 tornado==4.5.2
 gitpython==2.1.8
-click==6.7
-pandas==0.22.0
-numpy==1.9.0
+pandas==0.25.1
+numpy==1.17.1
 chardet==3.0.4
-tmtk==0.5.6
 psycopg2-binary==2.7.4
