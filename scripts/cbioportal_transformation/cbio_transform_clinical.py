@@ -99,7 +99,20 @@ def subject_registry_to_clinical_data_df(subject_registry: CentralSubjectRegistr
     elif clinical_type == 'sample':
         # Merge diagnoses, biosources and biomaterials
         diagnosis_biosource_data = pd.merge(biosource_data, diagnosis_data, how='left', on=['DIAGNOSIS_ID'])
-        sample_data = pd.merge(biomaterial_data, diagnosis_biosource_data, how='left', left_on=['SRC_BIOSOURCE_ID'], right_on=['BIOSOURCE_ID'])
+        sample_data = pd.merge(biomaterial_data, diagnosis_biosource_data, how='left',
+                               left_on=['SRC_BIOSOURCE_ID'], right_on=['BIOSOURCE_ID'])
+        # remove suffixes for biomaterials and biosources
+        if 'SRC_BIOSOURCE_ID_x' in sample_data.columns:
+            x_ = sample_data['SRC_BIOSOURCE_ID_x']
+            y_ = sample_data['SRC_BIOSOURCE_ID_y']
+            sample_data['SRC_BIOSOURCE_ID'] = x_.combine_first(y_)
+            sample_data = sample_data.drop(columns=['SRC_BIOSOURCE_ID_x','SRC_BIOSOURCE_ID_y'])
+        # remove suffixes for patients
+        if 'PATIENT_ID_x' in sample_data.columns:
+            x_ = sample_data['PATIENT_ID_x']
+            y_ = sample_data['PATIENT_ID_y']
+            sample_data['PATIENT_ID'] = x_.combine_first(y_)
+            sample_data = sample_data.drop(columns=['PATIENT_ID_x','PATIENT_ID_y'])
         sample_data['SAMPLE_ID'] = diagnosis_biosource_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
         return sample_data
     else:
