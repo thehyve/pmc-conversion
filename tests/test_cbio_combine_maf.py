@@ -4,7 +4,8 @@ import os
 from tests.file_helpers import create_tsv_file, read_tsv_file, gz_file
 from scripts.cbioportal_transformation import cbio_wrapper
 
-class CbioTransformationsTest(unittest.TestCase):
+
+class CbioCombineMafTest(unittest.TestCase):
 
     def test_basic_use_case(self):
         ngs_dir = tempfile.mkdtemp()

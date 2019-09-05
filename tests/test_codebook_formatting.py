@@ -1,5 +1,6 @@
 import unittest
-from codebook_formatting import *
+
+from scripts.codebook_formatting import *
 
 
 class CodebookFormattingTests(unittest.TestCase):
