@@ -52,6 +52,6 @@
     "TYPE": "TYPE"
   },
   "individual" : {
-    "INDIVIDUAL_ID": "Patient ID"
+    "INDIVIDUAL_ID": "PATIENT_ID"
   }
 }
