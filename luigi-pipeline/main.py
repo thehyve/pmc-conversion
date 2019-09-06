@@ -1,20 +1,17 @@
+import asyncio
 import logging
 import os
+import threading
+import time
 
 import luigi
-import time
-import threading
-import asyncio
-
+from csr2cbioportal import csr2cbioportal
 from csr2transmart import csr2transmart
-
-from .luigi_commons import BaseTask, ExternalProgramTask
 
 from scripts.git_commons import get_git_repo
 from scripts.sync import sync_dirs, get_checksum_pairs_set
-from scripts.codebook_formatting import codebook_formatting
 from scripts.transmart_api_calls import TransmartApiCalls
-from scripts.cbioportal_transformation.cbio_wrapper import create_cbio_study
+from .luigi_commons import BaseTask, ExternalProgramTask
 
 logger = logging.getLogger('luigi')
 
@@ -103,7 +100,7 @@ class GitCommit(BaseTask):
     def run(self):
         with git_lock:
             repo.index.add([self.directory_to_add])
-            if len(repo.index.diff('HEAD')):
+            if not repo.index.diff('HEAD'):
                 repo.index.commit(self.commit_message)
                 logger.info('Commit changes in {} directory.'.format(self.directory_to_add))
             else:
@@ -128,19 +125,6 @@ class UpdateDataFiles(BaseTask):
         :return: file with list of files and their checksums
         """
         return calc_done_signal_content(self.file_modifications.new_files)
-
-
-class FormatCodeBooks(BaseTask):
-    cm_map_file = luigi.Parameter(description='Codebook mapping file', significant=False)
-
-    def run(self):
-        cm_map = os.path.join(config.config_json_dir, self.cm_map_file)
-
-        for path, dir_, filenames in os.walk(config.input_data_dir):
-            codebooks = [file for file in filenames if 'codebook' in file]
-            for codebook in codebooks:
-                codebook_file = os.path.join(path, codebook)
-                codebook_formatting(codebook_file, cm_map, config.intermediate_file_dir)
 
 
 class MergeClinicalData(BaseTask):
@@ -170,13 +154,11 @@ class CbioportalDataTransformation(BaseTask):
             break
 
     def run(self):
-        clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
-        description_mapping = os.path.join(config.config_json_dir, self.cbioportal_header_descriptions)
+        clinical_input_file = os.path.join(config.intermediate_file_dir)
 
-        create_cbio_study(clinical_input_file=clinical_input_file,
-                          ngs_dir=self.ngs_dir,
-                          output_dir=config.cbioportal_staging_dir,
-                          descriptions=description_mapping)
+        csr2cbioportal.create_cbioportal_study(input_dir=clinical_input_file,
+                                               ngs_dir=self.ngs_dir,
+                                               output_dir=config.cbioportal_staging_dir)
 
 
 class TransmartDataLoader(ExternalProgramTask):
@@ -343,11 +325,7 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
                                       commit_message='Add new input data.')
         commit_input_data.required_tasks = [update_data_files]
         yield commit_input_data
-        format_codebook = FormatCodeBooks()
-        format_codebook.required_tasks = [commit_input_data]
-        yield format_codebook
         merge_clinical_data = MergeClinicalData()
-        merge_clinical_data.required_tasks = [format_codebook]
         yield merge_clinical_data
 
         commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
@@ -405,11 +383,7 @@ class e2e_LoadDataFromNewFilesTaskTransmartOnly(luigi.WrapperTask):
                                       commit_message='Add new input data.')
         commit_input_data.required_tasks = [update_data_files]
         yield commit_input_data
-        format_codebook = FormatCodeBooks()
-        format_codebook.required_tasks = [commit_input_data]
-        yield format_codebook
         merge_clinical_data = MergeClinicalData()
-        merge_clinical_data.required_tasks = [format_codebook]
         yield merge_clinical_data
 
         commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
