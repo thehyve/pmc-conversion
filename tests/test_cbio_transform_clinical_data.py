@@ -34,7 +34,7 @@ def sample_clinical_data() -> pd.DataFrame:
 
 def test_patient_clinical_data(patient_clinical_data):
     assert len(patient_clinical_data) == 2
-    assert list(patient_clinical_data.get('PATIENT_ID')) == ['P1', 'P2']
+    assert list(patient_clinical_data.get('PATIENT_ID')) == ['PMCBS000BCA', 'PMCBM000BAB']
     assert Counter(list(patient_clinical_data)) == Counter(['PATIENT_ID', 'TAXONOMY', 'BIRTH_DATE', 'GENDER',
                                                             'IC_TYPE', 'IC_GIVEN_DATE',
                                                             'IC_WITHDRAWN_DATE', 'IC_MATERIAL', 'IC_DATA',
@@ -43,7 +43,8 @@ def test_patient_clinical_data(patient_clinical_data):
 
 def test_sample_clinical_data(sample_clinical_data):
     assert len(sample_clinical_data) == 4
-    assert list(sample_clinical_data.get('SAMPLE_ID')) == ['BS1_BM1', 'BS2_BM2', 'BS3_BM3', 'BS4_BM4']
+    assert list(sample_clinical_data.get('SAMPLE_ID')) == ['PMCBS000AAA_PMCBM000AAA', 'PMCBS000AAB_PMCBM000AAB',
+                                                           'PMCBS000AAC_PMCBM000AAC', 'PMCBS000AAD_PMCBM000AAD']
     assert Counter(list(sample_clinical_data)) == Counter(['ANALYSIS_TYPE', 'BIOMATERIAL_DATE', 'BIOMATERIAL_ID',
                                                            'BIOSOURCE_DATE', 'BIOSOURCE_DEDICATED', 'BIOSOURCE_ID',
                                                            'CENTER_TREATMENT', 'DIAGNOSIS_DATE', 'DIAGNOSIS_ID',
