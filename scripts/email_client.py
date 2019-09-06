@@ -3,7 +3,6 @@ import click
 import logging
 import smtplib
 from configparser import ConfigParser
-import datetime as dt
 
 
 class Config:
@@ -66,7 +65,7 @@ def parse_log_file(log):
 
 
 def sendemail(cp, message):
-    """Use the message to send an email to the reiver specified in the config cp"""
+    """Use the message to send an email to the receiver specified in the config cp"""
     # Construct the payload to send.
     header = build_header(cp)
     payload = header + message
@@ -80,6 +79,7 @@ def sendemail(cp, message):
         raise e
     else:
         server.quit()
+
 
 def build_header(cp):
     """Build the email header for a SMTP email message"""
@@ -115,7 +115,7 @@ def setup_logger(log_level):
 
 @click.command()
 @click.option('--config',type=click.Path(exists=True))
-@click.option('--log_level',type=click.Choice(['DEBUG','INFO','WARNING','ERROR','CRITICAL']), default='INFO')
+@click.option('--log_level',type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']), default='INFO')
 def main(config, log_level):
     logger = setup_logger(log_level)
 

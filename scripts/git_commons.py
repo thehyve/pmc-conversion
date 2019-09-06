@@ -4,6 +4,7 @@ import git
 
 logger = logging.getLogger(__name__)
 
+
 def get_git_repo(repo_dir):
     """
     Returns the git repository used for VCS of source and transformed data files. As well as load logs.
