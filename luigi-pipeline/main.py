@@ -127,20 +127,6 @@ class UpdateDataFiles(BaseTask):
         return calc_done_signal_content(self.file_modifications.new_files)
 
 
-# TODO remove this task
-class FormatCodeBooks(BaseTask):
-    cm_map_file = luigi.Parameter(description='Codebook mapping file', significant=False)
-
-    def run(self):
-        cm_map = os.path.join(config.config_json_dir, self.cm_map_file)
-        #
-        # for path, dir_, filenames in os.walk(config.input_data_dir):
-        #     codebooks = [file for file in filenames if 'codebook' in file]
-        #     for codebook in codebooks:
-        #         codebook_file = os.path.join(path, codebook)
-        #         codebook_formatting(codebook_file, cm_map, config.intermediate_file_dir)
-
-
 class MergeClinicalData(BaseTask):
     data_model = luigi.Parameter(description='JSON file with the columns per entity', significant=False)
     column_priority = luigi.Parameter(description='Flat text file with an ordered list of expected files',
