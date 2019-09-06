@@ -37,7 +37,7 @@ DESCRIPTION = 'Transformed to cBioPortal format on: %s' % time.strftime("%d-%m-%
 TYPE_OF_CANCER = 'mixed'
 
 
-def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
+def create_cbio_study(clinical_input_file, ngs_dir, output_dir):
     # Remove old output directory and recreate to ensure all NGS data is
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
@@ -53,20 +53,17 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
         else:
             raise oe
 
-    with open(descriptions, 'r') as des:
-        descriptions_dict = json.loads(des.read())
-
     # Clinical data
     logger.info('Transforming clinical data: %s' % clinical_input_file)
     subject_registry_reader = SubjectRegistryReader(clinical_input_file)
     subject_registry: CentralSubjectRegistry = subject_registry_reader.read_subject_registry()
 
     # Transform patient file
-    patient_clinical_data, patient_clinical_header = transform_patient_clinical_data(subject_registry, descriptions_dict)
+    patient_clinical_data, patient_clinical_header = transform_patient_clinical_data(subject_registry)
     write_clinical(patient_clinical_data, patient_clinical_header, 'patient', output_dir, STUDY_ID)
 
     # Transform sample file
-    sample_clinical_data, sample_clinical_header = transform_sample_clinical_data(subject_registry, descriptions_dict)
+    sample_clinical_data, sample_clinical_header = transform_sample_clinical_data(subject_registry)
     write_clinical(sample_clinical_data, sample_clinical_header, 'sample', output_dir, STUDY_ID)
 
     sample_ids = sample_clinical_data['SAMPLE_ID'].unique().tolist()
@@ -298,9 +295,9 @@ def get_complete_header(paths_to_process):
     return fieldnames
 
 
-def main(clinical_input_file, ngs_dir, output_dir, description_mapping, loggerconfig):
+def main(clinical_input_file, ngs_dir, output_dir, loggerconfig):
     fileConfig(loggerconfig)
-    create_cbio_study(clinical_input_file, ngs_dir, output_dir, description_mapping)
+    create_cbio_study(clinical_input_file, ngs_dir, output_dir)
 
 
 if __name__ == '__main__':
@@ -322,13 +319,9 @@ if __name__ == '__main__':
                            required=True,
                            help="Directory where studies with cBioPortal staging files are written.")
 
-    arguments.add_argument("-d", "--description_mapping",
-                           required=True,
-                           help="JSON file with a description mapping per CSR entity,"
-                                "{ENTITY: {COLUMN_NAME: DESCRIPTION}")
     arguments.add_argument("-l", "--loggerconfig",
                            required=True,
                            help="Path to logging config file")
 
     args = parser.parse_args()
-    main(args.clinical_input_file, args.ngs_dir, args.output_dir, args.description_mapping, args.loggerconfig)
+    main(args.clinical_input_file, args.ngs_dir, args.output_dir, args.loggerconfig)

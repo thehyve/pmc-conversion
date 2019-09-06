@@ -6,7 +6,6 @@ This code runs as part of the Luigi Pipeline. To manually test and debug this co
   -c ../test_data/intermediate/csr_transformation_data.tsv \
   -n ../test_data/dropzone/NGS/ \
   -o ../test_data/intermediate/cbioportal_staging_files \
-  -d ../config/cbioportal_header_descriptions.json
 ```
 
 By running this code, the test data in `../test_data/intermediate/cbioportal_staging_files` will be updated.

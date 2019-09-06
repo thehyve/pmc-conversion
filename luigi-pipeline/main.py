@@ -171,12 +171,10 @@ class CbioportalDataTransformation(BaseTask):
 
     def run(self):
         clinical_input_file = os.path.join(config.intermediate_file_dir)
-        description_mapping = os.path.join(config.config_json_dir, self.cbioportal_header_descriptions)
 
         create_cbio_study(clinical_input_file=clinical_input_file,
                           ngs_dir=self.ngs_dir,
-                          output_dir=config.cbioportal_staging_dir,
-                          descriptions=description_mapping)
+                          output_dir=config.cbioportal_staging_dir)
 
 
 class TransmartDataLoader(ExternalProgramTask):

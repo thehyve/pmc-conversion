@@ -23,6 +23,8 @@ sys.dont_write_bytecode = True
 logger = logging.getLogger(__name__)
 logger.name = logger.name.rsplit('.', 1)[1]
 
+# Rename column headers in patient clinical data
+RENAME_PATIENT_DATA_HEADER = {'INDIVIDUAL_ID': 'PATIENT_ID'}
 # Force some datatypes to be remappad to STRING
 FORCE_STRING_LIST = ['CENTER_TREATMENT', 'CID', 'DIAGNOSIS_ID', 'GENDER', 'IC_DATA', 'IC_LINKING_EXT', 'IC_MATERIAL',
                      'IC_TYPE', 'INDIVIDUAL_STUDY_ID', 'TOPOGRAPHY', 'TUMOR_TYPE']
@@ -89,33 +91,23 @@ def to_sample_data(biosource_data, biomaterial_data, diagnosis_data) -> pd.DataF
     return sample_data
 
 
-def subject_registry_to_sample_data_df(subject_registry: CentralSubjectRegistry,
-                                       description_map: Dict) -> pd.DataFrame:
+def subject_registry_to_sample_data_df(subject_registry: CentralSubjectRegistry) -> pd.DataFrame:
     diagnosis_data = pd.DataFrame.from_records([s.__dict__ for s in subject_registry.diagnoses])
     biosource_data = pd.DataFrame.from_records([s.__dict__ for s in subject_registry.biosources])
     biomaterial_data = pd.DataFrame.from_records([s.__dict__ for s in subject_registry.biomaterials])
 
-    # Rename column, else duplicate columns
-    entity_map = {
-        'diagnosis': diagnosis_data,
-        'biosource': biosource_data,
-        'biomaterial': biomaterial_data,
-    }
-
-    for key in entity_map.keys():
-        entity_map[key].columns = [x.upper() for x in entity_map[key].columns]
-        entity_map[key].rename(columns=description_map[key], inplace=True)
+    diagnosis_data.columns = [x.upper() for x in diagnosis_data.columns]
+    biosource_data.columns = [x.upper() for x in biosource_data.columns]
+    biomaterial_data.columns = [x.upper() for x in biomaterial_data.columns]
 
     return to_sample_data(biosource_data, biomaterial_data, diagnosis_data)
 
 
-def subject_registry_to_patient_data_df(subject_registry: CentralSubjectRegistry,
-                                        description_map: Dict) -> pd.DataFrame:
+def subject_registry_to_patient_data_df(subject_registry: CentralSubjectRegistry) -> pd.DataFrame:
     patient_data = pd.DataFrame.from_records([s.__dict__ for s in subject_registry.individuals])
 
-    for key, descriptions in description_map.items():
-        patient_data.columns = [x.upper() for x in patient_data.columns]
-        patient_data.rename(columns=descriptions, inplace=True)
+    patient_data.columns = [x.upper() for x in patient_data.columns]
+    patient_data.rename(columns=RENAME_PATIENT_DATA_HEADER, inplace=True)
 
     return patient_data
 
@@ -183,9 +175,8 @@ def modify_clinical_data_column_values(clinical_data_df):
     return clinical_data_df
 
 
-def transform_patient_clinical_data(subject_registry: CentralSubjectRegistry,
-                                    description_map: Dict) -> [pd.DataFrame, pd.DataFrame]:
-    patient_data_df = subject_registry_to_patient_data_df(subject_registry, description_map)
+def transform_patient_clinical_data(subject_registry: CentralSubjectRegistry) -> [pd.DataFrame, pd.DataFrame]:
+    patient_data_df = subject_registry_to_patient_data_df(subject_registry)
 
     # Remove empty columns
     patient_data_df.dropna(axis=1, how='all', inplace=True)
@@ -197,9 +188,8 @@ def transform_patient_clinical_data(subject_registry: CentralSubjectRegistry,
     return patient_data_df, patient_data_header
 
 
-def transform_sample_clinical_data(subject_registry: CentralSubjectRegistry,
-                                   description_map: Dict) -> [pd.DataFrame, pd.DataFrame]:
-    sample_data_df = subject_registry_to_sample_data_df(subject_registry, description_map)
+def transform_sample_clinical_data(subject_registry: CentralSubjectRegistry) -> [pd.DataFrame, pd.DataFrame]:
+    sample_data_df = subject_registry_to_sample_data_df(subject_registry)
 
     # Remove empty columns
     sample_data_df.dropna(axis=1, how='all', inplace=True)
@@ -233,20 +223,12 @@ def write_clinical(clinical_data, clinical_header, clinical_type, output_dir, st
                         data_filename='data_clinical_{}.txt'.format(clinical_type))
 
 
-def main(clinical_inputfile, output_dir, clinical_type, study_id, description_map):
-
-    if os.path.isfile(description_map):
-        with open(description_map, 'r') as dmf:
-            description_dict = json.load(dmf)
-    else:
-        print('Description map file is not a file')
-        sys.exit(1)
-
+def main(clinical_inputfile, output_dir, clinical_type, study_id):
     if clinical_type == 'patient':
-        patient_data_df, patient_data_header = transform_patient_clinical_data(clinical_inputfile, description_dict)
+        patient_data_df, patient_data_header = transform_patient_clinical_data(clinical_inputfile)
         write_clinical(patient_data_df, patient_data_header, clinical_type, output_dir, study_id)
     elif clinical_type == 'sample':
-        sample_data_df, sample_data_header = transform_sample_clinical_data(clinical_inputfile, description_dict)
+        sample_data_df, sample_data_header = transform_sample_clinical_data(clinical_inputfile)
         write_clinical(sample_data_df, sample_data_header, clinical_type, output_dir, study_id)
     else:
         print('Clinical type: {} not recognized.'.format(clinical_type))
@@ -276,10 +258,6 @@ if __name__ == '__main__':
                                required=True,
                                help='Specify study id.')
 
-    requiredNamed.add_argument('-d', '--description_map_file',
-                               required=True,
-                               help='Specify path to description map file. File is expected to be in JSON format')
-
     args = parser.parse_args()
 
-    main(args.input_file, args.dir_for_output_files, args.clinical_type, args.study_id, args.description_map_file)
+    main(args.input_file, args.dir_for_output_files, args.clinical_type, args.study_id)
