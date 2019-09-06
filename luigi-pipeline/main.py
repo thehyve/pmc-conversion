@@ -12,9 +12,7 @@ from .luigi_commons import BaseTask, ExternalProgramTask
 
 from scripts.git_commons import get_git_repo
 from scripts.sync import sync_dirs, get_checksum_pairs_set
-from scripts.codebook_formatting import codebook_formatting
 from scripts.transmart_api_calls import TransmartApiCalls
-from scripts.cbioportal_transformation.cbio_wrapper import create_cbio_study
 
 logger = logging.getLogger('luigi')
 
@@ -130,17 +128,18 @@ class UpdateDataFiles(BaseTask):
         return calc_done_signal_content(self.file_modifications.new_files)
 
 
+# TODO remove this task
 class FormatCodeBooks(BaseTask):
     cm_map_file = luigi.Parameter(description='Codebook mapping file', significant=False)
 
     def run(self):
         cm_map = os.path.join(config.config_json_dir, self.cm_map_file)
-
-        for path, dir_, filenames in os.walk(config.input_data_dir):
-            codebooks = [file for file in filenames if 'codebook' in file]
-            for codebook in codebooks:
-                codebook_file = os.path.join(path, codebook)
-                codebook_formatting(codebook_file, cm_map, config.intermediate_file_dir)
+        #
+        # for path, dir_, filenames in os.walk(config.input_data_dir):
+        #     codebooks = [file for file in filenames if 'codebook' in file]
+        #     for codebook in codebooks:
+        #         codebook_file = os.path.join(path, codebook)
+        #         codebook_formatting(codebook_file, cm_map, config.intermediate_file_dir)
 
 
 class MergeClinicalData(BaseTask):
@@ -172,9 +171,9 @@ class CbioportalDataTransformation(BaseTask):
     def run(self):
         clinical_input_file = os.path.join(config.intermediate_file_dir)
 
-        create_cbio_study(clinical_input_file=clinical_input_file,
-                          ngs_dir=self.ngs_dir,
-                          output_dir=config.cbioportal_staging_dir)
+        csr2transmart.create_cbioportal_study(clinical_input_file=clinical_input_file,
+                                              ngs_dir=self.ngs_dir,
+                                              output_dir=config.cbioportal_staging_dir)
 
 
 class TransmartDataLoader(ExternalProgramTask):
