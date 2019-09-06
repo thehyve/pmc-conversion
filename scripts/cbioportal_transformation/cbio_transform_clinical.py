@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import sys
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -70,13 +71,39 @@ def create_clinical_header(df):
     # Adding hash # to the first column
     header_data.iloc[:, 0] = '#' + header_data.iloc[:, 0].astype(str)
 
+    # TODO: Major - Check FORCE_STRING_LIST assumption --> make configurable?
+    # Set datatype of specific columns before after header
+    for string_column_name in FORCE_STRING_LIST:
+        if string_column_name in header_data.columns:
+            header_data.loc[2, string_column_name] = 'STRING'
+
     return header_data
 
 
-def subject_registry_to_clinical_data_df(subject_registry: CentralSubjectRegistry, clinical_type, description_map) -> pd.DataFrame:
+def to_sample_data(biosource_data, biomaterial_data, diagnosis_data) -> pd.DataFrame:
+    """ Merge diagnoses, biosources and biomaterials into samples data frame
+    """
+    diagnosis_biosource_data = pd.merge(biosource_data, diagnosis_data, how='left', on=['DIAGNOSIS_ID'])
+    sample_data = pd.merge(biomaterial_data, diagnosis_biosource_data, how='left',
+                           left_on=['SRC_BIOSOURCE_ID'], right_on=['BIOSOURCE_ID'])
+    # remove suffixes for biomaterials and biosources
+    if 'SRC_BIOSOURCE_ID_x' in sample_data.columns:
+        x_ = sample_data['SRC_BIOSOURCE_ID_x']
+        y_ = sample_data['SRC_BIOSOURCE_ID_y']
+        sample_data['SRC_BIOSOURCE_ID'] = x_.combine_first(y_)
+        sample_data = sample_data.drop(columns=['SRC_BIOSOURCE_ID_x', 'SRC_BIOSOURCE_ID_y'])
+    # remove suffixes for patients
+    if 'PATIENT_ID_x' in sample_data.columns:
+        x_ = sample_data['PATIENT_ID_x']
+        y_ = sample_data['PATIENT_ID_y']
+        sample_data['PATIENT_ID'] = x_.combine_first(y_)
+        sample_data = sample_data.drop(columns=['PATIENT_ID_x', 'PATIENT_ID_y'])
+    sample_data['SAMPLE_ID'] = diagnosis_biosource_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
+    return sample_data
 
-    # Loading clinical data
-    patient_data = pd.DataFrame.from_records([s.__dict__ for s in subject_registry.individuals])
+
+def subject_registry_to_sample_data_df(subject_registry: CentralSubjectRegistry,
+                                       description_map: Dict) -> pd.DataFrame:
     diagnosis_data = pd.DataFrame.from_records([s.__dict__ for s in subject_registry.diagnoses])
     biosource_data = pd.DataFrame.from_records([s.__dict__ for s in subject_registry.biosources])
     biomaterial_data = pd.DataFrame.from_records([s.__dict__ for s in subject_registry.biomaterials])
@@ -86,38 +113,24 @@ def subject_registry_to_clinical_data_df(subject_registry: CentralSubjectRegistr
         'diagnosis': diagnosis_data,
         'biosource': biosource_data,
         'biomaterial': biomaterial_data,
-        'individual': patient_data
     }
 
-    for key, descriptions in description_map.items():
+    for key in entity_map.keys():
         entity_map[key].columns = [x.upper() for x in entity_map[key].columns]
-        entity_map[key].rename(columns=descriptions, inplace=True)
+        entity_map[key].rename(columns=description_map[key], inplace=True)
 
-    # For patient data, no merging is required
-    if clinical_type == 'patient':
-        return patient_data
-    elif clinical_type == 'sample':
-        # Merge diagnoses, biosources and biomaterials
-        diagnosis_biosource_data = pd.merge(biosource_data, diagnosis_data, how='left', on=['DIAGNOSIS_ID'])
-        sample_data = pd.merge(biomaterial_data, diagnosis_biosource_data, how='left',
-                               left_on=['SRC_BIOSOURCE_ID'], right_on=['BIOSOURCE_ID'])
-        # remove suffixes for biomaterials and biosources
-        if 'SRC_BIOSOURCE_ID_x' in sample_data.columns:
-            x_ = sample_data['SRC_BIOSOURCE_ID_x']
-            y_ = sample_data['SRC_BIOSOURCE_ID_y']
-            sample_data['SRC_BIOSOURCE_ID'] = x_.combine_first(y_)
-            sample_data = sample_data.drop(columns=['SRC_BIOSOURCE_ID_x','SRC_BIOSOURCE_ID_y'])
-        # remove suffixes for patients
-        if 'PATIENT_ID_x' in sample_data.columns:
-            x_ = sample_data['PATIENT_ID_x']
-            y_ = sample_data['PATIENT_ID_y']
-            sample_data['PATIENT_ID'] = x_.combine_first(y_)
-            sample_data = sample_data.drop(columns=['PATIENT_ID_x','PATIENT_ID_y'])
-        sample_data['SAMPLE_ID'] = diagnosis_biosource_data['BIOSOURCE_ID'] + "_" + biomaterial_data['BIOMATERIAL_ID']
-        return sample_data
-    else:
-        logger.error('Clinical type not recognized, exiting')
-        sys.exit(1)
+    return to_sample_data(biosource_data, biomaterial_data, diagnosis_data)
+
+
+def subject_registry_to_patient_data_df(subject_registry: CentralSubjectRegistry,
+                                        description_map: Dict) -> pd.DataFrame:
+    patient_data = pd.DataFrame.from_records([s.__dict__ for s in subject_registry.individuals])
+
+    for key, descriptions in description_map.items():
+        patient_data.columns = [x.upper() for x in patient_data.columns]
+        patient_data.rename(columns=descriptions, inplace=True)
+
+    return patient_data
 
 
 def check_integer_na_columns(numerical_column):
@@ -158,85 +171,81 @@ def fix_integer_na_columns(df):
     return df
 
 
-def transform_clinical_data(input_dir, output_dir, clinical_type, study_id, description_map) -> pd.DataFrame:
-    """ Converting the input file to a cBioPortal staging file.
-    """
-    subject_registry_reader = SubjectRegistryReader(input_dir)
-    subject_registry: CentralSubjectRegistry = subject_registry_reader.read_subject_registry()
-
-    # Loading clinical data
-    clinical_data = subject_registry_to_clinical_data_df(subject_registry, clinical_type, description_map)
-
-    # Modify column names
-    # Strip possible trailing white spaces
-    clinical_data = clinical_data.rename(columns=lambda x: x.strip())
-
-    # Remove empty columns
-    clinical_data.dropna(axis=1, how='all', inplace=True)
-
-    # Create header
-    clinical_header = create_clinical_header(clinical_data)
-
+def modify_clinical_data_column_names(clinical_data_df):
     # Rename attributes after creating header
     # These are the attribute names for the database
-    clinical_data.rename(columns=RENAME_AFTER_CREATING_HEADER_MAP, inplace=True)
-
-    # TODO: Major - Check FORCE_STRING_LIST assumption --> make configurable?
-    # Set datatype of specific columns before after header
-    for string_column_name in FORCE_STRING_LIST:
-        if string_column_name in clinical_header.columns:
-            clinical_header.loc[2, string_column_name] = 'STRING'
-
+    clinical_data_df.rename(columns=RENAME_AFTER_CREATING_HEADER_MAP, inplace=True)
     # Remove symbols from attribute names and make them uppercase
-    clinical_data = clinical_data.rename(columns=lambda s: re.sub('[^0-9a-zA-Z_]+', '_', s))
-    clinical_data = clinical_data.rename(columns=lambda x: x.strip('_'))
+    clinical_data_df = clinical_data_df.rename(columns=lambda s: re.sub('[^0-9a-zA-Z_]+', '_', s))
+    clinical_data_df = clinical_data_df.rename(columns=lambda x: x.strip('_'))
+    return clinical_data_df
 
-    ############################
-    # Modify values in columns #
-    ############################
 
-    # Remap values to cBioPortal format for certain columns
-    if clinical_type == 'patient':
-        # Remap overal survival
-        if 'OS_STATUS' in clinical_data.columns:
-            clinical_data.replace({'OS_STATUS': RENAME_OS_STATUS_MAP})
-
-        # Remap disease free survival
-        if 'DFS_STATUS' in clinical_data.columns:
-            clinical_data.replace({'DFS_STATUS': RENAME_DFS_STATUS_MAP})
-
-        # # Possibly convert days to months
-        # if 'OS_MONTHS' in clinical_data.columns:
-        #     # Convert days to months
-        #     clinical_data.loc[clinical_data['OS_MONTHS'].notnull(), 'OS_MONTHS'] = (clinical_data
-        # .loc[clinical_data['OS_MONTHS'].notnull(), 'OS_MONTHS'] / 30).round().astype(int)
-
-        # # Possibly convert days to months
-        # if 'DFS_MONTHS' in clinical_data.columns:
-        #     # Convert days to months
-        #     clinical_data.loc[clinical_data['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] = (clinical_data
-        # .loc[clinical_data['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] / 30).round().astype(int)
-
+def modify_clinical_data_column_values(clinical_data_df):
     # Fix integers that are converted to floats due to NA in column
-    if len(clinical_data.select_dtypes(include=[np.float64]).columns) > 0:
-        clinical_data = fix_integer_na_columns(clinical_data)
-
+    if len(clinical_data_df.select_dtypes(include=[np.float64]).columns) > 0:
+        clinical_data_df = fix_integer_na_columns(clinical_data_df)
     # Check if column names are unique.
     # In case of duplicates, rename them manually before or after header creation
     # TODO: Nice to have - Extract mapping dictionaries to external config, now they are hardcoded
-    if not len(set(clinical_data.columns.tolist())) == len(clinical_data.columns.tolist()):
+    if not len(set(clinical_data_df.columns.tolist())) == len(clinical_data_df.columns.tolist()):
         logger.error('Attribute names not unique, not writing data_clinical. Rename them using the remap dictionary.')
         sys.exit(1)
-
     # Drop duplicate rows, this does not check for duplicate sample ID's
-    # cd_row_count = clinical_data.shape[0]
-    # clinical_data = clinical_data.drop_duplicates(keep='first')
-    # logger.debug('Found and dropped {} duplicates in the {} data'
-    #              .format(cd_row_count - clinical_data.shape[0], clinical_type))
+    cd_row_count = clinical_data_df.shape[0]
+    clinical_data_df = clinical_data_df.loc[clinical_data_df.astype(str).drop_duplicates(keep='first').index]
+    logger.debug('Found and dropped {} duplicates in the clinical data'
+                 .format(cd_row_count - clinical_data_df.shape[0]))
+    return clinical_data_df
 
-    write_clinical(clinical_data, clinical_header, clinical_type, output_dir, study_id)
 
-    return clinical_data
+def transform_patient_clinical_data(subject_registry: CentralSubjectRegistry,
+                                    description_map: Dict) -> [pd.DataFrame, pd.DataFrame]:
+    patient_data_df = subject_registry_to_patient_data_df(subject_registry, description_map)
+
+    # Remove empty columns
+    patient_data_df.dropna(axis=1, how='all', inplace=True)
+    # Create header
+    patient_data_header = create_clinical_header(patient_data_df)
+
+    patient_data_df= modify_clinical_data_column_names(patient_data_df)
+    # Remap overal survival
+    if 'OS_STATUS' in patient_data_df.columns:
+        patient_data_df.replace({'OS_STATUS': RENAME_OS_STATUS_MAP})
+    # Remap disease free survival
+    if 'DFS_STATUS' in patient_data_df.columns:
+        patient_data_df.replace({'DFS_STATUS': RENAME_DFS_STATUS_MAP})
+
+    # # Possibly convert days to months
+    # if 'OS_MONTHS' in patient_data_df.columns:
+    #     # Convert days to months
+    #     patient_data_df.loc[clinical_data['OS_MONTHS'].notnull(), 'OS_MONTHS'] = (clinical_data
+    # .loc[patient_data_df['OS_MONTHS'].notnull(), 'OS_MONTHS'] / 30).round().astype(int)
+
+    # # Possibly convert days to months
+    # if 'DFS_MONTHS' in patient_data_df.columns:
+    #     # Convert days to months
+    #     patient_data_df.loc[clinical_data['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] = (patient_data_df
+    # .loc[patient_data_df['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] / 30).round().astype(int)
+
+    patient_data_df = modify_clinical_data_column_values(patient_data_df)
+
+    return patient_data_df, patient_data_header
+
+
+def transform_sample_clinical_data(subject_registry: CentralSubjectRegistry,
+                                   description_map: Dict) -> [pd.DataFrame, pd.DataFrame]:
+    sample_data_df = subject_registry_to_sample_data_df(subject_registry, description_map)
+
+    # Remove empty columns
+    sample_data_df.dropna(axis=1, how='all', inplace=True)
+    # Create header
+    sample_data_header = create_clinical_header(sample_data_df)
+
+    sample_data_df = modify_clinical_data_column_names(sample_data_df)
+    sample_data_df = modify_clinical_data_column_values(sample_data_df)
+
+    return sample_data_df, sample_data_header
 
 
 def write_clinical(clinical_data, clinical_header, clinical_type, output_dir, study_id):
@@ -270,7 +279,15 @@ def main(clinical_inputfile, output_dir, clinical_type, study_id, description_ma
         print('Description map file is not a file')
         sys.exit(1)
 
-    transform_clinical_data(clinical_inputfile, output_dir, clinical_type, study_id, description_dict)
+    if clinical_type == 'patient':
+        patient_data_df, patient_data_header = transform_patient_clinical_data(clinical_inputfile, description_dict)
+        write_clinical(patient_data_df, patient_data_header, clinical_type, output_dir, study_id)
+    elif clinical_type == 'sample':
+        sample_data_df, sample_data_header = transform_sample_clinical_data(clinical_inputfile, description_dict)
+        write_clinical(sample_data_df, sample_data_header, clinical_type, output_dir, study_id)
+    else:
+        print('Clinical type: {} not recognized.'.format(clinical_type))
+        sys.exit(1)
 
 
 if __name__ == '__main__':

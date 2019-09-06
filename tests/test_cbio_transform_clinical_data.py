@@ -3,32 +3,33 @@ from collections import Counter
 
 import pandas as pd
 import pytest
+from csr.csr import CentralSubjectRegistry
+from csr.study_registry_reader import SubjectRegistryReader
 
-from scripts.cbioportal_transformation.cbio_transform_clinical import transform_clinical_data
-
-
-@pytest.fixture
-def patient_clinical_data(tmp_path) -> pd.DataFrame:
-    target_path = tmp_path.as_posix()
-    output_dir = target_path + '/data'
-    input_dir = './test_data/default_data'
-    descriptions_file = './test_data/config/cbioportal_header_descriptions.json'
-    study_id = 'CSR'
-    with open(descriptions_file, 'r') as des:
-        description_map = json.loads(des.read())
-    return transform_clinical_data(input_dir, output_dir, 'patient', study_id, description_map)
+from scripts.cbioportal_transformation.cbio_transform_clinical import \
+    transform_patient_clinical_data, transform_sample_clinical_data
 
 
 @pytest.fixture
-def sample_clinical_data(tmp_path) -> pd.DataFrame:
-    target_path = tmp_path.as_posix()
-    output_dir = target_path + '/data'
+def patient_clinical_data() -> pd.DataFrame:
     input_dir = './test_data/default_data'
+    subject_registry_reader = SubjectRegistryReader(input_dir)
+    subject_registry: CentralSubjectRegistry = subject_registry_reader.read_subject_registry()
     descriptions_file = './test_data/config/cbioportal_header_descriptions.json'
-    study_id = 'CSR'
     with open(descriptions_file, 'r') as des:
         description_map = json.loads(des.read())
-    return transform_clinical_data(input_dir, output_dir, 'sample', study_id, description_map)
+    return transform_patient_clinical_data(subject_registry, description_map)[0]
+
+
+@pytest.fixture
+def sample_clinical_data() -> pd.DataFrame:
+    input_dir = './test_data/default_data'
+    subject_registry_reader = SubjectRegistryReader(input_dir)
+    subject_registry: CentralSubjectRegistry = subject_registry_reader.read_subject_registry()
+    descriptions_file = './test_data/config/cbioportal_header_descriptions.json'
+    with open(descriptions_file, 'r') as des:
+        description_map = json.loads(des.read())
+    return transform_sample_clinical_data(subject_registry, description_map)[0]
 
 
 def test_patient_clinical_data(patient_clinical_data):

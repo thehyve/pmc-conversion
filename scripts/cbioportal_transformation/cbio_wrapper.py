@@ -7,7 +7,11 @@ import sys
 import os
 import errno
 import argparse
-from .cbio_transform_clinical import transform_clinical_data
+
+from csr.csr import CentralSubjectRegistry
+from csr.study_registry_reader import SubjectRegistryReader
+
+from .cbio_transform_clinical import write_clinical, transform_patient_clinical_data, transform_sample_clinical_data
 from .cbio_create_metafile import create_meta_content
 from .cbio_create_caselist import create_caselist
 import pandas as pd
@@ -54,21 +58,17 @@ def create_cbio_study(clinical_input_file, ngs_dir, output_dir, descriptions):
 
     # Clinical data
     logger.info('Transforming clinical data: %s' % clinical_input_file)
+    subject_registry_reader = SubjectRegistryReader(clinical_input_file)
+    subject_registry: CentralSubjectRegistry = subject_registry_reader.read_subject_registry()
 
     # Transform patient file
-    # TODO: Nice to have - Duplicate steps by calling function twice --> Change flow of program. Data input read twice
-    transform_clinical_data(input_dir=clinical_input_file,
-                            output_dir=output_dir,
-                            clinical_type='patient',
-                            study_id=STUDY_ID,
-                            description_map=descriptions_dict)
+    patient_clinical_data, patient_clinical_header = transform_patient_clinical_data(subject_registry, descriptions_dict)
+    write_clinical(patient_clinical_data, patient_clinical_header, 'patient', output_dir, STUDY_ID)
 
     # Transform sample file
-    sample_clinical_data = transform_clinical_data(input_dir=clinical_input_file,
-                                         clinical_type='sample',
-                                         output_dir=output_dir,
-                                         study_id=STUDY_ID,
-                                         description_map=descriptions_dict)
+    sample_clinical_data, sample_clinical_header = transform_sample_clinical_data(subject_registry, descriptions_dict)
+    write_clinical(sample_clinical_data, sample_clinical_header, 'sample', output_dir, STUDY_ID)
+
     sample_ids = sample_clinical_data['SAMPLE_ID'].unique().tolist()
 
     # Select NGS study files
