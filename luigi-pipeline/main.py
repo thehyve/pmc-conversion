@@ -1,18 +1,17 @@
+import asyncio
 import logging
 import os
+import threading
+import time
 
 import luigi
-import time
-import threading
-import asyncio
-
+from csr2cbioportal import csr2cbioportal
 from csr2transmart import csr2transmart
-
-from .luigi_commons import BaseTask, ExternalProgramTask
 
 from scripts.git_commons import get_git_repo
 from scripts.sync import sync_dirs, get_checksum_pairs_set
 from scripts.transmart_api_calls import TransmartApiCalls
+from .luigi_commons import BaseTask, ExternalProgramTask
 
 logger = logging.getLogger('luigi')
 
@@ -101,7 +100,7 @@ class GitCommit(BaseTask):
     def run(self):
         with git_lock:
             repo.index.add([self.directory_to_add])
-            if len(repo.index.diff('HEAD')):
+            if not repo.index.diff('HEAD'):
                 repo.index.commit(self.commit_message)
                 logger.info('Commit changes in {} directory.'.format(self.directory_to_add))
             else:
@@ -171,9 +170,9 @@ class CbioportalDataTransformation(BaseTask):
     def run(self):
         clinical_input_file = os.path.join(config.intermediate_file_dir)
 
-        csr2transmart.create_cbioportal_study(clinical_input_file=clinical_input_file,
-                                              ngs_dir=self.ngs_dir,
-                                              output_dir=config.cbioportal_staging_dir)
+        csr2cbioportal.create_cbioportal_study(input_dir=clinical_input_file,
+                                               ngs_dir=self.ngs_dir,
+                                               output_dir=config.cbioportal_staging_dir)
 
 
 class TransmartDataLoader(ExternalProgramTask):
@@ -340,11 +339,7 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
                                       commit_message='Add new input data.')
         commit_input_data.required_tasks = [update_data_files]
         yield commit_input_data
-        format_codebook = FormatCodeBooks()
-        format_codebook.required_tasks = [commit_input_data]
-        yield format_codebook
         merge_clinical_data = MergeClinicalData()
-        merge_clinical_data.required_tasks = [format_codebook]
         yield merge_clinical_data
 
         commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
@@ -402,11 +397,7 @@ class e2e_LoadDataFromNewFilesTaskTransmartOnly(luigi.WrapperTask):
                                       commit_message='Add new input data.')
         commit_input_data.required_tasks = [update_data_files]
         yield commit_input_data
-        format_codebook = FormatCodeBooks()
-        format_codebook.required_tasks = [commit_input_data]
-        yield format_codebook
         merge_clinical_data = MergeClinicalData()
-        merge_clinical_data.required_tasks = [format_codebook]
         yield merge_clinical_data
 
         commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
