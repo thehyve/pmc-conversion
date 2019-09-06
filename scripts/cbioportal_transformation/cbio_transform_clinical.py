@@ -23,19 +23,6 @@ sys.dont_write_bytecode = True
 logger = logging.getLogger(__name__)
 logger.name = logger.name.rsplit('.', 1)[1]
 
-# Create map to rename column names
-
-# Rename attributes after creating header
-# These are the attribute names that will be saved as column names in the database
-# This is only necessary for cBioPortal specific columns, such as 'Overal Survival Status' - 'OS_STATUS'
-# Other columns are automatically parsed to cBioPortal format, for example '% tumor cells' -> 'TUMOR_CELLS'
-# Please make sure the SAMPLE_ID column name is created
-RENAME_AFTER_CREATING_HEADER_MAP = {}
-
-# Rename values in OS_STATUS and DFS_STATUS columns
-RENAME_OS_STATUS_MAP = {}
-RENAME_DFS_STATUS_MAP = {}
-
 # Force some datatypes to be remappad to STRING
 FORCE_STRING_LIST = ['CENTER_TREATMENT', 'CID', 'DIAGNOSIS_ID', 'GENDER', 'IC_DATA', 'IC_LINKING_EXT', 'IC_MATERIAL',
                      'IC_TYPE', 'INDIVIDUAL_STUDY_ID', 'TOPOGRAPHY', 'TUMOR_TYPE']
@@ -172,9 +159,6 @@ def fix_integer_na_columns(df):
 
 
 def modify_clinical_data_column_names(clinical_data_df):
-    # Rename attributes after creating header
-    # These are the attribute names for the database
-    clinical_data_df.rename(columns=RENAME_AFTER_CREATING_HEADER_MAP, inplace=True)
     # Remove symbols from attribute names and make them uppercase
     clinical_data_df = clinical_data_df.rename(columns=lambda s: re.sub('[^0-9a-zA-Z_]+', '_', s))
     clinical_data_df = clinical_data_df.rename(columns=lambda x: x.strip('_'))
@@ -207,27 +191,7 @@ def transform_patient_clinical_data(subject_registry: CentralSubjectRegistry,
     patient_data_df.dropna(axis=1, how='all', inplace=True)
     # Create header
     patient_data_header = create_clinical_header(patient_data_df)
-
     patient_data_df= modify_clinical_data_column_names(patient_data_df)
-    # Remap overal survival
-    if 'OS_STATUS' in patient_data_df.columns:
-        patient_data_df.replace({'OS_STATUS': RENAME_OS_STATUS_MAP})
-    # Remap disease free survival
-    if 'DFS_STATUS' in patient_data_df.columns:
-        patient_data_df.replace({'DFS_STATUS': RENAME_DFS_STATUS_MAP})
-
-    # # Possibly convert days to months
-    # if 'OS_MONTHS' in patient_data_df.columns:
-    #     # Convert days to months
-    #     patient_data_df.loc[clinical_data['OS_MONTHS'].notnull(), 'OS_MONTHS'] = (clinical_data
-    # .loc[patient_data_df['OS_MONTHS'].notnull(), 'OS_MONTHS'] / 30).round().astype(int)
-
-    # # Possibly convert days to months
-    # if 'DFS_MONTHS' in patient_data_df.columns:
-    #     # Convert days to months
-    #     patient_data_df.loc[clinical_data['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] = (patient_data_df
-    # .loc[patient_data_df['DFS_MONTHS'].notnull(), 'DFS_MONTHS'] / 30).round().astype(int)
-
     patient_data_df = modify_clinical_data_column_values(patient_data_df)
 
     return patient_data_df, patient_data_header
@@ -241,7 +205,6 @@ def transform_sample_clinical_data(subject_registry: CentralSubjectRegistry,
     sample_data_df.dropna(axis=1, how='all', inplace=True)
     # Create header
     sample_data_header = create_clinical_header(sample_data_df)
-
     sample_data_df = modify_clinical_data_column_names(sample_data_df)
     sample_data_df = modify_clinical_data_column_values(sample_data_df)
 
