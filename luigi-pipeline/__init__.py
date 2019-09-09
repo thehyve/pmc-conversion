@@ -1,5 +1,5 @@
 from .main import LoadDataFromNewFilesTask, TransmartDataLoader, CbioportalDataLoading, \
-    TransmartDataTransformation, GitCommit, UpdateDataFiles, TransmartDataTransformation, CbioportalDataTransformation, \
+    Sources2CsrTransformation, GitCommit, UpdateDataFiles, TransmartDataTransformation, CbioportalDataTransformation, \
     CbioportalDataValidation, TransmartApiCalls
 from .main import e2e_LoadDataFromNewFilesTaskTransmartOnly
 import logging
