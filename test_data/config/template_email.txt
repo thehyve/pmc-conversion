@@ -1,0 +1,22 @@
+Pipeline status: Errors found! :(
+
+While running the CSR pipeline, one or more errors occurred. This email summarizes the errors that occurred and provides reference towards additional log information:
+
+Luigi Execution Summary
+---------------------------------------------------------------------
+Below you find a summary of the tasks performed by Luigi, the framework used in the CSR pipeline to combine all tasks that make up the CSR Pipeline.
+
+{summary}
+
+Error Messages
+---------------------------------------------------------------------
+Below you find listed all error messages produced by Luigi during the last execution of the Pipeline:
+
+{errors}
+
+Additional information can be retrieved from the logfile: {log_file}
+NOTE: use the Line numbers in the error messages to find the correct lines in the logfile.
+
+Regards,
+
+The CSR pipeline
