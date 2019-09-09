@@ -21,9 +21,6 @@ config_json_dir= <path_to>/pmc-conversion/config
 # intermediate files
 intermediate_file_dir=<path_to>/pmc-conversion/test_data/intermediate
 
-# Recommended version > python3.6
-python=python3
-
 # TranSMART study settings
 transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
 study_id = CSR_STUDY
@@ -73,5 +70,4 @@ server_name = pmc-cbioportal-test
 [E2eTest]
 PGADMINUSER = postgres
 PGADMINPASSWORD = password
-parent_drop_dir = <path_to>/pmc-conversion/test_data/dropzone
-transmart_data = <path_to>/transmart-core/transmart-data
+parent_drop_dir = <path_to>/pmc-conversion/test_data/dropzone/E2E_TEST_DATA
