@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import shutil
 import threading
 import time
 
@@ -120,6 +121,8 @@ class Sources2CsrTransformation(BaseTask):
     Task to transform source files to CSR intermediate files
     """
     def run(self):
+        if os.path.isdir(config.intermediate_file_dir):
+            shutil.rmtree(config.intermediate_file_dir)
         sources2csr(config.input_data_dir, config.intermediate_file_dir, config.config_json_dir)
 
 
@@ -128,6 +131,8 @@ class TransmartDataTransformation(BaseTask):
     Task to transform data from the CSR intermediate files to transmart-copy format
     """
     def run(self):
+        if os.path.isdir(config.transmart_staging_dir):
+            shutil.rmtree(config.transmart_staging_dir)
         csr2transmart.csr2transmart(config.intermediate_file_dir,
                                     config.transmart_staging_dir,
                                     config.config_json_dir,
@@ -139,18 +144,11 @@ class CbioportalDataTransformation(BaseTask):
     """
     Task to transform data from CSR intermediate files and NGS input study files to cBioPortal importer format
     """
-    # Get NGS dir
-    for dir, dirs, files in os.walk(config.input_data_dir):
-        if 'NGS' in dirs:
-            ngs_dir = os.path.join(dir, dirs[dirs.index('NGS')])
-            logger.info('Found NGS data directory: {}'.format(ngs_dir))
-            break
-
     def run(self):
         clinical_input_file = os.path.join(config.intermediate_file_dir)
-
+        ngs_dir = os.path.join(config.input_data_dir, 'NGS')
         csr2cbioportal.create_cbioportal_study(input_dir=clinical_input_file,
-                                               ngs_dir=self.ngs_dir,
+                                               ngs_dir=ngs_dir,
                                                output_dir=config.cbioportal_staging_dir)
 
 
