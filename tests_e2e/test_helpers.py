@@ -9,19 +9,6 @@ def run_pipe():
     call(['./e2e_transmart_only.sh'])
 
 
-def clean_database(config):
-    # set env vars
-    os.environ['PGPORT'] = config['GlobalConfig']['PGPORT']
-    os.environ['PGDATABASE'] = config['GlobalConfig']['PGDATABASE']
-    os.environ['PGUSER'] = config['E2eTest']['PGADMINUSER']
-    os.environ['PGPASSWORD'] = config['E2eTest']['PGADMINPASSWORD']
-    os.environ['TABLESPACES'] = os.environ['HOME'] + '/pg/tablespaces/'
-
-    # drop and build transmart database
-    call(['make', 'postgres_drop', '-C', config['E2eTest']['transmart_data']])
-    call(['make', 'postgres', '-C', config['E2eTest']['transmart_data']])
-
-
 def clean_dropzone(config):
     if os.path.exists(config['GlobalConfig']['drop_dir']):
         shutil.rmtree(config['GlobalConfig']['drop_dir'])
