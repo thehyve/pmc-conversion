@@ -1,4 +1,4 @@
-from .main import LoadDataFromNewFilesTask, TransmartDataLoader, CbioportalDataLoading, FormatCodeBooks, \
+from .main import LoadDataFromNewFilesTask, TransmartDataLoader, CbioportalDataLoading, \
     MergeClinicalData, GitCommit, UpdateDataFiles, TransmartDataTransformation, CbioportalDataTransformation, \
     CbioportalDataValidation, TransmartApiCalls
 from .main import e2e_LoadDataFromNewFilesTaskTransmartOnly
