@@ -147,9 +147,9 @@ class CbioportalDataTransformation(BaseTask):
     def run(self):
         clinical_input_file = os.path.join(config.intermediate_file_dir)
         ngs_dir = os.path.join(config.input_data_dir, 'NGS')
-        csr2cbioportal.create_cbioportal_study(input_dir=clinical_input_file,
-                                               ngs_dir=ngs_dir,
-                                               output_dir=config.cbioportal_staging_dir)
+        csr2cbioportal.csr2cbioportal(input_dir=clinical_input_file,
+                                      ngs_dir=ngs_dir,
+                                      output_dir=config.cbioportal_staging_dir)
 
 
 class TransmartDataLoader(ExternalProgramTask):
