@@ -23,13 +23,13 @@ CBIOPORTAL_DIR_NAME = 'cbioportal'
 class GlobalConfig(luigi.Config):
     drop_dir = luigi.Parameter(description='Directory files gets uploaded to.')
 
-    repo_root_dir = luigi.Parameter(description='Path to the git repository.')
+    data_repo_dir = luigi.Parameter(description='Path to the staging git repository.')
 
     load_logs_dir_name = luigi.Parameter(description='Path to the log files of the loading scripts.',
                                          default='load_logs')
-    intermediate_file_dir = luigi.Parameter(description='Path to the repo to store the intermediate data products')
+    working_dir = luigi.Parameter(description='Path to the repo to store the intermediate data products')
 
-    config_json_dir = luigi.Parameter(description='Folder with mapping files in JSON format')
+    transformation_config_dir = luigi.Parameter(description='Folder with mapping files in JSON format')
 
     transmart_copy_jar = luigi.Parameter(description='Path to transmart copy jar.')
     study_id = luigi.Parameter(description="Id of the study to load.")
@@ -43,19 +43,19 @@ class GlobalConfig(luigi.Config):
 
     @property
     def input_data_dir(self):
-        return os.path.join(self.repo_root_dir, 'input_data')
+        return os.path.join(self.data_repo_dir, 'input_data')
 
     @property
     def transmart_staging_dir(self):
-        return os.path.join(self.repo_root_dir, 'staging', 'transmart')
+        return os.path.join(self.data_repo_dir, 'staging', 'transmart')
 
     @property
     def load_logs_dir(self):
-        return os.path.join(self.repo_root_dir, self.load_logs_dir_name)
+        return os.path.join(self.data_repo_dir, self.load_logs_dir_name)
 
     @property
     def cbioportal_staging_dir(self):
-        return os.path.join(self.repo_root_dir, 'staging', CBIOPORTAL_DIR_NAME)
+        return os.path.join(self.data_repo_dir, 'staging', CBIOPORTAL_DIR_NAME)
 
     @property
     def transmart_load_logs_dir(self):
@@ -68,7 +68,7 @@ class GlobalConfig(luigi.Config):
 
 config = GlobalConfig()
 git_lock = threading.RLock()
-repo = get_git_repo(config.repo_root_dir)
+repo = get_git_repo(config.data_repo_dir)
 
 os.makedirs(config.input_data_dir, exist_ok=True)
 os.makedirs(config.cbioportal_staging_dir, exist_ok=True)
@@ -121,9 +121,9 @@ class Sources2CsrTransformation(BaseTask):
     Task to transform source files to CSR intermediate files
     """
     def run(self):
-        if os.path.isdir(config.intermediate_file_dir):
-            shutil.rmtree(config.intermediate_file_dir)
-        sources2csr(config.input_data_dir, config.intermediate_file_dir, config.config_json_dir)
+        if os.path.isdir(config.working_dir):
+            shutil.rmtree(config.working_dir)
+        sources2csr(config.input_data_dir, config.working_dir, config.transformation_config_dir)
 
 
 class TransmartDataTransformation(BaseTask):
@@ -133,9 +133,9 @@ class TransmartDataTransformation(BaseTask):
     def run(self):
         if os.path.isdir(config.transmart_staging_dir):
             shutil.rmtree(config.transmart_staging_dir)
-        csr2transmart.csr2transmart(config.intermediate_file_dir,
+        csr2transmart.csr2transmart(config.working_dir,
                                     config.transmart_staging_dir,
-                                    config.config_json_dir,
+                                    config.transformation_config_dir,
                                     config.study_id,
                                     config.top_node)
 
@@ -145,7 +145,7 @@ class CbioportalDataTransformation(BaseTask):
     Task to transform data from CSR intermediate files and NGS input study files to cBioPortal importer format
     """
     def run(self):
-        clinical_input_file = os.path.join(config.intermediate_file_dir)
+        clinical_input_file = os.path.join(config.working_dir)
         ngs_dir = os.path.join(config.input_data_dir, 'NGS')
         csr2cbioportal.csr2cbioportal(input_dir=clinical_input_file,
                                       ngs_dir=ngs_dir,
@@ -226,7 +226,7 @@ class CbioportalDataValidation(ExternalProgramTask):
         # Directory and file names for validation
         input_dir = config.cbioportal_staging_dir
         report_dir = config.cbioportal_load_logs_dir
-        db_info_dir = os.path.join(config.config_json_dir, 'cbioportal_db_info')
+        db_info_dir = os.path.join(config.transformation_config_dir, 'cbioportal_db_info')
         report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
 
         # Build validation command. No connection has to be made to the database or web server.
