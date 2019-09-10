@@ -1,6 +1,7 @@
 [core]
 logging_conf_file=logging.cfg
 
+
 [task_history]
 db_connection = sqlite:///pmc-luigi-db.sqlite
 
@@ -11,21 +12,23 @@ state_path = luigi-state.pickle
 # Update remove delay to 1 day instead of 10 minutes
 remove_delay=86400
 
+
 [GlobalConfig]
 ## NOTE: insert full absolute paths
+# Data dropzone directory
 drop_dir=<path_to>/test_data/dropzone
-repo_root_dir=<path_to>/projects/pmc/data
-load_logs_dir_name=load_logs
-config_json_dir= <path_to>/pmc-conversion/config
+# Staging repository directory
+data_repo_dir=<path_to>/projects/pmc/data
+# Intermediate files directory
+working_dir=<path_to>/pmc-conversion/test_data/intermediate
+transformation_config_dir= <path_to>/config
 
-# intermediate files
-intermediate_file_dir=<path_to>/pmc-conversion/test_data/intermediate
+load_logs_dir_name=load_logs
 
 # TranSMART study settings
-transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
+transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.2.jar
 study_id = CSR_STUDY
 top_node = \Central Subject Registry\
-
 
 # TranSMART database
 PGHOST = localhost
@@ -66,6 +69,7 @@ docker_image = cbioportal-image
 [CbioportalDataLoading]
 docker_image = cbioportal-image
 server_name = pmc-cbioportal-test
+
 
 [E2eTest]
 PGADMINUSER = postgres
