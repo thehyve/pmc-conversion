@@ -1,6 +1,5 @@
 [global]
 log_file=
-template_email=./config/template_email.txt
 
 [email]
 receiver=

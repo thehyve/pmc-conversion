@@ -19,8 +19,7 @@ class Config:
         self.username = cp.get('smtp', 'username')
         self.password = cp.get('smtp', 'password')
 
-        self.template_email = cp.get('global','template_email')
-        self.template = self._read_template(self.template_email)
+        self.template = self._read_template('../templates/template_email.txt')
         self.log_file = cp.get('global', 'log_file')
         self.log = self._read_log(self.log_file)
 
