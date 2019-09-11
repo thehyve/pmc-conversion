@@ -151,10 +151,10 @@ ptp_test/
 # System Files
 .DS_Store
 Thumbs.db
-luigi.cfg
+
 .done-*
-config/csr_transformation.config
-config/transmart_transformation.config
-config/email_config.cfg
+
+luigi.cfg
+email_config.cfg
 luigi-state.pickle
 e2e-temp
