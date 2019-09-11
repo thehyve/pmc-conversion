@@ -1,3 +1,4 @@
+import os
 import sys
 import click
 import logging
@@ -19,7 +20,7 @@ class Config:
         self.username = cp.get('smtp', 'username')
         self.password = cp.get('smtp', 'password')
 
-        self.template = self._read_template('../templates/template_email.txt')
+        self.template = self._read_template(f'{os.path.dirname(__file__)}/../templates/template_email.txt')
         self.log_file = cp.get('global', 'log_file')
         self.log = self._read_log(self.log_file)
 
