@@ -22,7 +22,7 @@ located in `transformation_config_dir` (defined in [luigi.cfg](#luigi-configurat
 Luigi configuration can be created by coping the `luigi.cfg-sample`:
 
 ``` bash
-$ cp luigi.cfg-sample luigi.cfg
+cp luigi.cfg-sample luigi.cfg
 ```
 
 Config options overview:
@@ -85,7 +85,7 @@ The value of the `refresh_token` field in the response is the offline token.
 Email configuration can be created by coping the `email_config.cfg-sample`:
 
 ``` bash
-$ cp email_config.cfg-sample email_config.cfg
+cp email_config.cfg-sample email_config.cfg
 ```
 
 Config options overview:
@@ -127,23 +127,23 @@ and the input data is in the proper directory (see [input data section](#input-d
 
 2. Install dependencies:
 
-Pipeline requires Python >= 3.6.
+    Pipeline requires Python >= 3.6.
 
-``` bash
-$ python -m pip install -r requirements/requirements.txt
-```
+    ``` bash
+    python -m pip install -r requirements/requirements.txt
+    ```
 
 3. Start luigi daemon:
 
-``` bash
-$ luigid
-```
+    ``` bash
+    luigid
+    ```
 
 4. Start the full pipeline:
 
-``` bash
-$ ./scripts/run.sh
-```
+    ``` bash
+    ./scripts/run.sh
+    ```
 
 
 
@@ -152,26 +152,26 @@ $ ./scripts/run.sh
 To load data to transmart only:
 
 ``` bash
-$ ./scripts/load_transmart_data.sh
+./scripts/load_transmart_data.sh
 ```
 
 To load data to cbioportal only:
 
 ``` bash
-$ ./scripts/load_cbioportal_data.sh
+./scripts/load_cbioportal_data.sh
 ```
 
 To load data to both systems:
 
 ``` bash
-$ ./scripts/load_data.sh
+./scripts/load_data.sh
 ```
 
 The pipeline creates files that start with `.done-*`.
 These files created for each successfully finished task of the pipeline.
 To force execution of tasks again you need to remove these files:
 ``` bash
-$ ./scripts/remove_done_files.sh
+ ./scripts/remove_done_files.sh
 ```
 
 
@@ -179,12 +179,12 @@ $ ./scripts/remove_done_files.sh
 
 To run e2e tests:
 ``` bash
-$ ./scripts/e2e_transmart_only.sh
+./scripts/e2e_transmart_only.sh
 ```
 
 To run other tests:
 ``` bash
-$ ./scripts/run_tests.sh
+./scripts/run_tests.sh
 ```
 
 ## License
