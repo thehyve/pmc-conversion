@@ -1,5 +1,7 @@
 import os
 import sys
+from typing import Iterable, Tuple, List
+
 import click
 import logging
 import smtplib
@@ -42,12 +44,12 @@ class Config:
             raise OSError
 
     def set_subject(self, subject):
-        self.subject = '{}{}'.format(self.prefix, subject)
+        self.subject = '{} {}'.format(self.prefix, subject)
 
 
-def parse_log_file(log):
+def parse_log_file(log: Iterable[str]) -> Tuple[Iterable[str], List[str]]:
     """Loop over the log file and parse the summary and error messages"""
-    start,end = '',-1
+    start, end = '', -1
     errors = []
 
     for index_, item in enumerate(log):
@@ -64,7 +66,7 @@ def parse_log_file(log):
     return summary, errors
 
 
-def sendemail(cp, message):
+def sendemail(cp: Config, message):
     """Use the message to send an email to the receiver specified in the config cp"""
     # Construct the payload to send.
     header = build_header(cp)
@@ -81,18 +83,17 @@ def sendemail(cp, message):
         server.quit()
 
 
-def build_header(cp):
+def build_header(cp: Config) -> str:
     """Build the email header for a SMTP email message"""
     header = '\n'.join([
         'From: {}'.format(cp.sender),
         'To: {}'.format(''.join(cp.receiver)),
-        'Cc: {}'.format([]),
         'Subject: {}\n\n'.format(cp.subject)
     ])
     return header
 
 
-def build_message_body(cp, summary, errors):
+def build_message_body(cp: Config, summary: Iterable[str], errors: Iterable[str]) -> str:
     """Construct the body of the email to be send based on the summary and errors.
     Uses a template message to insert the summary and errors. The template message should have two format place holders
     named 'summary' and 'errors'.
@@ -114,8 +115,8 @@ def setup_logger(log_level):
 
 
 @click.command()
-@click.option('--config',type=click.Path(exists=True))
-@click.option('--log_level',type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']), default='INFO')
+@click.option('--config', type=click.Path(exists=True))
+@click.option('--log_level', type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']), default='INFO')
 def main(config, log_level):
     logger = setup_logger(log_level)
 
