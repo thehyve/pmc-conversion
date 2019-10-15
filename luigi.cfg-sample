@@ -1,6 +1,7 @@
 [core]
 logging_conf_file=logging.cfg
 
+
 [task_history]
 db_connection = sqlite:///pmc-luigi-db.sqlite
 
@@ -11,31 +12,23 @@ state_path = luigi-state.pickle
 # Update remove delay to 1 day instead of 10 minutes
 remove_delay=86400
 
+
 [GlobalConfig]
 ## NOTE: insert full absolute paths
+# Data dropzone directory
 drop_dir=<path_to>/test_data/dropzone
-repo_root_dir=<path_to>/projects/pmc/data
-input_data_dir_name=input_data
-staging_dir_name=staging
+# Staging repository directory
+data_repo_dir=<path_to>/projects/pmc/data
+# Intermediate files directory
+working_dir=<path_to>/pmc-conversion/test_data/intermediate
+transformation_config_dir= <path_to>/config
+
 load_logs_dir_name=load_logs
-config_json_dir= <path_to>/pmc-conversion/config
-
-# intermediate files
-intermediate_file_dir=<path_to>/pmc-conversion/test_data/intermediate
-csr_data_file = csr_transformation_data.tsv
-study_registry_file = study_registry.tsv
-
-
-# Recommended version > python3.6
-python=python3
 
 # TranSMART study settings
-transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.1-luke-SNAPSHOT.jar
+transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.2.jar
 study_id = CSR_STUDY
 top_node = \Central Subject Registry\
-# security_required: Y or N
-security_required = Y
-
 
 # TranSMART database
 PGHOST = localhost
@@ -61,23 +54,6 @@ scheduling_error=35
 unhandled_exception=40
 
 
-[FormatCodeBooks]
-cm_map_file = ptp_codebook_mapping.json
-
-
-[MergeClinicalData]
-data_model = data_model.json
-column_priority = ptp_column_priority.json
-file_headers = ptp_file_headers.json
-columns_to_csr = ptp_columns_to_csr.json
-
-
-[TransmartDataTransformation]
-tm_transformation = transmart_transformation.py
-blueprint = blueprint.json
-modifiers = modifiers.txt
-
-
 [TransmartApiTask]
 keycloak_url = https://somekeycloak.net/auth/realms/transmart-name
 transmart_url = https://transmart.thehyve.net
@@ -85,8 +61,6 @@ gb_backend_url = https://gb-backend.thehyve.net
 client_id = transmart
 offline_token = <transmart-user-offline-token>
 
-[CbioportalDataTransformation]
-cbioportal_header_descriptions=cbioportal_header_descriptions.json
 
 [CbioportalDataValidation]
 docker_image = cbioportal-image
@@ -96,8 +70,8 @@ docker_image = cbioportal-image
 docker_image = cbioportal-image
 server_name = pmc-cbioportal-test
 
+
 [E2eTest]
 PGADMINUSER = postgres
 PGADMINPASSWORD = password
-parent_drop_dir = <path_to>/pmc-conversion/test_data/dropzone
-transmart_data = <path_to>/transmart-core/transmart-data
+parent_drop_dir = <path_to>/pmc-conversion/test_data/dropzone/E2E_TEST_DATA

@@ -1,6 +1,0 @@
-cancer_study_identifier: pmc_test
-type_of_cancer: mixed
-name: PMC - Test Study
-short_name: PMC - Test Study
-description: 23-03-2018 14:54 Transformed from PMC Test Data to cBioPortal format.
-add_global_case_list: true

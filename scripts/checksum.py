@@ -16,12 +16,6 @@ def compute_sha1(path) -> str:
     return compute_checksum(path, 'sha1')
 
 
-def compute_sha256(path) -> str:
-    """ Generates sha256 hex digest for a file. """
-
-    return compute_checksum(path, 'sha256')
-
-
 def compute_checksum(path, algorithm: str) -> str:
     """ Generates a hex digest using specified algorithm for a file. """
     buffer_size = 65536

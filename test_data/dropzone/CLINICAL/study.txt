@@ -1,6 +1,0 @@
-STUDY_ID	ACRONYM	TITLE	DESCRIPTION	DATADICTIONARY
-PMCST002AAA	TS01	Test study 01	Study for testing	reference 01
-PMCST005AAA	TS02	Test study 02	Another study for testing	reference 02
-PMCST002AAB	TS01	Test study 01	Study for testing	reference 01
-PMCST002AAC	TS01	Test study 01	Study for testing	reference 01
-PMCST007AAA	TS03	Test study 03	Yet another study for testing	reference 03

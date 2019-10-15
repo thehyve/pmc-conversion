@@ -1,12 +1,11 @@
-import os
 import sys
-import json
 import requests
 import asyncio
 
 
 class TransmartApiException(Exception):
     pass
+
 
 class TransmartApiCalls(object):
 
@@ -54,14 +53,12 @@ class TransmartApiCalls(object):
 
         return token
 
-
     def scan_subscription_queries(self):
         """
         Triggers the scan of stored set queries in Gb Backend app.
 
         """
         self.post('/queries/sets/scan', server_url=self.gb_backend_url)
-
 
     def clear_tree_nodes_cache(self):
         """
@@ -70,7 +67,6 @@ class TransmartApiCalls(object):
 
         Console.info('Clearing tree nodes cache ...')
         self.get('/v2/tree_nodes/clear_cache')
-
 
     def rebuild_tree_cache(self):
         """
@@ -81,14 +77,12 @@ class TransmartApiCalls(object):
         Console.info('Rebuilding tree nodes cache ...')
         self.get('/v2/tree_nodes/rebuild_cache')
 
-
     def after_data_loading(self):
         """
         Triggers a clear of the caches of TranSMART and scans for query subscriptions
         """
         Console.info('After data loading update, clearing and rebuilding caches.')
         self.get('/v2/admin/system/after_data_loading_update')
-
 
     def update_status(self):
         """
@@ -97,7 +91,6 @@ class TransmartApiCalls(object):
         Console.info('After data loading update status check.')
         response = self.get('/v2/admin/system/update_status')
         return response.json()
-
 
     async def check_status(self, n, sleep=30.0):
         """
@@ -118,7 +111,6 @@ class TransmartApiCalls(object):
             await asyncio.sleep(sleep)
         Console.error('After data loading update took too long: %s seconds. Transmart Api task interrupted.' % (n*sleep))
         raise TransmartApiException('Timeout. Not able to finish an update task within %s seconds.' % (n*sleep))
-
 
     def get(self, path, **kwargs):
         """
@@ -142,7 +134,6 @@ class TransmartApiCalls(object):
         except Exception as e:
             Console.error('Retrieving %s failed: %s' % (url, response))
             raise TransmartApiException(e)
-
 
     def post(self, path, **kwargs):
         """

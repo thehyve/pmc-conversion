@@ -1,51 +1,39 @@
+import asyncio
 import logging
 import os
+import shutil
+import threading
+import time
 
 import luigi
-import time
-import threading
-import asyncio
-
-from .luigi_commons import BaseTask, ExternalProgramTask
+from csr2cbioportal import csr2cbioportal
+from csr2transmart import csr2transmart
+from sources2csr.sources2csr import sources2csr
 
 from scripts.git_commons import get_git_repo
 from scripts.sync import sync_dirs, get_checksum_pairs_set
-from scripts.codebook_formatting import codebook_formatting
-from scripts.csr_transformations import csr_transformation
 from scripts.transmart_api_calls import TransmartApiCalls
-from scripts.cbioportal_transformation.cbio_wrapper import create_cbio_study
+from .luigi_commons import BaseTask, ExternalProgramTask
 
 logger = logging.getLogger('luigi')
 
-TRANSMART_DIR_NAME = 'transmart'
 CBIOPORTAL_DIR_NAME = 'cbioportal'
 
 
 class GlobalConfig(luigi.Config):
     drop_dir = luigi.Parameter(description='Directory files gets uploaded to.')
 
-    repo_root_dir = luigi.Parameter(description='Path to the git repository.')
-    input_data_dir_name = luigi.Parameter(description='Original provided files under the repository.',
-                                          default='input_data')
-    staging_dir_name = luigi.Parameter(description='Directory where ready to load transformed files are stored.',
-                                       default='staging')
+    data_repo_dir = luigi.Parameter(description='Path to the staging git repository.')
+
     load_logs_dir_name = luigi.Parameter(description='Path to the log files of the loading scripts.',
                                          default='load_logs')
-    intermediate_file_dir = luigi.Parameter(description='Path to the repo to store the intermediate data products')
+    working_dir = luigi.Parameter(description='Path to the repo to store the intermediate data products')
 
-    config_json_dir = luigi.Parameter(description='Folder with mapping files in JSON format')
-
-    python = luigi.Parameter(description='Python version to use when executing ExternalProgram Tasks',
-                             default='python3')
-
-    csr_data_file = luigi.Parameter(description='Combined clinical data for the Central subject registry')
-    study_registry_file = luigi.Parameter(description='Combined study and individual_study entity'
-                                                      'data for the Central subject registry')
+    transformation_config_dir = luigi.Parameter(description='Folder with mapping files in JSON format')
 
     transmart_copy_jar = luigi.Parameter(description='Path to transmart copy jar.')
     study_id = luigi.Parameter(description="Id of the study to load.")
     top_node = luigi.Parameter(description='Topnode of the study to load')
-    security_required = luigi.Parameter(description='Either True or False, TranSMART study should be private?')
 
     PGHOST = luigi.Parameter(description="Configuration for transmart-copy.")
     PGPORT = luigi.Parameter(description="Configuration for transmart-copy.")
@@ -55,23 +43,23 @@ class GlobalConfig(luigi.Config):
 
     @property
     def input_data_dir(self):
-        return os.path.join(self.repo_root_dir, self.input_data_dir_name)
+        return os.path.join(self.data_repo_dir, 'input_data')
 
     @property
     def transmart_staging_dir(self):
-        return os.path.join(self.repo_root_dir, self.staging_dir_name, TRANSMART_DIR_NAME)
+        return os.path.join(self.data_repo_dir, 'staging', 'transmart')
 
     @property
     def load_logs_dir(self):
-        return os.path.join(self.repo_root_dir, self.load_logs_dir_name)
+        return os.path.join(self.data_repo_dir, self.load_logs_dir_name)
 
     @property
     def cbioportal_staging_dir(self):
-        return os.path.join(self.repo_root_dir, self.staging_dir_name, CBIOPORTAL_DIR_NAME)
+        return os.path.join(self.data_repo_dir, 'staging', CBIOPORTAL_DIR_NAME)
 
     @property
     def transmart_load_logs_dir(self):
-        return os.path.join(self.load_logs_dir, TRANSMART_DIR_NAME)
+        return os.path.join(self.load_logs_dir, 'transmart')
 
     @property
     def cbioportal_load_logs_dir(self):
@@ -80,12 +68,11 @@ class GlobalConfig(luigi.Config):
 
 config = GlobalConfig()
 git_lock = threading.RLock()
-repo = get_git_repo(config.repo_root_dir)
+repo = get_git_repo(config.data_repo_dir)
 
 os.makedirs(config.input_data_dir, exist_ok=True)
 os.makedirs(config.cbioportal_staging_dir, exist_ok=True)
 os.makedirs(config.transmart_staging_dir, exist_ok=True)
-os.makedirs(config.intermediate_file_dir, exist_ok=True)
 os.makedirs(config.transmart_load_logs_dir, exist_ok=True)
 os.makedirs(config.cbioportal_load_logs_dir, exist_ok=True)
 
@@ -102,7 +89,7 @@ class GitCommit(BaseTask):
     def run(self):
         with git_lock:
             repo.index.add([self.directory_to_add])
-            if len(repo.index.diff('HEAD')):
+            if not repo.index.diff('HEAD'):
                 repo.index.commit(self.commit_message)
                 logger.info('Commit changes in {} directory.'.format(self.directory_to_add))
             else:
@@ -129,83 +116,40 @@ class UpdateDataFiles(BaseTask):
         return calc_done_signal_content(self.file_modifications.new_files)
 
 
-class FormatCodeBooks(BaseTask):
-    cm_map_file = luigi.Parameter(description='Codebook mapping file', significant=False)
-
+class Sources2CsrTransformation(BaseTask):
+    """
+    Task to transform source files to CSR intermediate files
+    """
     def run(self):
-        cm_map = os.path.join(config.config_json_dir, self.cm_map_file)
-
-        for path, dir_, filenames in os.walk(config.input_data_dir):
-            codebooks = [file for file in filenames if 'codebook' in file]
-            for codebook in codebooks:
-                codebook_file = os.path.join(path, codebook)
-                codebook_formatting(codebook_file, cm_map, config.intermediate_file_dir)
+        if os.path.isdir(config.working_dir):
+            shutil.rmtree(config.working_dir)
+        sources2csr(config.input_data_dir, config.working_dir, config.transformation_config_dir)
 
 
-class MergeClinicalData(BaseTask):
-    data_model = luigi.Parameter(description='JSON file with the columns per entity', significant=False)
-    column_priority = luigi.Parameter(description='Flat text file with an ordered list of expected files',
-                                      significant=False)
-    file_headers = luigi.Parameter(description='JSON file with a list of columns per data file', significant=False)
-    columns_to_csr = luigi.Parameter(
-        description='Data file columns mapped to expected fields in the central subject registry', significant=False)
-
+class TransmartDataTransformation(BaseTask):
+    """
+    Task to transform data from the CSR intermediate files to transmart-copy format
+    """
     def run(self):
-        csr_transformation(input_dir=config.input_data_dir,
-                           output_dir=config.intermediate_file_dir,
-                           config_dir=config.config_json_dir,
-                           data_model=self.data_model,
-                           column_priority=self.column_priority,
-                           file_headers=self.file_headers,
-                           columns_to_csr=self.columns_to_csr,
-                           output_filename=config.csr_data_file,
-                           output_study_filename=config.study_registry_file)
-
-
-class TransmartDataTransformation(ExternalProgramTask):
-    wd = os.path.join(os.getcwd(), 'scripts')
-
-    tm_transformation = luigi.Parameter(description='tranSMART data transformation script name', significant=False)
-    blueprint = luigi.Parameter(description='Blueprint file to map the data to the tranSMART ontology')
-    modifiers = luigi.Parameter(description='Modifiers used by tranSMART')
-
-    std_out_err_dir = os.path.join(config.transmart_load_logs_dir, 'transformations')
-
-    def program_args(self):
-        return [config.python, self.tm_transformation,
-                '--csr_data_file', os.path.join(config.intermediate_file_dir, config.csr_data_file),
-                '--study_registry_data_file', os.path.join(config.intermediate_file_dir, config.study_registry_file),
-                '--output_dir', config.transmart_staging_dir,
-                '--config_dir', config.config_json_dir,
-                '--blueprint', self.blueprint,
-                '--modifiers', self.modifiers,
-                '--study_id', config.study_id,
-                '--top_node', '{!r}'.format(config.top_node),
-                '--security_required', config.security_required]
+        if os.path.isdir(config.transmart_staging_dir):
+            shutil.rmtree(config.transmart_staging_dir)
+        csr2transmart.csr2transmart(config.working_dir,
+                                    config.transmart_staging_dir,
+                                    config.transformation_config_dir,
+                                    config.study_id,
+                                    config.top_node)
 
 
 class CbioportalDataTransformation(BaseTask):
     """
-    Task to transform data files for cBioPortal
+    Task to transform data from CSR intermediate files and NGS input study files to cBioPortal importer format
     """
-
-    cbioportal_header_descriptions = luigi.Parameter(description='JSON file with a description per column')
-
-    # Get NGS dir
-    for dir, dirs, files in os.walk(config.input_data_dir):
-        if 'NGS' in dirs:
-            ngs_dir = os.path.join(dir, dirs[dirs.index('NGS')])
-            logger.info('Found NGS data directory: {}'.format(ngs_dir))
-            break
-
     def run(self):
-        clinical_input_file = os.path.join(config.intermediate_file_dir, config.csr_data_file)
-        description_mapping = os.path.join(config.config_json_dir, self.cbioportal_header_descriptions)
-
-        create_cbio_study(clinical_input_file=clinical_input_file,
-                          ngs_dir=self.ngs_dir,
-                          output_dir=config.cbioportal_staging_dir,
-                          descriptions=description_mapping)
+        clinical_input_file = os.path.join(config.working_dir)
+        ngs_dir = os.path.join(config.input_data_dir, 'NGS')
+        csr2cbioportal.csr2cbioportal(input_dir=clinical_input_file,
+                                      ngs_dir=ngs_dir,
+                                      output_dir=config.cbioportal_staging_dir)
 
 
 class TransmartDataLoader(ExternalProgramTask):
@@ -282,7 +226,7 @@ class CbioportalDataValidation(ExternalProgramTask):
         # Directory and file names for validation
         input_dir = config.cbioportal_staging_dir
         report_dir = config.cbioportal_load_logs_dir
-        db_info_dir = os.path.join(config.config_json_dir, 'cbioportal_db_info')
+        db_info_dir = os.path.join(config.transformation_config_dir, 'cbioportal_db_info')
         report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
 
         # Build validation command. No connection has to be made to the database or web server.
@@ -372,19 +316,18 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
                                       commit_message='Add new input data.')
         commit_input_data.required_tasks = [update_data_files]
         yield commit_input_data
-        format_codebook = FormatCodeBooks()
-        format_codebook.required_tasks = [commit_input_data]
-        yield format_codebook
-        merge_clinical_data = MergeClinicalData()
-        merge_clinical_data.required_tasks = [format_codebook]
-        yield merge_clinical_data
 
-        transmart_data_transformation = TransmartDataTransformation()
-        transmart_data_transformation.required_tasks = [merge_clinical_data]
-        yield transmart_data_transformation
+        sources_to_csr_task = Sources2CsrTransformation()
+        sources_to_csr_task.required_tasks = [update_data_files]
+        yield sources_to_csr_task
+
+        csr_to_transmart_task = TransmartDataTransformation()
+        csr_to_transmart_task.required_tasks = [sources_to_csr_task]
+        yield csr_to_transmart_task
+
         commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
                                              commit_message='Add transmart data.')
-        commit_transmart_staging.required_tasks = [transmart_data_transformation]
+        commit_transmart_staging.required_tasks = [csr_to_transmart_task]
         yield commit_transmart_staging
 
         load_transmart_study = TransmartDataLoader()
@@ -401,7 +344,7 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         yield commit_transmart_load_logs
 
         cbioportal_data_transformation = CbioportalDataTransformation()
-        cbioportal_data_transformation.required_tasks = [merge_clinical_data]
+        cbioportal_data_transformation.required_tasks = [sources_to_csr_task]
         yield cbioportal_data_transformation
         cbioportal_data_validation = CbioportalDataValidation()
         cbioportal_data_validation.required_tasks = [cbioportal_data_transformation]
@@ -437,19 +380,18 @@ class e2e_LoadDataFromNewFilesTaskTransmartOnly(luigi.WrapperTask):
                                       commit_message='Add new input data.')
         commit_input_data.required_tasks = [update_data_files]
         yield commit_input_data
-        format_codebook = FormatCodeBooks()
-        format_codebook.required_tasks = [commit_input_data]
-        yield format_codebook
-        merge_clinical_data = MergeClinicalData()
-        merge_clinical_data.required_tasks = [format_codebook]
-        yield merge_clinical_data
 
-        transmart_data_transformation = TransmartDataTransformation()
-        transmart_data_transformation.required_tasks = [merge_clinical_data]
-        yield transmart_data_transformation
+        sources_to_csr_task = Sources2CsrTransformation()
+        sources_to_csr_task.required_tasks = [update_data_files]
+        yield sources_to_csr_task
+
+        csr_to_transmart_task = TransmartDataTransformation()
+        csr_to_transmart_task.required_tasks = [sources_to_csr_task]
+        yield csr_to_transmart_task
+
         commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
                                              commit_message='Add transmart data.')
-        commit_transmart_staging.required_tasks = [transmart_data_transformation]
+        commit_transmart_staging.required_tasks = [csr_to_transmart_task]
         yield commit_transmart_staging
 
         load_transmart_study = TransmartDataLoader()
