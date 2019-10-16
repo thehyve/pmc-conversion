@@ -147,6 +147,8 @@ class CbioportalDataTransformation(BaseTask):
     def run(self):
         clinical_input_file = os.path.join(config.working_dir)
         ngs_dir = os.path.join(config.input_data_dir, 'NGS')
+        if not os.path.isdir(ngs_dir):
+            ngs_dir = None
         csr2cbioportal.csr2cbioportal(input_dir=clinical_input_file,
                                       ngs_dir=ngs_dir,
                                       output_dir=config.cbioportal_staging_dir)
