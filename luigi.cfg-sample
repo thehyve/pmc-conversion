@@ -63,11 +63,11 @@ offline_token = <transmart-user-offline-token>
 
 
 [CbioportalDataValidation]
-docker_image = cbioportal-image
+docker_image = cbioportal-hg38:1.10.2
 
 
 [CbioportalDataLoading]
-docker_image = cbioportal-image
+docker_image = cbioportal-hg38:1.10.2
 server_name = pmc-cbioportal-test
 
 
