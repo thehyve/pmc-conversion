@@ -89,7 +89,7 @@ class GitCommit(BaseTask):
     def run(self):
         with git_lock:
             repo.index.add([self.directory_to_add])
-            if not repo.index.diff('HEAD'):
+            if repo.is_dirty():
                 repo.index.commit(self.commit_message)
                 logger.info('Commit changes in {} directory.'.format(self.directory_to_add))
             else:
