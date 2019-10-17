@@ -89,7 +89,7 @@ class GitCommit(BaseTask):
     def run(self):
         with git_lock:
             repo.index.add([self.directory_to_add])
-            if not repo.index.diff('HEAD'):
+            if repo.is_dirty():
                 repo.index.commit(self.commit_message)
                 logger.info('Commit changes in {} directory.'.format(self.directory_to_add))
             else:
@@ -147,6 +147,8 @@ class CbioportalDataTransformation(BaseTask):
     def run(self):
         clinical_input_file = os.path.join(config.working_dir)
         ngs_dir = os.path.join(config.input_data_dir, 'NGS')
+        if not os.path.isdir(ngs_dir):
+            ngs_dir = None
         csr2cbioportal.csr2cbioportal(input_dir=clinical_input_file,
                                       ngs_dir=ngs_dir,
                                       output_dir=config.cbioportal_staging_dir)

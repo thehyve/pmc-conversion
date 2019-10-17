@@ -1,0 +1,3 @@
+"STUDY_ID","acronym","title","description","datadictionary"
+PMCST000AAC,STUDYA,Treatment study protocol of the Dutch Childhood Oncology Group for children and adolescents (1-19 year) with newly diagnosed acute lymphoblastic leukemia.,Intial ALL treatment <1 year,xls bestand
+PMCST000AAB,STUDYB,International collaborative treatment protocol for infants under one year with acute lymphoblastic or biphenotypic leukemia. ,Intial ALL treatment 1-19 years,xls bestand

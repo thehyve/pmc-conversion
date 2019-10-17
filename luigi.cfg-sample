@@ -26,7 +26,7 @@ transformation_config_dir= <path_to>/config
 load_logs_dir_name=load_logs
 
 # TranSMART study settings
-transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.2.jar
+transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.2.5.jar
 study_id = CSR_STUDY
 top_node = \Central Subject Registry\
 
@@ -63,15 +63,15 @@ offline_token = <transmart-user-offline-token>
 
 
 [CbioportalDataValidation]
-docker_image = cbioportal-image
+docker_image = cbioportal-hg38:1.10.2
 
 
 [CbioportalDataLoading]
-docker_image = cbioportal-image
+docker_image = cbioportal-hg38:1.10.2
 server_name = pmc-cbioportal-test
 
 
 [E2eTest]
 PGADMINUSER = postgres
 PGADMINPASSWORD = password
-parent_drop_dir = <path_to>/pmc-conversion/test_data/dropzone/E2E_TEST_DATA
+parent_drop_dir = <path_to>/pmc-conversion/test_data/E2E_TEST_DATA/dropzone
