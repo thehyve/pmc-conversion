@@ -171,8 +171,8 @@ class TransmartDataLoader(ExternalProgramTask):
 
     def program_args(self):
         return ['java', '-jar', '{!r}'.format(config.transmart_copy_jar),
-                '--directory', '--update-concept-paths',
-                '{!r}'.format(config.transmart_staging_dir)]
+                '--update-concept-paths',
+                '--directory', '{!r}'.format(config.transmart_staging_dir)]
 
 
 class TransmartApiTask(BaseTask):
