@@ -3,4 +3,4 @@ set -e
 set -x
 
 $(dirname "$0")/remove_done_files.sh
-python3 -m luigi --module luigi-pipeline e2e_LoadDataFromNewFilesTaskTransmartOnly
+python3 -m luigi --module luigi-pipeline LoadDataFromNewFilesTask --disable-cbioportal-task 'True'

@@ -40,6 +40,7 @@ Config options overview:
 | transformation_config_dir | GlobalConfig             | /home/pmc/config             | Directory with the configuration files required for transformation.                                                                                                 |
 | load_logs_dir_name        | GlobalConfig             | load_logs                    | Directory name to store loading logs.                                                                                                                               |
 | transmart_copy_jar        | GlobalConfig             | /home/pmc/libs               | Location to transmart-copy jar file to use for data loading to tranSMART.                                                                                           |
+| disable_cbioportal_task   | GlobalConfig             | false                        | Skip loading data into cBioPortal.                                                                                                                                  |
 | study_id                  | GlobalConfig             | CSR_STUDY                    | Study ID of the study used in tranSMART.                                                                                                                            |
 | top_node                  | GlobalConfig             | \Central Subject Registry\   | Name of the top ontology tree node to display in tranSMART.                                                                                                         |
 | PGHOST                    | GlobalConfig             | localhost                    | tranSMART database host.                                                                                                                                            |
@@ -56,8 +57,6 @@ Config options overview:
 | docker_image              | CbioportalDataValidation |                              | Name of docker image to use during cBioPortal data validation.                                                                                                      |
 | docker_image              | CbioportalDataLoading    |                              | Name of docker image to use during cBioPortal data loading.                                                                                                         |
 | server_name               | CbioportalDataLoading    |                              | Name of the the cBioPortal server.                                                                                                                                  |
-| PGADMINUSER               | E2eTest                  | postgres                     | Test database user.                                                                                                                                                 |
-| PGADMINPASSWORD           | E2eTest                  | password                     | Test database user password.                                                                                                                                        |
 | parent_drop_dir           | E2eTest                  |                              | Test data dropzone directory.                                                                                                                                       |
 
 #### Offline token
@@ -149,38 +148,40 @@ and the input data is in the proper directory (see [input data section](#input-d
 
 When starting the full pipeline, it executes the following tasks:
 
-1) Checks if new input data was provided.
+1. Checks if new input data was provided.
    Files from the ``drop_dir`` get shasum calculated and checked with provided shasum.
    If the shasum is correct, it synchronizes drop zone with the input data directory.
    Else, it return an error with the file that has an incorrect shasum.
    The new input data files are backed-up using git repository.
 
-2) Reads from source files and produces tab delimited CSR files.
+2. Reads from source files and produces tab delimited CSR files.
 
-3) Reads CSR files and transforms the data to the TranSMART data model,
+3. Reads CSR files and transforms the data to the TranSMART data model,
    creating files that can be imported to TranSMART using transmart-copy.
    The files are added to the git repository.
 
-4) Loads the files using transmart-copy. It tries to delete the existing data
+4. Loads the files using transmart-copy. It tries to delete the existing data
    and load the new staging files. If it fails, nothing happens to the existing data in the database.
 
-5) Calls after_data_loading_update tranSMART API call to clear and rebuild the application cache.
+5. Calls after_data_loading_update tranSMART API call to clear and rebuild the application cache.
    tranSMART loading log is committed using git.
 
-4) Reads CSR files and transforms the data to patient and sample files to be imported into cBioPortal.
+6. If cBioPortal task is not disabled:
 
-5) Validates created cBioPortal staging files with cBioPortal validator. To validate data,
-   the pipeline starts a Docker container using a pre-installed image (cbioportal-hg38:1.10.2).
-   In this container, it will run the cBioPortal validation code. The image contains specific configurations to connect
-   to the appropriate database. The progress is committed.
+    1. Reads CSR files and transforms the data to patient and sample files to be imported into cBioPortal.
 
-5) Loads the cBioPortal data, if data passes the validation. To load data,
-   the pipeline starts another Docker container using the same pre-installed image.
-   In this container, it will run the cBioPortal importer code.
-   After importing the pipeline restarts the docker container running the web server.
-   The progress is committed.
+    2. Validates created cBioPortal staging files with cBioPortal validator. To validate data,
+        the pipeline starts a Docker container using a pre-installed image (cbioportal-hg38:1.10.2).
+        In this container, it will run the cBioPortal validation code. The image contains specific configurations to connect
+        to the appropriate database. The progress is committed.
 
-5) In case not all the tasks are completed successfully, an email will be sent to the configured receivers,
+    3. Loads the cBioPortal data, if data passes the validation. To load data,
+        the pipeline starts another Docker container using the same pre-installed image.
+        In this container, it will run the cBioPortal importer code.
+        After importing the pipeline restarts the docker container running the web server.
+        The progress is committed.
+
+7. In case not all the tasks are completed successfully, an email will be sent to the configured receivers,
    containing the full error report.
 
 ### Other available scripts
@@ -213,10 +214,23 @@ To force execution of tasks again you need to remove these files:
 
 ## Test
 
-To run e2e tests:
+
+### E2e tests
+
+The `e2e_transmart_only` test will run all the pipeline tasks, except cBioPortal part.
+When running the test, data from `drop_dir` directory configured in `luigi.cfg`
+will be transformed and loaded to the currently configured tranSMART database.
+This will also trigger the after_data_loading_update tranSMART API call.
+
+NOTE! Do not run this on production.
+
+
+To run the e2e test:
 ``` bash
 ./scripts/e2e_transmart_only.sh
 ```
+
+### Other tests
 
 To run other tests:
 ``` bash

@@ -27,13 +27,13 @@ class GlobalConfig(luigi.Config):
 
     load_logs_dir_name = luigi.Parameter(description='Path to the log files of the loading scripts.',
                                          default='load_logs')
-    working_dir = luigi.Parameter(description='Path to the repo to store the intermediate data products')
+    working_dir = luigi.Parameter(description='Path to the repo to store the intermediate data products.')
 
-    transformation_config_dir = luigi.Parameter(description='Folder with mapping files in JSON format')
+    transformation_config_dir = luigi.Parameter(description='Folder with mapping files in JSON format.')
 
     transmart_copy_jar = luigi.Parameter(description='Path to transmart copy jar.')
     study_id = luigi.Parameter(description="Id of the study to load.")
-    top_node = luigi.Parameter(description='Topnode of the study to load')
+    top_node = luigi.Parameter(description='Topnode of the study to load.')
 
     PGHOST = luigi.Parameter(description="Configuration for transmart-copy.")
     PGPORT = luigi.Parameter(description="Configuration for transmart-copy.")
@@ -305,6 +305,8 @@ class GitVersionTask(BaseTask):
 
 
 class LoadDataFromNewFilesTask(luigi.WrapperTask):
+    disable_cbioportal_task = luigi.Parameter(description='Skip loading data into cBioPortal.', default=False)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tasks_dependency_tree = list(self._build_task_dependency_tree())
@@ -346,65 +348,24 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         commit_transmart_load_logs.required_tasks = [transmart_api_task]
         yield commit_transmart_load_logs
 
-        cbioportal_data_transformation = CbioportalDataTransformation()
-        cbioportal_data_transformation.required_tasks = [sources_to_csr_task]
-        yield cbioportal_data_transformation
-        cbioportal_data_validation = CbioportalDataValidation()
-        cbioportal_data_validation.required_tasks = [cbioportal_data_transformation]
-        yield cbioportal_data_validation
-        commit_cbio_staging = GitCommit(directory_to_add=config.cbioportal_staging_dir,
-                                        commit_message='Add cbioportal data.')
-        commit_cbio_staging.required_tasks = [cbioportal_data_validation]
-        yield commit_cbio_staging
-        cbioportal_data_loading = CbioportalDataLoading()
-        cbioportal_data_loading.required_tasks = [commit_cbio_staging]
-        yield cbioportal_data_loading
-        commit_cbio_load_logs = GitCommit(directory_to_add=config.cbioportal_load_logs_dir,
-                                          commit_message='Add cbioportal loading log.')
-        commit_cbio_load_logs.required_tasks = [cbioportal_data_loading]
-        yield commit_cbio_load_logs
-
-    def requires(self):
-        return self.tasks_dependency_tree
-
-
-class e2e_LoadDataFromNewFilesTaskTransmartOnly(luigi.WrapperTask):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.tasks_dependency_tree = list(self._build_task_dependency_tree())
-
-    @classmethod
-    def _build_task_dependency_tree(self):
-        logger.debug('Building the complete workflow ...')
-        update_data_files = UpdateDataFiles()
-        update_data_files.required_tasks = []
-        yield update_data_files
-        commit_input_data = GitCommit(directory_to_add=config.input_data_dir,
-                                      commit_message='Add new input data.')
-        commit_input_data.required_tasks = [update_data_files]
-        yield commit_input_data
-
-        sources_to_csr_task = Sources2CsrTransformation()
-        sources_to_csr_task.required_tasks = [update_data_files]
-        yield sources_to_csr_task
-
-        csr_to_transmart_task = TransmartDataTransformation()
-        csr_to_transmart_task.required_tasks = [sources_to_csr_task]
-        yield csr_to_transmart_task
-
-        commit_transmart_staging = GitCommit(directory_to_add=config.transmart_staging_dir,
-                                             commit_message='Add transmart data.')
-        commit_transmart_staging.required_tasks = [csr_to_transmart_task]
-        yield commit_transmart_staging
-
-        load_transmart_study = TransmartDataLoader()
-        load_transmart_study.required_tasks = [commit_transmart_staging]
-        yield load_transmart_study
-
-        commit_transmart_load_logs = GitCommit(directory_to_add=config.transmart_load_logs_dir,
-                                               commit_message='Add transmart loading log.')
-        commit_transmart_load_logs.required_tasks = [load_transmart_study]
-        yield commit_transmart_load_logs
+        if not self.disable_cbioportal_task:
+            cbioportal_data_transformation = CbioportalDataTransformation()
+            cbioportal_data_transformation.required_tasks = [sources_to_csr_task]
+            yield cbioportal_data_transformation
+            cbioportal_data_validation = CbioportalDataValidation()
+            cbioportal_data_validation.required_tasks = [cbioportal_data_transformation]
+            yield cbioportal_data_validation
+            commit_cbio_staging = GitCommit(directory_to_add=config.cbioportal_staging_dir,
+                                            commit_message='Add cbioportal data.')
+            commit_cbio_staging.required_tasks = [cbioportal_data_validation]
+            yield commit_cbio_staging
+            cbioportal_data_loading = CbioportalDataLoading()
+            cbioportal_data_loading.required_tasks = [commit_cbio_staging]
+            yield cbioportal_data_loading
+            commit_cbio_load_logs = GitCommit(directory_to_add=config.cbioportal_load_logs_dir,
+                                              commit_message='Add cbioportal loading log.')
+            commit_cbio_load_logs.required_tasks = [cbioportal_data_loading]
+            yield commit_cbio_load_logs
 
     def requires(self):
         return self.tasks_dependency_tree
