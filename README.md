@@ -57,7 +57,6 @@ Config options overview:
 | docker_image              | CbioportalDataValidation |                              | Name of docker image to use during cBioPortal data validation.                                                                                                      |
 | docker_image              | CbioportalDataLoading    |                              | Name of docker image to use during cBioPortal data loading.                                                                                                         |
 | server_name               | CbioportalDataLoading    |                              | Name of the the cBioPortal server.                                                                                                                                  |
-| parent_drop_dir           | E2eTest                  |                              | Test data dropzone directory.                                                                                                                                       |
 
 #### Offline token
 
