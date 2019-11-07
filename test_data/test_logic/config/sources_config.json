@@ -108,33 +108,6 @@
               "date_format": "%d/%m/%Y"
             }
           ]
-        },
-        {
-          "name": "ic_material",
-          "sources": [
-            {
-              "file": "studies/PMCST000AAA_individual.txt",
-              "column": "IFCMAT"
-            }
-          ]
-        },
-        {
-          "name": "ic_data",
-          "sources": [
-            {
-              "file": "studies/PMCST000AAA_individual.txt",
-              "column": "IFCGIV"
-            }
-          ]
-        },
-        {
-          "name": "ic_linking_ext",
-          "sources": [
-            {
-              "file": "studies/PMCST000AAA_individual.txt",
-              "column": "IFCCOM"
-            }
-          ]
         }
       ]
     },
@@ -196,7 +169,7 @@
           ]
         },
         {
-          "name": "center_treatment",
+          "name": "diagnosis_center",
           "sources": [
             {
               "file": "studies/PMCST000AAA_diagnosis.txt",
