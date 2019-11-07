@@ -37,8 +37,10 @@ PGDATABASE = transmart
 PGUSER = tm_cz
 PGPASSWORD = tm_cz
 
+
+[LoadDataFromNewFilesTask]
 # cBioPortal task settings
-disable_cbioportal_task = false
+disable_cbioportal_task = False
 
 
 [resources]
