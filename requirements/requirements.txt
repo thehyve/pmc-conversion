@@ -1,4 +1,4 @@
-csr2transmart==0.0.26
+csr2transmart==0.0.27
 docutils==0.14
 lockfile==0.12.2
 luigi==2.8.0
