@@ -305,13 +305,12 @@ class GitVersionTask(BaseTask):
 
 
 class LoadDataFromNewFilesTask(luigi.WrapperTask):
-    disable_cbioportal_task = luigi.Parameter(description='Skip loading data into cBioPortal.', default=False)
+    disable_cbioportal_task = luigi.BoolParameter(description='Skip loading data into cBioPortal.', default=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tasks_dependency_tree = list(self._build_task_dependency_tree())
 
-    @classmethod
     def _build_task_dependency_tree(self):
         logger.debug('Building the complete workflow ...')
         update_data_files = UpdateDataFiles()
