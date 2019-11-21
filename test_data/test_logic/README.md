@@ -3,6 +3,16 @@
 This test data set is intended for testing intersection of patient groups
 for several diagnosis and sample properties.
 
+The folder also contains test data for cBioportal in the NGS folder.
+The data include the following samples:
+
+- BIOS1T_BIOM1T (tumor) and BIOS1N_BIOM1N (normal) for patient PAT1,
+  for which both mutation (.maf) and CNA (.seg) data are available
+  
+- BIOS3T_BIOM3T (tumor) and BIOS3N_BIOM3N (normal) for patient PAT3,
+  for which only mutation (.maf) data are available
+
+
 To translate the set for loading with [transmart-copy], run the following commands:
 
 ```bash
