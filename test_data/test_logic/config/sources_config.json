@@ -14,11 +14,11 @@
               "column": "INDIVIDUAL_ID"
             },
             {
-              "file": "studies/PMCST000AAA_individual.txt",
+              "file": "studies/individual.txt",
               "column": "INDIVIDUAL_ID"
             },
             {
-              "file": "studies/PMCST000AAA_death.txt",
+              "file": "studies/death.txt",
               "column": "INDIVIDUAL_ID"
             }
           ]
@@ -32,7 +32,7 @@
               "date_format": "%d%b%Y"
             },
             {
-              "file": "studies/PMCST000AAA_individual.txt",
+              "file": "studies/individual.txt",
               "column": "DTOB",
               "date_format": "%d/%m/%Y %H:%M:%S"
             }
@@ -46,7 +46,7 @@
               "column": "Geslacht"
             },
             {
-              "file": "studies/PMCST000AAA_individual.txt",
+              "file": "studies/individual.txt",
               "column": "SEX"
             }
           ]
@@ -60,7 +60,7 @@
               "date_format": "%d%b%Y"
             },
             {
-              "file": "studies/PMCST000AAA_death.txt",
+              "file": "studies/death.txt",
               "column": "DTDEATH",
               "date_format": "%d/%m/%Y %H:%M:%S"
             }
@@ -74,7 +74,7 @@
               "column": "00004_Toestemmingsstatus"
             },
             {
-              "file": "studies/PMCST000AAA_individual.txt",
+              "file": "studies/individual.txt",
               "column": "IFCDATR"
             }
           ]
@@ -117,7 +117,7 @@
           "name": "individual_id",
           "sources": [
             {
-              "file": "studies/PMCST000AAA_diagnosis.txt",
+              "file": "studies/diagnosis.txt",
               "column": "INDIVIDUAL_ID"
             }
           ]
@@ -126,7 +126,7 @@
           "name": "diagnosis_id",
           "sources": [
             {
-              "file": "studies/PMCST000AAA_diagnosis.txt",
+              "file": "studies/diagnosis.txt",
               "column": "CIDDIAG"
             }
           ]
@@ -135,7 +135,7 @@
           "name": "tumor_type",
           "sources": [
             {
-              "file": "studies/PMCST000AAA_diagnosis.txt",
+              "file": "studies/diagnosis.txt",
               "column": "DIAGCD"
             }
           ]
@@ -144,7 +144,7 @@
           "name": "topography",
           "sources": [
             {
-              "file": "studies/PMCST000AAA_diagnosis.txt",
+              "file": "studies/diagnosis.txt",
               "column": "PLOCCD"
             }
           ]
@@ -153,7 +153,7 @@
           "name": "tumor_stage",
           "sources": [
             {
-              "file": "studies/PMCST000AAA_diagnosis.txt",
+              "file": "studies/diagnosis.txt",
               "column": "DIAGGRSTX"
             }
           ]
@@ -162,7 +162,7 @@
           "name": "diagnosis_date",
           "sources": [
             {
-              "file": "studies/PMCST000AAA_diagnosis.txt",
+              "file": "studies/diagnosis.txt",
               "column": "IDAABA",
               "date_format": "%d/%m/%Y %H:%M:%S"
             }
@@ -172,7 +172,7 @@
           "name": "diagnosis_center",
           "sources": [
             {
-              "file": "studies/PMCST000AAA_diagnosis.txt",
+              "file": "studies/diagnosis.txt",
               "column": "HOSPDIAG"
             }
           ]
@@ -344,7 +344,8 @@
           "name": "study_id_individual_study_id",
           "sources": [
             {
-              "file": "individual_study.tsv"
+              "file": "studies/individual_study.txt",
+              "column": "STUDY_ID_INDIVIDUAL_STUDY_ID"
             }
           ]
         },
@@ -379,18 +380,18 @@
     }
   },
   "codebooks": {
-    "studies/PMCST000AAA_individual.txt": "studies/PMCST000AAA_individual_codebook.txt",
-    "studies/PMCST000AAA_diagnosis.txt": "studies/PMCST000AAA_diagnosis_codebook.txt",
-    "studies/PMCST000AAA_death.txt": "studies/PMCST000AAA_death_codebook.txt"
+    "studies/individual.txt": "studies/individual_codebook.txt",
+    "studies/diagnosis.txt": "studies/diagnosis_codebook.txt",
+    "studies/death.txt": "studies/death_codebook.txt"
   },
   "file_format": {
-    "studies/PMCST000AAA_individual.txt": {
+    "studies/individual.txt": {
       "delimiter": ","
     },
-    "studies/PMCST000AAA_diagnosis.txt": {
+    "studies/diagnosis.txt": {
       "delimiter": ","
     },
-    "studies/PMCST000AAA_death.txt": {
+    "studies/death.txt": {
       "delimiter": ","
     },
     "studies/study.txt": {
