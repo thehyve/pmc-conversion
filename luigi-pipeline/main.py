@@ -278,7 +278,7 @@ class CbioportalDataLoading(ExternalProgramTask):
             restart_command = "; docker restart cbioportal"
         else:
             # Build the import command for running the pipeline on the PMC staging server
-            docker_command = 'docker run --network="host" --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
+            docker_command = 'docker run --network="host" --rm -v /staging/cbioportal-pmc/config/portal.test-staging.properties:/cbioportal/portal.properties -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
                              % (input_dir, self.docker_image)
 
             # Restart cBioPortal web server docker container which runs on a different machine
