@@ -236,7 +236,7 @@ class CbioportalDataValidation(ExternalProgramTask):
         docker_command = 'docker run --rm -v /staging/cbioportal-pmc/config/portal.test-staging.properties:/cbioportal/portal.properties -v %s:/study/ -v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
                          % (input_dir, db_info_dir, report_dir, self.docker_image)
 
-        python_command = 'python3 /cbioportal/core/src/main/scripts/importer/validateData.py -s /study/ ' \
+        python_command = 'validateData.py -s /study/ ' \
                          '-P /cbioportal/portal.properties ' \
                          '-p /cbioportal_db_info -html /html_reports/%s -v' \
                          % report_name
@@ -266,7 +266,7 @@ class CbioportalDataLoading(ExternalProgramTask):
         # Directory and file names for validation
         input_dir = config.cbioportal_staging_dir
 
-        python_command = 'python3 /cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
+        python_command = 'cbioportalImporter.py -s /study/'
 
         # Check if cBioPortal is running locally or on other server
         if self.server_name == "":
