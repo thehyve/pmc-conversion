@@ -109,7 +109,8 @@ Specifically, the following are expected:
 the files reference the input data and need to be customized accordingly,
 - `portal.properties` file for cBioPortal; 
 the file  must match the mounted cBioPortal image version and server environment, 
-- `cbioportal_db_info` folder, containing configuration files for the cBioPortal database; 
+- `cbioportal_db_info` folder, containing configuration files for the cBioPortal database 
+(`cancertypes.json`, `genes.json`, `genesaliases.json`); 
 the files must match the mounted cBioPortal image version.
  
 Sample configuration files are provided in the repository under `test_data/test_logic_NGS/config`.
