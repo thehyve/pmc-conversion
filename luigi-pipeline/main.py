@@ -230,14 +230,15 @@ class CbioportalDataValidation(ExternalProgramTask):
         input_dir = config.cbioportal_staging_dir
         report_dir = config.cbioportal_load_logs_dir
         db_info_dir = os.path.join(config.transformation_config_dir, 'cbioportal_db_info')
+        properties_file = os.path.join(config.transformation_config_dir, 'portal.properties')
         report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
 
         # Build validation command. No connection has to be made to the database or web server.
-        docker_command = 'docker run --rm -v %s:/study/ -v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
-                         % (input_dir, db_info_dir, report_dir, self.docker_image)
+        docker_command = 'docker run --rm -v %s:/cbioportal/portal.properties -v %s:/study/ -v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
+                         % (properties_file, input_dir, db_info_dir, report_dir, self.docker_image)
 
-        python_command = 'python /cbioportal/core/src/main/scripts/importer/validateData.py -s /study/ ' \
-                         '-P /cbioportal/src/main/resources/portal.properties ' \
+        python_command = 'validateData.py -s /study/ ' \
+                         '-P /cbioportal/portal.properties ' \
                          '-p /cbioportal_db_info -html /html_reports/%s -v' \
                          % report_name
         return [docker_command, python_command]
@@ -265,21 +266,22 @@ class CbioportalDataLoading(ExternalProgramTask):
     def program_args(self):
         # Directory and file names for validation
         input_dir = config.cbioportal_staging_dir
+        properties_file = os.path.join(config.transformation_config_dir, 'portal.properties')
 
-        python_command = 'python /cbioportal/core/src/main/scripts/importer/cbioportalImporter.py -s /study/'
+        python_command = 'cbioportalImporter.py -s /study/'
 
         # Check if cBioPortal is running locally or on other server
         if self.server_name == "":
             # Build import command for running the pipeline locally
-            docker_command = 'docker run --rm -v %s:/study/ --net cbio-net %s' \
-                             % (input_dir, self.docker_image)
+            docker_command = 'docker run --rm -v %s:/cbioportal/portal.properties -v %s:/study/ --net cbio-net %s' \
+                             % (properties_file, input_dir, self.docker_image)
 
             # Restart cBioPortal web server docker container on the local machine
             restart_command = "; docker restart cbioportal"
         else:
             # Build the import command for running the pipeline on the PMC staging server
-            docker_command = 'docker run --network="host" --rm -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
-                             % (input_dir, self.docker_image)
+            docker_command = 'docker run --network="host" --rm -v %s:/cbioportal/portal.properties -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
+                             % (properties_file, input_dir, self.docker_image)
 
             # Restart cBioPortal web server docker container which runs on a different machine
             restart_command = "; ssh %s 'docker restart cbioportal'" % self.server_name
