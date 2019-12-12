@@ -114,9 +114,7 @@ the file  must match the mounted cBioPortal image version and server environment
 the files must match the mounted cBioPortal image version.
  
 Sample configuration files are provided in [test_data/test_data_NGS/config](https://github.com/thehyve/pmc-conversion/test_data/test_data_NGS/config).
-Be aware that `portal.properties` was created for a specific test environment
-and must be replaced with a compatible version to allow cBioPortal to run on a different server. 
-You might need to rename the file (e.g. `portal.test-staging.properties` to `portal.properties`) to have it recognized by the pipeline.
+Be aware that the provided `portal.properties` is a minimal example, and must be replaced with a server-specific version to allow cBioPortal to run. 
 
 ## Input data
 
