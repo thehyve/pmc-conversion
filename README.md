@@ -14,7 +14,7 @@ and to [cBioPortal](https://github.com/cBioPortal/cbioportal) using [cbioportalI
 
 There are two types of configuration files: 
 - pipeline configuration: [luigi.cfg](#luigi-configuration) and [email_config.cfg](#email-configuration) files to be located in the repository root,
-- [transformation configuration](https://github.com/thehyve/python_csr2transmart#usage) files, 
+- [transformation configuration](#transformation-configuration) files, 
 located in `transformation_config_dir` (defined in [luigi.cfg](#luigi-configuration)).
 
 ### Luigi configuration
@@ -100,10 +100,25 @@ Config options overview:
 | password | smtp    |                             | Password for email client.                                    |
 | host     | smtp    | smtp.gmail.com              | Host of the email client.                                     |
 
+### Transformation configuration
+
+Configuration files for TranSMART and cBioPortal must be placed in `transformation_config_dir`. 
+Specifically, the following are expected:
+
+- `sources_config.json` and `ontology_config.json`, described in [python_csr2transmart](https://github.com/thehyve/python_csr2transmart#usage); 
+the files reference the input data and need to be customized accordingly,
+- `portal.properties` file for cBioPortal; 
+the file  must match the mounted cBioPortal image version and server environment, 
+- `cbioportal_db_info` folder, containing configuration files for the cBioPortal database 
+(`cancertypes.json`, `genes.json`, `genesaliases.json`); 
+the files must match the mounted cBioPortal image version.
+ 
+Sample configuration files are provided in [test_data/test_data_NGS/config](https://github.com/thehyve/pmc-conversion/tree/master/test_data/test_data_NGS/config).
+Be aware that the provided `portal.properties` is a minimal example, and must be replaced with a server-specific version to allow cBioPortal to run. 
 
 ## Input data
 
-In the drop directory (`drop_dir` in luigi.cfg) the clinical data files should be provided as well as a folder called NGS with all omcs data. 
+In the drop directory (`drop_dir` in luigi.cfg) the clinical data files should be provided as well as a folder called NGS with all omics data. 
 Each file in the drop directory has to be accompanied by a sha1 checksum file.
 
 File naming convention:
