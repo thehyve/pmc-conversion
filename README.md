@@ -113,7 +113,7 @@ the file  must match the mounted cBioPortal image version and server environment
 (`cancertypes.json`, `genes.json`, `genesaliases.json`); 
 the files must match the mounted cBioPortal image version.
  
-Sample configuration files are provided in [test_data/test_data_NGS/config](https://github.com/thehyve/pmc-conversion/test_data/test_data_NGS/config).
+Sample configuration files are provided in [test_data/test_data_NGS/config](https://github.com/thehyve/pmc-conversion/tree/master/test_data/test_data_NGS/config).
 Be aware that the provided `portal.properties` is a minimal example, and must be replaced with a server-specific version to allow cBioPortal to run. 
 
 ## Input data
