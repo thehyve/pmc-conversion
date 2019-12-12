@@ -113,7 +113,7 @@ the file  must match the mounted cBioPortal image version and server environment
 (`cancertypes.json`, `genes.json`, `genesaliases.json`); 
 the files must match the mounted cBioPortal image version.
  
-Sample configuration files are provided in the repository under `test_data/test_logic_NGS/config`.
+Sample configuration files are provided in the repository under `test_data/test_data_NGS/config`.
 Be aware that `portal.properties` was created for a specific test environment
 and must be replaced with a compatible version to allow cBioPortal to run on a different server. 
 You might need to rename the file (e.g. `portal.test-staging.properties` to `portal.properties`) to have it recognized by the pipeline.
