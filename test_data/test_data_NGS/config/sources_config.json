@@ -382,7 +382,8 @@
   "codebooks": {
     "studies/individual.txt": "studies/individual_codebook.txt",
     "studies/diagnosis.txt": "studies/diagnosis_codebook.txt",
-    "studies/death.txt": "studies/death_codebook.txt"
+    "studies/death.txt": "studies/death_codebook.txt",
+    "clinic/RDP-Patient.tab": "clinic/RDP-Patient_codebook.txt"
   },
   "file_format": {
     "studies/individual.txt": {
