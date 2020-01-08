@@ -8,6 +8,7 @@ from luigi.contrib.external_program import ExternalProgramRunContext, ExternalPr
 
 logger = logging.getLogger(__name__)
 
+
 def read_content(file) -> str:
     with open(file, 'r') as f:
         return f.read()
