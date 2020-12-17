@@ -1,5 +1,5 @@
 click>=7.0,<8.0
-csr2transmart==0.0.33
+csr2transmart==0.0.34
 gitpython>=2.1.15,<2.2
 luigi>=2.8.10,<2.9.0
 python-daemon==2.1.2
