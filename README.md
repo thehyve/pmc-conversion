@@ -10,6 +10,8 @@ and [python_csr2transmart](https://github.com/thehyve/python_csr2transmart) pack
 It loads data to [tranSMART](https://github.com/thehyve/transmart-core) platform using [transmart-copy](https://github.com/thehyve/transmart-core/tree/dev/transmart-copy) tool 
 and to [cBioPortal](https://github.com/cBioPortal/cbioportal) using [cbioportalImporter.py](https://docs.cbioportal.org/5.1-data-loading/data-loading/data-loading-for-developers) script.
 
+For a production deployment instructions, start with the [deployment](#deployment) section.
+
 ## Configuration
 
 There are two types of configuration files: 
@@ -29,7 +31,7 @@ Config options overview:
 
 | Variable                  | Section                  | Default value                | Description                                                                                                                                                         |
 |---------------------------|--------------------------|------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| logging_conf              | core                     | logging.cfg                  | Name of logging configuration file.                                                                                                                                 |
+| logging_conf_file         | core                     | logging.cfg                  | Name of logging configuration file.                                                                                                                                 |
 | db_connection             | task_history             | sqlite://pmc-luigi-db.sqlite | Database to store task history.                                                                                                                                     |
 | record_taks_history       | scheduler                | True                         | Store task history True or False. Requires db_connection under task_history to be set if True                                                                       |
 | state_path                | scheduler                | luigi-state.pickle           | Path to save a pickle file with the current state of the pipeline                                                                                                   |
@@ -39,20 +41,20 @@ Config options overview:
 | working_dir               | GlobalConfig             | /home/pmc/working_dir        | Directory used as working directory. Similar to /tmp.                                                                                                               |
 | transformation_config_dir | GlobalConfig             | /home/pmc/config             | Directory with the configuration files required for transformation.                                                                                                 |
 | load_logs_dir_name        | GlobalConfig             | load_logs                    | Directory name to store loading logs.                                                                                                                               |
-| transmart_copy_jar        | GlobalConfig             | /home/pmc/libs               | Location to transmart-copy jar file to use for data loading to tranSMART.                                                                                           |
+| transmart_copy_jar        | GlobalConfig             | /home/pmc/libs/transmart-copy.jar | Location to transmart-copy jar file to use for data loading to tranSMART.                                                                                           |
 | study_id                  | GlobalConfig             | CSR_STUDY                    | Study ID of the study used in tranSMART.                                                                                                                            |
 | top_node                  | GlobalConfig             | \Central Subject Registry\   | Name of the top ontology tree node to display in tranSMART.                                                                                                         |
 | PGHOST                    | GlobalConfig             | localhost                    | tranSMART database host.                                                                                                                                            |
 | PGPORT                    | GlobalConfig             | 5432                         | tranSMART database port.                                                                                                                                            |
 | PGDATABASE                | GlobalConfig             | transmart                    | tranSMART database name.                                                                                                                                            |
-| PGUSER                    | GlobalConfig             | tm_cz                        | User to use for loading data to tranSMART.                                                                                                                          |
-| PGPASSWORD                | GlobalConfig             | tm_cz                        | User password.                                                                                                                                                      |
-| disable_cbioportal_task   | LoadDataFromNewFilesTask             | false                        | Skip loading data into cBioPortal.                                                                                                                                  |
+| PGUSER                    | GlobalConfig             | biomart_user                 | User to use for loading data to tranSMART.                                                                                                                          |
+| PGPASSWORD                | GlobalConfig             | biomart_user                 | User password.                                                                                                                                                      |
+| disable_cbioportal_task   | LoadDataFromNewFilesTask | true                         | Skip loading data into cBioPortal.                                                                                                                                  |
 | transmart_loader          | resources                | 1                            | Amount of workers luigi has access to.                                                                                                                              |
-| keycloak_url              | TransmartApiTask         |                              | URL to Keycloak instance used to get access to tranSMART, e.g. https://keycloak.example.com/auth/realms/transmart-dev                                               |
-| transmart_url             | TransmartApiTask         |                              | URL to tranSMART API V2.                                                                                                                                            |
-| gb_backend_url            | TransmartApiTask         |                              | URL to Glowing Bear Backend API.                                                                                                                                    |
-| client_id                 | TransmartApiTask         |                              | Keycloak client ID.                                                                                                                                                 |
+| keycloak_url              | TransmartApiTask         | https://keycloak.example.com/auth/realms/example | URL to Keycloak instance used to get access to tranSMART, e.g. https://keycloak.example.com/auth/realms/transmart-dev                                               |
+| transmart_url             | TransmartApiTask         | http://localhost:8081        | URL to tranSMART API V2.                                                                                                                                            |
+| gb_backend_url            | TransmartApiTask         | http://localhost:8083        | URL to Glowing Bear Backend API.                                                                                                                                    |
+| client_id                 | TransmartApiTask         | transmart-client             | Keycloak client ID.                                                                                                                                                 |
 | offline_token             | TransmartApiTask         |                              | Offline token used to request an access token in order to communicate with Gb Backend and tranSMART REST APIs.                                                      |
 | docker_image              | CbioportalDataValidation |                              | Name of docker image to use during cBioPortal data validation.                                                                                                      |
 | docker_image              | CbioportalDataLoading    |                              | Name of docker image to use during cBioPortal data loading.                                                                                                         |
@@ -61,21 +63,35 @@ Config options overview:
 #### Offline token
 
 The application requires an offline token to exchange it for an access token to communicate with tranSMART and GB Backend.
+To get the token a user needs to have the role mapping for the realm-level: `"offline_access"`.
 
-Below is `curl` command to generate an offline token for `USERNAME` user.
-To get the token the user needs to have the role mapping for the realm-level: `"offline_access"`.
-Before using the command you have to substitute words in uppercase with proper ones.
+To create such a user in Keycloak:
+- Login to Keycloak admin console.
+- Select the proper realm, e.g. `example`.
+- Go to `Users`.
+- Click `Add user`, enter username `pmc-pipeline` and click `Save`.
+- Select the `Credentials` tab, enter a strong password and click `Reset Password`.
+- Go to `Role Mappings` tab.
+    - Ensure that the `offline_access` realm role is assigned.
+    - Select `transmart-client` in the `Client Roles` dropdown and assure the `ROLE_ADMIN` role is assigned.
+
+Below is `curl` command to generate an offline token for `pmc-pipeline` user.
 
 ```bash
-    curl \
-      -d 'client_id=CLIENT_ID' \
-      -d 'username=USERNAME' \
-      -d 'password=PASSWORD' \
-      -d 'grant_type=password' \
-      -d 'scope=offline_access' \
-      'https://<KEYCLOAK_URL>/protocol/openid-connect/token'
-```
+KEYCLOAK_CLIENT_ID=transmart-client
+SYSTEM_USERNAME=pmc-pipeline
+SYSTEM_PASSWORD=choose-a-strong-system-password  # CHANGE ME
+KEYCLOAK_SERVER_URL=https://keycloak.example.com # CHANGE ME
+KEYCLOAK_REALM=example # CHANGE ME
 
+curl -f --no-progress-meter \
+  -d "client_id=${KEYCLOAK_CLIENT_ID}" \
+  -d "username=${SYSTEM_USERNAME}" \
+  -d "password=${SYSTEM_PASSWORD}" \
+  -d 'grant_type=password' \
+  -d 'scope=offline_access' \
+  "${KEYCLOAK_SERVER_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token' | jq -r '.refresh_token'
+```
 The value of the `refresh_token` field in the response is the offline token.
 
 ### Email configuration
@@ -89,16 +105,16 @@ cp email_config.cfg-sample email_config.cfg
 Config options overview:
 
 
-| Variable | Section | Default value               | Description                                                   |
-|----------|---------|-----------------------------|---------------------------------------------------------------|
-| log_file | global  | python.log                  | Logging file name.                                            |
-| receiver | email   |                             | Email address of the receiver, can be a comma separated list. |
-| sender   | email   |                             | Email address of the sender.                                  |
-| prefix   | email   | [CSR Data Loading Pipeline] | Prefix for subject line of the error email.                   |
-| port     | smtp    | 587                         | Port to use for sending emails.                               |
-| username | smtp    |                             | Username for email client, when not needed can be left empty. |
-| password | smtp    |                             | Password for email client.                                    |
-| host     | smtp    | smtp.gmail.com              | Host of the email client.                                     |
+| Variable | Section | Default value                  | Description                                                   |
+|----------|---------|--------------------------------|---------------------------------------------------------------|
+| log_file | global  | /home/pmc/pmc-conversion/python.log | Logging file name.                                       |
+| receiver | email   |                                | Email address of the receiver, can be a comma separated list. |
+| sender   | email   | pmc-notifications@example.com  | Email address of the sender.                                  |
+| prefix   | email   | [CSR Data Loading Pipeline]    | Prefix for subject line of the error email.                   |
+| port     | smtp    | 587                            | Port to use for sending emails.                               |
+| username | smtp    | pmc-notifications@example.com  | Username for email client, when not needed can be left empty. |
+| password | smtp    |                                | Password for email client.                                    |
+| host     | smtp    | smtp.gmail.com                 | Host of the email client.                                     |
 
 ### Transformation configuration
 
@@ -250,6 +266,187 @@ To run other tests:
 ``` bash
 ./scripts/run_tests.sh
 ```
+
+## Deployment
+
+Instructions on how to set up the pipeline on a production environment.
+
+### Dependencies
+
+- Python >= 3.6,
+- Package `python3.6-venv` (or higher version, depending on the version of Python) installed, 
+- Git,
+- An SMTP server, listening on port 25.
+
+### Installation steps
+
+#### Create required users
+
+Create users `pmc` and `drop` with home directories:
+
+```shell
+sudo useradd -m -s /bin/bash pmc
+sudo useradd -m -s /bin/bash drop
+```
+
+If there is a list of users who should be able to log in as `drop` and/or `pmc` user through SSH,
+add /.ssh directories inside the newly created home directories of these users and put the list of SSH-RSA keys
+inside `authorized_keys` files (`/home/pmc/.ssh/authorized_keys` and `/home/drop/.ssh/authorized_keys`).
+
+#### Create required directories
+
+The following directories should be created for `pmc` user:
+- /home/pmc/data
+- /home/pmc/working_dir
+- /home/pmc/config
+- /home/pmc/libs
+
+```shell
+sudo -iu pmc
+cd /home/pmc
+mkdir data working_dir config libs
+```
+
+and for `drop` user:
+- /home/drop/drop_zone
+
+```shell
+sudo -iu drop
+cd /home/drop
+mkdir drop_zone
+```
+
+The `drop_zone` directory is where the pipeline checks for new data by default. It can be configured to be
+a symbolic link to the actual data directory, where the source data is delivered.
+
+To create a symlink, run:
+
+```shell
+ln -s /home/drop/drop_zone /home/drop/sample_test_data_folder/sample_dataset
+```
+
+#### Prepare the repositories
+
+Clone the indicated pipeline repository tag into the `pmc` user home directory.
+
+```shell
+sudo -iu pmc
+cd /home/pmc/
+git clone https://github.com/thehyve/pmc-conversion.git --branch <tag_name> --single-branch
+```
+
+Initialize git repositories inside `/home/pmc/data` and `/home/pmc/config` directories:
+```shell
+cd /home/pmc/data
+git init
+cd /home/pmc/config
+git init
+```
+
+#### Prepare external tools
+
+Download the latest version of the transmart-copy.jar from the Nexus repository of The Hyve to `/home/pmc/libs:
+```shell
+curl -f -L https://repo.thehyve.nl/service/local/repositories/releases/content/org/transmartproject/transmart-copy/17.2.8/transmart-copy-17.2.8.jar -o /home/pmc/libs/transmart-copy.jar
+```
+
+Then put the transmart-copy.jar inside `/home/pmc/libs`.
+
+#### Prepare the configuration
+
+Prepare the [luigi.cfg](#luigi-configuration) and [email_config.cfg](#email-configuration)
+and put them into the `/home/pmc/pmc-conversion/` directory.
+
+
+#### Create a Python3 virtualenv
+
+```shell
+sudo -iu pmc
+cd /home/pmc
+python3 -m venv venv
+source venv/bin/activate
+pip install -r /home/pmc/pmc-conversion/requirements/requirements.txt
+```
+
+#### Configure a Luigi daemon service
+
+Add a new systemd service:
+```shell
+sudo vi /etc/systemd/system/luigi.service
+```
+
+and add the following content:
+```
+[Unit]
+Description=PMC Luigi daemon service
+
+[Service]
+ExecStart=/home/pmc/venv/bin/luigid
+User=pmc
+WorkingDirectory=/home/pmc/pmc-conversion
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+Save and close the file.
+
+Then start the service:
+```shell
+sudo systemctl start luigi
+```
+
+and automatically get it to start on boot:
+```shell
+sudo systemctl enable luigi
+```
+
+### Test the pipeline
+
+Test if the pipeline works correctly by manually triggering the data upload as a `pmc` user:
+
+```shell
+sudo -iu pmc
+/home/pmc/venv/bin/activate && cd /home/pmc/pmc-conversion && /home/pmc/pmc-conversion/scripts/run.sh
+```
+
+#### Create a cron job
+
+If the pipeline should be run periodically, e.g. daily at 2:02, install a cron job for the `pmc` user as follows:
+
+```shell
+sudo -iu pmc
+crontab -e
+```
+Then add an entry for running the pipeline as follows:
+```
+# Example of job definition:
+# .---------------- minute (0 - 59)
+# |  .------------- hour (0 - 23)
+# |  |  .---------- day of month (1 - 31)
+# |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+# |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+# |  |  |  |  |
+# *  *  *  *  * user-name  command to be executed
+
+2 2 * * * . /home/pmc/venv/bin/activate && cd /home/pmc/pmc-conversion && /home/pmc/pmc-conversion/scripts/run.sh
+```
+
+Save and close the file.
+
+#### Grant sudo access to the pmc user for restarting TranSMART
+
+As a sudo user run:
+```bash
+vi /etc/sudoers.d/pmc_restart_transmart
+```
+
+and add the following content:
+```
+pmc ALL=(ALL) NOPASSWD: /bin/systemctl restart transmart-server.service
+```
+
+Save and close the file.
 
 ## License
 

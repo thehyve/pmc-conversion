@@ -3,12 +3,12 @@ logging_conf_file=logging.cfg
 
 
 [task_history]
-db_connection = sqlite:///pmc-luigi-db.sqlite
+db_connection=sqlite:///pmc-luigi-db.sqlite
 
 
 [scheduler]
-record_task_history = True
-state_path = luigi-state.pickle
+record_task_history=True
+state_path=luigi-state.pickle
 # Update remove delay to 1 day instead of 10 minutes
 remove_delay=86400
 
@@ -16,36 +16,35 @@ remove_delay=86400
 [GlobalConfig]
 ## NOTE: insert full absolute paths
 # Data dropzone directory
-drop_dir=<path_to>/test_data/dropzone
+drop_dir=/home/drop/drop_zone
 # Staging repository directory
-data_repo_dir=<path_to>/projects/pmc/data
+data_repo_dir=/home/pmc/data
 # Intermediate files directory
-working_dir=<path_to>/pmc-conversion/test_data/intermediate
-transformation_config_dir= <path_to>/config
+working_dir=/home/pmc/working_dir
+transformation_config_dir=/home/pmc/config
 
 load_logs_dir_name=load_logs
 
 # TranSMART study settings
-transmart_copy_jar = <path_to>/transmart-core/transmart-copy/build/libs/transmart-copy-17.2.5.jar
-study_id = CSR_STUDY
-top_node = \Central Subject Registry\
+transmart_copy_jar=/home/pmc/libs/transmart-copy.jar  # CHANGE ME
+study_id=CSR_STUDY
+top_node=\Central Subject Registry\
 
 # TranSMART database
-PGHOST = localhost
-PGPORT = 5432
-PGDATABASE = transmart
-PGUSER = tm_cz
-PGPASSWORD = tm_cz
+PGHOST=localhost
+PGPORT=5432
+PGDATABASE=transmart
+PGUSER=biomart_user
+PGPASSWORD=biomart_user  # CHANGE ME
 
 
 [LoadDataFromNewFilesTask]
 # cBioPortal task settings
-disable_cbioportal_task = False
-
+disable_cbioportal_task=True
 
 [resources]
 # Resources are used to limit the number of concurrent tasks
-transmart_loader = 1
+transmart_loader=1
 
 
 [retcode]
@@ -60,17 +59,17 @@ unhandled_exception=40
 
 
 [TransmartApiTask]
-keycloak_url = https://somekeycloak.net/auth/realms/transmart-name
-transmart_url = https://transmart.thehyve.net
-gb_backend_url = https://gb-backend.thehyve.net
-client_id = transmart
-offline_token = <transmart-user-offline-token>
+keycloak_url=https://keycloak.example.com/auth/realms/example  # CHANGE ME
+transmart_url=http://localhost:8081  # CHANGE ME
+gb_backend_url=http://localhost:8083  # CHANGE ME
+client_id=transmart-client
+offline_token=<pmc-pipeline-user-offline-token>  # CHANGE ME
 
 
 [CbioportalDataValidation]
-docker_image = cbioportal-image:3.0.6
+docker_image=cbioportal-image:3.0.6
 
 
 [CbioportalDataLoading]
-docker_image = cbioportal-image:3.0.6
-server_name = pmc-cbioportal-test
+docker_image=cbioportal-image:3.0.6
+server_name=pmc-cbioportal-test
