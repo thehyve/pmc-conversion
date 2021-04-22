@@ -7,8 +7,7 @@
 Data transformation and loading pipeline. It uses [Luigi](https://github.com/spotify/luigi) Python package for jobs handling 
 and [python_csr2transmart](https://github.com/thehyve/python_csr2transmart) package for transformation of Central Subject Registry data. 
 
-It loads data to [tranSMART](https://github.com/thehyve/transmart-core) platform using [transmart-copy](https://github.com/thehyve/transmart-core/tree/dev/transmart-copy) tool 
-and to [cBioPortal](https://github.com/cBioPortal/cbioportal) using [cbioportalImporter.py](https://docs.cbioportal.org/5.1-data-loading/data-loading/data-loading-for-developers) script.
+It loads data to [tranSMART](https://github.com/thehyve/transmart-core) platform using [transmart-copy](https://github.com/thehyve/transmart-core/tree/dev/transmart-copy) tool.
 
 For a production deployment instructions, start with the [deployment](#deployment) section.
 
@@ -49,16 +48,12 @@ Config options overview:
 | PGDATABASE                | GlobalConfig             | transmart                    | tranSMART database name.                                                                                                                                            |
 | PGUSER                    | GlobalConfig             | biomart_user                 | User to use for loading data to tranSMART.                                                                                                                          |
 | PGPASSWORD                | GlobalConfig             | biomart_user                 | User password.                                                                                                                                                      |
-| disable_cbioportal_task   | LoadDataFromNewFilesTask | true                         | Skip loading data into cBioPortal.                                                                                                                                  |
 | transmart_loader          | resources                | 1                            | Amount of workers luigi has access to.                                                                                                                              |
 | keycloak_url              | TransmartApiTask         | https://keycloak.example.com/auth/realms/example | URL to Keycloak instance used to get access to tranSMART, e.g. https://keycloak.example.com/auth/realms/transmart-dev                                               |
 | transmart_url             | TransmartApiTask         | http://localhost:8081        | URL to tranSMART API V2.                                                                                                                                            |
 | gb_backend_url            | TransmartApiTask         | http://localhost:8083        | URL to Glowing Bear Backend API.                                                                                                                                    |
 | client_id                 | TransmartApiTask         | transmart-client             | Keycloak client ID.                                                                                                                                                 |
-| offline_token             | TransmartApiTask         |                              | Offline token used to request an access token in order to communicate with Gb Backend and tranSMART REST APIs.                                                      |
-| docker_image              | CbioportalDataValidation |                              | Name of docker image to use during cBioPortal data validation.                                                                                                      |
-| docker_image              | CbioportalDataLoading    |                              | Name of docker image to use during cBioPortal data loading.                                                                                                         |
-| server_name               | CbioportalDataLoading    |                              | Name of the the cBioPortal server.                                                                                                                                  |
+| offline_token             | TransmartApiTask         |                              | Offline token used to request an access token in order to communicate with Gb Backend and tranSMART REST APIs.                                                      | |
 
 #### Offline token
 
@@ -118,19 +113,12 @@ Config options overview:
 
 ### Transformation configuration
 
-Configuration files for TranSMART and cBioPortal must be placed in `transformation_config_dir`. 
-Specifically, the following are expected:
+Configuration files for TranSMART must be placed in `transformation_config_dir`. 
+Specifically, `sources_config.json` and `ontology_config.json`, described in [python_csr2transmart](https://github.com/thehyve/python_csr2transmart#usage).
 
-- `sources_config.json` and `ontology_config.json`, described in [python_csr2transmart](https://github.com/thehyve/python_csr2transmart#usage); 
-the files reference the input data and need to be customized accordingly,
-- `portal.properties` file for cBioPortal; 
-the file  must match the mounted cBioPortal image version and server environment, 
-- `cbioportal_db_info` folder, containing configuration files for the cBioPortal database 
-(`cancertypes.json`, `genes.json`, `genesaliases.json`); 
-the files must match the mounted cBioPortal image version.
+The files reference the input data and need to be customized accordingly.
  
 Sample configuration files are provided in [test_data/test_data_NGS/config](https://github.com/thehyve/pmc-conversion/tree/master/test_data/test_data_NGS/config).
-Be aware that the provided `portal.properties` is a minimal example, and must be replaced with a server-specific version to allow cBioPortal to run. 
 
 ## Input data
 
@@ -196,39 +184,12 @@ When starting the full pipeline, it executes the following tasks:
 5. Calls after_data_loading_update tranSMART API call to clear and rebuild the application cache.
    tranSMART loading log is committed using git.
 
-6. If cBioPortal task is not disabled:
-
-    1. Reads CSR files and transforms the data to patient and sample files to be imported into cBioPortal.
-
-    2. Validates created cBioPortal staging files with cBioPortal validator. To validate data,
-        the pipeline starts a Docker container using a pre-installed image (cbioportal-hg38:1.10.2).
-        In this container, it will run the cBioPortal validation code. The image contains specific configurations to connect
-        to the appropriate database. The progress is committed.
-
-    3. Loads the cBioPortal data, if data passes the validation. To load data,
-        the pipeline starts another Docker container using the same pre-installed image.
-        In this container, it will run the cBioPortal importer code.
-        After importing the pipeline restarts the docker container running the web server.
-        The progress is committed.
-
-7. In case not all the tasks are completed successfully, an email will be sent to the configured receivers,
+6. In case not all the tasks are completed successfully, an email will be sent to the configured receivers,
    containing the full error report.
 
 ### Other available scripts
 
-To load data to transmart only:
-
-``` bash
-./scripts/load_transmart_data.sh
-```
-
-To load data to cbioportal only:
-
-``` bash
-./scripts/load_cbioportal_data.sh
-```
-
-To load data to both systems:
+To load data to TranSMART:
 
 ``` bash
 ./scripts/load_data.sh
@@ -247,7 +208,7 @@ To force execution of tasks again you need to remove these files:
 
 ### E2e tests
 
-The `e2e_transmart_only` test will run all the pipeline tasks, except cBioPortal part.
+The `e2e_transmart_only` test will run all the pipeline tasks.
 When running the test, data from `drop_dir` directory configured in `luigi.cfg`
 will be transformed and loaded to the currently configured tranSMART database.
 This will also trigger the after_data_loading_update tranSMART API call.

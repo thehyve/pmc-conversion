@@ -38,10 +38,6 @@ PGUSER=biomart_user
 PGPASSWORD=biomart_user  # CHANGE ME
 
 
-[LoadDataFromNewFilesTask]
-# cBioPortal task settings
-disable_cbioportal_task=True
-
 [resources]
 # Resources are used to limit the number of concurrent tasks
 transmart_loader=1
@@ -64,12 +60,3 @@ transmart_url=http://localhost:8081  # CHANGE ME
 gb_backend_url=http://localhost:8083  # CHANGE ME
 client_id=transmart-client
 offline_token=<pmc-pipeline-user-offline-token>  # CHANGE ME
-
-
-[CbioportalDataValidation]
-docker_image=cbioportal-image:3.0.6
-
-
-[CbioportalDataLoading]
-docker_image=cbioportal-image:3.0.6
-server_name=pmc-cbioportal-test

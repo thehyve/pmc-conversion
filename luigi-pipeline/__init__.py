@@ -1,5 +1,5 @@
-from .main import LoadDataFromNewFilesTask, TransmartDataLoader, CbioportalDataLoading, \
-    Sources2CsrTransformation, GitCommit, UpdateDataFiles, TransmartDataTransformation, CbioportalDataTransformation, \
-    CbioportalDataValidation, TransmartApiCalls
+from .main import LoadDataFromNewFilesTask, TransmartDataLoader, \
+    Sources2CsrTransformation, GitCommit, UpdateDataFiles, TransmartDataTransformation, \
+    TransmartApiCalls
 import logging
 logging.getLogger(__name__).addHandler(logging.NullHandler())

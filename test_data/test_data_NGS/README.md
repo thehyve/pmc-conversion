@@ -7,8 +7,6 @@ Two versions of the data are provided, to enable quick rounds of testing:
    - `full_dataset`, and
    - `alternative`, from which patient PAT2 has been removed.
 
-
-The datasets also contain test data for cBioportal in the NGS folder.
 The data include the following samples:
 
 - BIOS1T_BIOM1T (tumor) and BIOS1N_BIOM1N (normal) for patient PAT1,
