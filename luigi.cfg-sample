@@ -55,7 +55,7 @@ unhandled_exception=40
 
 
 [TransmartApiTask]
-keycloak_url=https://keycloak.example.com/auth/realms/example  # CHANGE ME
+keycloak_url=https://keycloak.example.com/realms/example  # CHANGE ME
 transmart_url=http://localhost:8081  # CHANGE ME
 gb_backend_url=http://localhost:8083  # CHANGE ME
 client_id=transmart-client

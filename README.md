@@ -49,7 +49,7 @@ Config options overview:
 | PGUSER                    | GlobalConfig             | biomart_user                 | User to use for loading data to tranSMART.                                                                                                                          |
 | PGPASSWORD                | GlobalConfig             | biomart_user                 | User password.                                                                                                                                                      |
 | transmart_loader          | resources                | 1                            | Amount of workers luigi has access to.                                                                                                                              |
-| keycloak_url              | TransmartApiTask         | https://keycloak.example.com/auth/realms/example | URL to Keycloak instance used to get access to tranSMART, e.g. https://keycloak.example.com/auth/realms/transmart-dev                                               |
+| keycloak_url              | TransmartApiTask         | https://keycloak.example.com/realms/example | URL to Keycloak instance used to get access to tranSMART, e.g. https://keycloak.example.com/realms/transmart-dev                                               |
 | transmart_url             | TransmartApiTask         | http://localhost:8081        | URL to tranSMART API V2.                                                                                                                                            |
 | gb_backend_url            | TransmartApiTask         | http://localhost:8083        | URL to Glowing Bear Backend API.                                                                                                                                    |
 | client_id                 | TransmartApiTask         | transmart-client             | Keycloak client ID.                                                                                                                                                 |
@@ -74,18 +74,18 @@ Below is `curl` command to generate an offline token for `pmc-pipeline` user.
 
 ```bash
 KEYCLOAK_CLIENT_ID=transmart-client
-SYSTEM_USERNAME=pmc-pipeline
-SYSTEM_PASSWORD=choose-a-strong-system-password  # CHANGE ME
+USERNAME=pmc-pipeline
+PASSWORD=choose-a-strong-system-password  # CHANGE ME
 KEYCLOAK_SERVER_URL=https://keycloak.example.com # CHANGE ME
 KEYCLOAK_REALM=example # CHANGE ME
 
 curl -f --no-progress-meter \
   -d "client_id=${KEYCLOAK_CLIENT_ID}" \
-  -d "username=${SYSTEM_USERNAME}" \
-  -d "password=${SYSTEM_PASSWORD}" \
+  -d "username=${USERNAME}" \
+  -d "password=${PASSWORD}" \
   -d 'grant_type=password' \
   -d 'scope=offline_access' \
-  "${KEYCLOAK_SERVER_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token' | jq -r '.refresh_token'
+  "${KEYCLOAK_SERVER_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token" | jq -r '.refresh_token'
 ```
 The value of the `refresh_token` field in the response is the offline token.
 
@@ -250,6 +250,11 @@ sudo useradd -m -s /bin/bash pmc
 sudo useradd -m -s /bin/bash drop
 ```
 
+Add `pmc` user to `drop` user group:
+```shell
+sudo usermod -a -G drop pmc
+```
+
 If there is a list of users who should be able to log in as `drop` and/or `pmc` user through SSH,
 add /.ssh directories inside the newly created home directories of these users and put the list of SSH-RSA keys
 inside `authorized_keys` files (`/home/pmc/.ssh/authorized_keys` and `/home/drop/.ssh/authorized_keys`).
@@ -283,7 +288,7 @@ a symbolic link to the actual data directory, where the source data is delivered
 To create a symlink, run:
 
 ```shell
-ln -s /home/drop/drop_zone /home/drop/sample_test_data_folder/sample_dataset
+ln -sfn /home/drop/sample_test_data_folder/sample_dataset /home/drop/drop_zone
 ```
 
 #### Prepare the repositories
@@ -368,7 +373,7 @@ Test if the pipeline works correctly by manually triggering the data upload as a
 
 ```shell
 sudo -iu pmc
-/home/pmc/venv/bin/activate && cd /home/pmc/pmc-conversion && /home/pmc/pmc-conversion/scripts/run.sh
+source /home/pmc/venv/bin/activate && cd /home/pmc/pmc-conversion && /home/pmc/pmc-conversion/scripts/run.sh
 ```
 
 #### Create a cron job
