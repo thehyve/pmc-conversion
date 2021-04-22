@@ -3,10 +3,8 @@ import logging
 import os
 import shutil
 import threading
-import time
 
 import luigi
-from csr2cbioportal import csr2cbioportal
 from csr2transmart import csr2transmart
 from sources2csr.sources2csr import sources2csr
 
@@ -16,8 +14,6 @@ from scripts.transmart_api_calls import TransmartApiCalls
 from .luigi_commons import BaseTask, ExternalProgramTask
 
 logger = logging.getLogger('luigi')
-
-CBIOPORTAL_DIR_NAME = 'cbioportal'
 
 
 class GlobalConfig(luigi.Config):
@@ -54,16 +50,8 @@ class GlobalConfig(luigi.Config):
         return os.path.join(self.data_repo_dir, self.load_logs_dir_name)
 
     @property
-    def cbioportal_staging_dir(self):
-        return os.path.join(self.data_repo_dir, 'staging', CBIOPORTAL_DIR_NAME)
-
-    @property
     def transmart_load_logs_dir(self):
         return os.path.join(self.load_logs_dir, 'transmart')
-
-    @property
-    def cbioportal_load_logs_dir(self):
-        return os.path.join(self.load_logs_dir, CBIOPORTAL_DIR_NAME)
 
 
 config = GlobalConfig()
@@ -71,10 +59,8 @@ git_lock = threading.RLock()
 repo = get_git_repo(config.data_repo_dir)
 
 os.makedirs(config.input_data_dir, exist_ok=True)
-os.makedirs(config.cbioportal_staging_dir, exist_ok=True)
 os.makedirs(config.transmart_staging_dir, exist_ok=True)
 os.makedirs(config.transmart_load_logs_dir, exist_ok=True)
-os.makedirs(config.cbioportal_load_logs_dir, exist_ok=True)
 
 
 def calc_done_signal_content(file_checksum_pairs):
@@ -140,20 +126,6 @@ class TransmartDataTransformation(BaseTask):
                                     config.top_node)
 
 
-class CbioportalDataTransformation(BaseTask):
-    """
-    Task to transform data from CSR intermediate files and NGS input study files to cBioPortal importer format
-    """
-    def run(self):
-        clinical_input_file = os.path.join(config.working_dir)
-        ngs_dir = os.path.join(config.input_data_dir, 'NGS')
-        if not os.path.isdir(ngs_dir):
-            ngs_dir = None
-        csr2cbioportal.csr2cbioportal(input_dir=clinical_input_file,
-                                      ngs_dir=ngs_dir,
-                                      output_dir=config.cbioportal_staging_dir)
-
-
 class TransmartDataLoader(ExternalProgramTask):
     """
     Task to load data to tranSMART
@@ -206,88 +178,6 @@ class TransmartApiTask(BaseTask):
         reload_obj.scan_subscription_queries()
 
 
-class CbioportalDataValidation(ExternalProgramTask):
-    """
-    Task to validate data for cBioPortal
-
-    This requires:
-    1. Docker installed
-    2. cBioPortal image in Docker
-    3. pmc user added to group 'docker'
-    4. A running cBioPortal instance
-    5. A running cBioPortal database
-    """
-
-    # Set specific docker image
-    docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
-    std_out_err_dir = os.path.join(config.cbioportal_load_logs_dir, 'validation')
-
-    # Success codes for validation
-    success_codes = [0, 3]
-
-    def program_args(self):
-        # Directory and file names for validation
-        input_dir = config.cbioportal_staging_dir
-        report_dir = config.cbioportal_load_logs_dir
-        db_info_dir = os.path.join(config.transformation_config_dir, 'cbioportal_db_info')
-        properties_file = os.path.join(config.transformation_config_dir, 'portal.properties')
-        report_name = 'report_pmc_test_%s.html' % time.strftime("%Y%m%d-%H%M%S")
-
-        # Build validation command. No connection has to be made to the database or web server.
-        docker_command = 'docker run --rm -v %s:/cbioportal/portal.properties -v %s:/study/ -v %s:/cbioportal_db_info/ -v %s:/html_reports/ %s' \
-                         % (properties_file, input_dir, db_info_dir, report_dir, self.docker_image)
-
-        python_command = 'validateData.py -s /study/ ' \
-                         '-P /cbioportal/portal.properties ' \
-                         '-p /cbioportal_db_info -html /html_reports/%s -v' \
-                         % report_name
-        return [docker_command, python_command]
-
-
-class CbioportalDataLoading(ExternalProgramTask):
-    """
-    Task to load data to cBioPortal
-
-    This requires:
-    1. Docker installed
-    2. cBioPortal image in Docker
-    3. pmc user added to group 'docker'
-    4. A running cBioPortal instance
-    5. A running cBioPortal database
-    """
-    std_out_err_dir = os.path.join(config.cbioportal_load_logs_dir, 'loader')
-
-    # Variables
-    docker_image = luigi.Parameter(description='cBioPortal docker image', significant=False)
-    server_name = luigi.Parameter(description='Server on which pipeline is running. If running docker locally, leave '
-                                              'empty. PMC servers: pmc-cbioportal-test | '
-                                              'pmc-cbioportal-acc | pmc-cbioportal-prod', significant=False)
-
-    def program_args(self):
-        # Directory and file names for validation
-        input_dir = config.cbioportal_staging_dir
-        properties_file = os.path.join(config.transformation_config_dir, 'portal.properties')
-
-        python_command = 'cbioportalImporter.py -s /study/'
-
-        # Check if cBioPortal is running locally or on other server
-        if self.server_name == "":
-            # Build import command for running the pipeline locally
-            docker_command = 'docker run --rm -v %s:/cbioportal/portal.properties -v %s:/study/ --net cbio-net %s' \
-                             % (properties_file, input_dir, self.docker_image)
-
-            # Restart cBioPortal web server docker container on the local machine
-            restart_command = "&& docker restart cbioportal"
-        else:
-            # Build the import command for running the pipeline on the PMC staging server
-            docker_command = 'docker run --network="host" --rm -v %s:/cbioportal/portal.properties -v %s:/study/ -v /etc/hosts:/etc/hosts %s' \
-                             % (properties_file, input_dir, self.docker_image)
-
-            # Restart cBioPortal web server docker container which runs on a different machine
-            restart_command = "&& ssh %s 'docker restart cbioportal'" % self.server_name
-        return [docker_command, python_command, restart_command]
-
-
 class GitVersionTask(BaseTask):
     commit_hexsha = luigi.Parameter(description='commit to come back to')
     succeeded_once = False
@@ -307,7 +197,6 @@ class GitVersionTask(BaseTask):
 
 
 class LoadDataFromNewFilesTask(luigi.WrapperTask):
-    disable_cbioportal_task = luigi.BoolParameter(description='Skip loading data into cBioPortal.', default=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -348,25 +237,6 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
                                                commit_message='Add transmart loading log.')
         commit_transmart_load_logs.required_tasks = [transmart_api_task]
         yield commit_transmart_load_logs
-
-        if not self.disable_cbioportal_task:
-            cbioportal_data_transformation = CbioportalDataTransformation()
-            cbioportal_data_transformation.required_tasks = [sources_to_csr_task]
-            yield cbioportal_data_transformation
-            cbioportal_data_validation = CbioportalDataValidation()
-            cbioportal_data_validation.required_tasks = [cbioportal_data_transformation]
-            yield cbioportal_data_validation
-            commit_cbio_staging = GitCommit(directory_to_add=config.cbioportal_staging_dir,
-                                            commit_message='Add cbioportal data.')
-            commit_cbio_staging.required_tasks = [cbioportal_data_validation]
-            yield commit_cbio_staging
-            cbioportal_data_loading = CbioportalDataLoading()
-            cbioportal_data_loading.required_tasks = [commit_cbio_staging]
-            yield cbioportal_data_loading
-            commit_cbio_load_logs = GitCommit(directory_to_add=config.cbioportal_load_logs_dir,
-                                              commit_message='Add cbioportal loading log.')
-            commit_cbio_load_logs.required_tasks = [cbioportal_data_loading]
-            yield commit_cbio_load_logs
 
     def requires(self):
         return self.tasks_dependency_tree
