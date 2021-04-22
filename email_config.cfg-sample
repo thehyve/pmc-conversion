@@ -1,13 +1,13 @@
 [global]
-log_file=
+log_file=/home/pmc/pmc-conversion/python.log
 
 [email]
-receiver=
-sender=pmc-notifications@thehyve.nl
+receiver=  #CHANGE ME
+sender=pmc-notifications@example.com  # CHANGE ME
 prefix=[CSR Data Loading Pipeline]
 
 [smtp]
 port=587
-username=
-password=
-host=smtp.gmail.com
+username=pmc-notifications@example.com  # CHANGE ME
+password=<password>  # CHANGE ME
+host=smtp.gmail.com  # CHANGE ME
