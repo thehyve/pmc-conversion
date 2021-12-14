@@ -1,5 +1,5 @@
 biomaterial_id	biomaterial_date	type	src_biosource_id	src_biomaterial_id	description	label	library_strategy	analysis_type
-BIOM1T	07/03/2018	total RNA	BIOS1T		hepatoblastoma RNA	HBL_RNA	A,B
+BIOM1T	07/03/2018	total RNA	BIOS1T		hepatoblastoma RNA	HBL_RNA	A,B	
 BIOM1N	22/11/2018	total RNA	BIOS1N		healthy tissue	HBL_normal_RNA	A,B	X,Y,Z
 BIOM3T	16/04/2018	genomic DNA	BIOS3T		nephroblastoma DNA	NBL_DNA	A,B	Z
 BIOM3N	02/05/2018	genomic DNA	BIOS3N		healthy tissue	NBL_normal_DNA	A,B	Y
