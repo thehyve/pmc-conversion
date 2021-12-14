@@ -317,6 +317,66 @@
         }
       ]
     },
+    "Radiology": {
+      "attributes": [
+        {
+          "name": "radiology_id",
+          "sources": [
+            {
+              "file": "laboratory/radiology.tsv"
+            }
+          ]
+        },
+        {
+          "name": "examination_date",
+          "sources": [
+            {
+              "file": "laboratory/radiology.tsv"
+            }
+          ]
+        },
+        {
+          "name": "image_type",
+          "sources": [
+            {
+              "file": "laboratory/radiology.tsv"
+            }
+          ]
+        },
+        {
+          "name": "field_strength",
+          "sources": [
+            {
+              "file": "laboratory/radiology.tsv"
+            }
+          ]
+        },
+        {
+          "name": "individual_id",
+          "sources": [
+            {
+              "file": "laboratory/radiology.tsv"
+            }
+          ]
+        },
+        {
+          "name": "diagnosis_id",
+          "sources": [
+            {
+              "file": "laboratory/radiology.tsv"
+            }
+          ]
+        },
+        {
+          "name": "body_part",
+          "sources": [
+            {
+              "file": "laboratory/radiology.tsv"
+            }
+          ]
+        }
+      ]
+    },
     "Study": {
       "attributes": [
         {
