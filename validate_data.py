@@ -2,6 +2,8 @@ import os
 import shutil
 import subprocess
 
+import click
+
 
 config_dir = 'config'
 output_folder = 'validation_results'
@@ -14,6 +16,8 @@ def cleanup(dir_path: str):
         shutil.rmtree(dir_path)
 
 
+@click.command()
+@click.argument('top_folder', type=click.Path(file_okay=False, exists=True, readable=True))
 def validate(top_folder: str):
 
     print('Validating SOURCES to CSR')
@@ -26,4 +30,4 @@ def validate(top_folder: str):
 
 
 if __name__ == '__main__':
-    validate('test_data/full_dataset')
+    validate()
