@@ -6,19 +6,19 @@
           "name": "individual_id",
           "sources": [
             {
-              "file": "clinic/RDP-Patient.tab",
+              "file": "clinic/RDP-Patient.tsv",
               "column": "INDIVIDUAL_ID"
             },
             {
-              "file": "clinic/RDP-IC.tab",
+              "file": "clinic/RDP-IC.tsv",
               "column": "INDIVIDUAL_ID"
             },
             {
-              "file": "studies/individual.txt",
+              "file": "studies/individual.csv",
               "column": "INDIVIDUAL_ID"
             },
             {
-              "file": "studies/death.txt",
+              "file": "studies/death.csv",
               "column": "INDIVIDUAL_ID"
             }
           ]
@@ -27,12 +27,12 @@
           "name": "birth_date",
           "sources": [
             {
-              "file": "clinic/RDP-Patient.tab",
+              "file": "clinic/RDP-Patient.tsv",
               "column": "Gebdat",
               "date_format": "%d%b%Y"
             },
             {
-              "file": "studies/individual.txt",
+              "file": "studies/individual.csv",
               "column": "DTOB",
               "date_format": "%d/%m/%Y %H:%M:%S"
             }
@@ -42,11 +42,11 @@
           "name": "gender",
           "sources": [
             {
-              "file": "clinic/RDP-Patient.tab",
+              "file": "clinic/RDP-Patient.tsv",
               "column": "Geslacht"
             },
             {
-              "file": "studies/individual.txt",
+              "file": "studies/individual.csv",
               "column": "SEX"
             }
           ]
@@ -55,12 +55,12 @@
           "name": "death_date",
           "sources": [
             {
-              "file": "clinic/RDP-Patient.tab",
+              "file": "clinic/RDP-Patient.tsv",
               "column": "Overldat",
               "date_format": "%d%b%Y"
             },
             {
-              "file": "studies/death.txt",
+              "file": "studies/death.csv",
               "column": "DTDEATH",
               "date_format": "%d/%m/%Y %H:%M:%S"
             }
@@ -70,11 +70,11 @@
           "name": "ic_type",
           "sources": [
             {
-              "file": "clinic/RDP-IC.tab",
+              "file": "clinic/RDP-IC.tsv",
               "column": "00004_Toestemmingsstatus"
             },
             {
-              "file": "studies/individual.txt",
+              "file": "studies/individual.csv",
               "column": "IFCDATR"
             }
           ]
@@ -83,7 +83,7 @@
           "name": "ic_given_date",
           "sources": [
             {
-              "file": "clinic/RDP-IC.tab",
+              "file": "clinic/RDP-IC.tsv",
               "column": "00007_Datum toestemming",
               "date_format": "%d/%m/%Y"
             }
@@ -93,7 +93,7 @@
           "name": "ic_withdrawn_date",
           "sources": [
             {
-              "file": "clinic/RDP-IC.tab",
+              "file": "clinic/RDP-IC.tsv",
               "column": "00010_Datum geen toestemming",
               "date_format": "%d/%m/%Y"
             }
@@ -103,7 +103,7 @@
           "name": "report_her_susc",
           "sources": [
             {
-              "file": "clinic/RDP-IC.tab",
+              "file": "clinic/RDP-IC.tsv",
               "column": "00012_Datum einde deelname",
               "date_format": "%d/%m/%Y"
             }
@@ -117,7 +117,7 @@
           "name": "individual_id",
           "sources": [
             {
-              "file": "studies/diagnosis.txt",
+              "file": "studies/diagnosis.csv",
               "column": "INDIVIDUAL_ID"
             }
           ]
@@ -126,7 +126,7 @@
           "name": "diagnosis_id",
           "sources": [
             {
-              "file": "studies/diagnosis.txt",
+              "file": "studies/diagnosis.csv",
               "column": "CIDDIAG"
             }
           ]
@@ -135,7 +135,7 @@
           "name": "tumor_type",
           "sources": [
             {
-              "file": "studies/diagnosis.txt",
+              "file": "studies/diagnosis.csv",
               "column": "DIAGCD"
             }
           ]
@@ -144,7 +144,7 @@
           "name": "topography",
           "sources": [
             {
-              "file": "studies/diagnosis.txt",
+              "file": "studies/diagnosis.csv",
               "column": "PLOCCD"
             }
           ]
@@ -153,7 +153,7 @@
           "name": "tumor_stage",
           "sources": [
             {
-              "file": "studies/diagnosis.txt",
+              "file": "studies/diagnosis.csv",
               "column": "DIAGGRSTX"
             }
           ]
@@ -162,7 +162,7 @@
           "name": "diagnosis_date",
           "sources": [
             {
-              "file": "studies/diagnosis.txt",
+              "file": "studies/diagnosis.csv",
               "column": "IDAABA",
               "date_format": "%d/%m/%Y %H:%M:%S"
             }
@@ -172,7 +172,7 @@
           "name": "diagnosis_center",
           "sources": [
             {
-              "file": "studies/diagnosis.txt",
+              "file": "studies/diagnosis.csv",
               "column": "HOSPDIAG"
             }
           ]
@@ -185,7 +185,7 @@
           "name": "biosource_id",
           "sources": [
             {
-              "file": "laboratory/biosource.txt"
+              "file": "laboratory/biosource.tsv"
             }
           ]
         },
@@ -193,7 +193,7 @@
           "name": "individual_id",
           "sources": [
             {
-              "file": "laboratory/biosource.txt"
+              "file": "laboratory/biosource.tsv"
             }
           ]
         },
@@ -201,7 +201,7 @@
           "name": "diagnosis_id",
           "sources": [
             {
-              "file": "laboratory/biosource.txt"
+              "file": "laboratory/biosource.tsv"
             }
           ]
         },
@@ -209,7 +209,7 @@
           "name": "src_biosource_id",
           "sources": [
             {
-              "file": "laboratory/biosource.txt"
+              "file": "laboratory/biosource.tsv"
             }
           ]
         },
@@ -217,7 +217,7 @@
           "name": "biosource_dedicated",
           "sources": [
             {
-              "file": "laboratory/biosource.txt"
+              "file": "laboratory/biosource.tsv"
             }
           ]
         },
@@ -225,7 +225,7 @@
           "name": "tissue",
           "sources": [
             {
-              "file": "laboratory/biosource.txt"
+              "file": "laboratory/biosource.tsv"
             }
           ]
         },
@@ -233,7 +233,7 @@
           "name": "biosource_date",
           "sources": [
             {
-              "file": "laboratory/biosource.txt",
+              "file": "laboratory/biosource.tsv",
               "date_format": "%d/%m/%Y"
             }
           ]
@@ -242,7 +242,7 @@
           "name": "disease_status",
           "sources": [
             {
-              "file": "laboratory/biosource.txt"
+              "file": "laboratory/biosource.tsv"
             }
           ]
         },
@@ -250,7 +250,7 @@
           "name": "tumor_percentage",
           "sources": [
             {
-              "file": "laboratory/biosource.txt"
+              "file": "laboratory/biosource.tsv"
             }
           ]
         }
@@ -262,7 +262,7 @@
           "name": "biomaterial_id",
           "sources": [
             {
-              "file": "laboratory/biomaterial.txt"
+              "file": "laboratory/biomaterial.tsv"
             }
           ]
         },
@@ -270,7 +270,7 @@
           "name": "src_biosource_id",
           "sources": [
             {
-              "file": "laboratory/biomaterial.txt"
+              "file": "laboratory/biomaterial.tsv"
             }
           ]
         },
@@ -278,7 +278,7 @@
           "name": "src_biomaterial_id",
           "sources": [
             {
-              "file": "laboratory/biomaterial.txt"
+              "file": "laboratory/biomaterial.tsv"
             }
           ]
         },
@@ -286,7 +286,7 @@
           "name": "biomaterial_date",
           "sources": [
             {
-              "file": "laboratory/biomaterial.txt",
+              "file": "laboratory/biomaterial.tsv",
               "date_format": "%d/%m/%Y"
             }
           ]
@@ -295,7 +295,7 @@
           "name": "type",
           "sources": [
             {
-              "file": "laboratory/biomaterial.txt"
+              "file": "laboratory/biomaterial.tsv"
             }
           ]
         },
@@ -303,7 +303,7 @@
           "name": "library_strategy",
           "sources": [
             {
-              "file": "laboratory/biomaterial.txt"
+              "file": "laboratory/biomaterial.tsv"
             }
           ]
         },
@@ -311,7 +311,7 @@
           "name": "analysis_type",
           "sources": [
             {
-              "file": "laboratory/biomaterial.txt"
+              "file": "laboratory/biomaterial.tsv"
             }
           ]
         }
@@ -323,7 +323,7 @@
           "name": "study_id",
           "sources": [
             {
-              "file": "studies/study.txt",
+              "file": "studies/study.csv",
               "column": "STUDY_ID"
             }
           ]
@@ -332,7 +332,7 @@
           "name": "acronym",
           "sources": [
             {
-              "file": "studies/study.txt"
+              "file": "studies/study.csv"
             }
           ]
         },
@@ -340,7 +340,7 @@
           "name": "title",
           "sources": [
             {
-              "file": "studies/study.txt"
+              "file": "studies/study.csv"
             }
           ]
         },
@@ -348,7 +348,7 @@
           "name": "datadictionary",
           "sources": [
             {
-              "file": "studies/study.txt"
+              "file": "studies/study.csv"
             }
           ]
         }
@@ -360,7 +360,7 @@
           "name": "study_id_individual_study_id",
           "sources": [
             {
-              "file": "studies/individual_study.txt",
+              "file": "studies/individual_study.csv",
               "column": "STUDY_ID_INDIVIDUAL_STUDY_ID"
             }
           ]
@@ -369,7 +369,7 @@
           "name": "individual_study_id",
           "sources": [
             {
-              "file": "studies/individual_study.txt",
+              "file": "studies/individual_study.csv",
               "column": "INDIVIDUAL_STUDY_ID"
             }
           ]
@@ -378,7 +378,7 @@
           "name": "individual_id",
           "sources": [
             {
-              "file": "studies/individual_study.txt",
+              "file": "studies/individual_study.csv",
               "column": "INDIVIDUAL_ID"
             }
           ]
@@ -387,7 +387,7 @@
           "name": "study_id",
           "sources": [
             {
-              "file": "studies/individual_study.txt",
+              "file": "studies/individual_study.csv",
               "column": "STUDY_ID"
             }
           ]
@@ -396,25 +396,25 @@
     }
   },
   "codebooks": {
-    "studies/individual.txt": "studies/individual_codebook.txt",
-    "studies/diagnosis.txt": "studies/diagnosis_codebook.txt",
-    "studies/death.txt": "studies/death_codebook.txt",
-    "clinic/RDP-Patient.tab": "clinic/RDP-Patient_codebook.txt"
+    "studies/individual.csv": "studies/individual_codebook.tsv",
+    "studies/diagnosis.csv": "studies/diagnosis_codebook.tsv",
+    "studies/death.csv": "studies/death_codebook.tsv",
+    "clinic/RDP-Patient.tsv": "clinic/RDP-Patient_codebook.tsv"
   },
   "file_format": {
-    "studies/individual.txt": {
+    "studies/individual.csv": {
       "delimiter": ","
     },
-    "studies/diagnosis.txt": {
+    "studies/diagnosis.csv": {
       "delimiter": ","
     },
-    "studies/death.txt": {
+    "studies/death.csv": {
       "delimiter": ","
     },
-    "studies/study.txt": {
+    "studies/study.csv": {
       "delimiter": ","
     },
-    "studies/individual_study.txt": {
+    "studies/individual_study.csv": {
       "delimiter": ","
     }
   }
