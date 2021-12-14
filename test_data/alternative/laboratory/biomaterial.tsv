@@ -1,22 +1,22 @@
-biomaterial_id	biomaterial_date	type	src_biosource_id	src_biomaterial_id	description	label
-BIOM1T	07/03/2018	total RNA	BIOS1T		hepatoblastoma RNA	HBL_RNA
-BIOM1N	22/11/2018	total RNA	BIOS1N		healthy tissue	HBL_normal_RNA
-BIOM3T	16/04/2018	genomic DNA	BIOS3T		nephroblastoma DNA	NBL_DNA
-BIOM3N	02/05/2018	genomic DNA	BIOS3N		healthy tissue	NBL_normal_DNA
-BIOM4	07/03/2018	mRNA	BIOS4		genomic DNA isolated from 1222TI	1222TI_DNA
-BIOM5	05/06/2011	mRNA	BIOS5		neuroblastoma DNA	NBL_DNA
-BIOM6	05/06/2011	mRNA DNA	BIOS6		neuroblastoma DNA	NBL_DNA
-BIOM7	07/03/2018	mRNA DNA	BIOS7		genomic DNA isolated from 1222TI	1222TI_DNA
-BIOM8	05/06/2011	mRNA DNA	BIOS8		neuroblastoma DNA	NBL_DNA
-BIOM9	05/06/2011	genomic DNA	BIOS9		neuroblastoma DNA	NBL_DNA
-BIOM10	07/03/2018	genomic DNA	BIOS10		genomic DNA isolated from 1222TI	1222TI_DNA
-BIOM11	05/06/2011	genomic DNA	BIOS11		neuroblastoma DNA	NBL_DNA
-BIOM12	05/06/2011	genomic DNA	BIOS12		neuroblastoma DNA	NBL_DNA
-BIOM13	07/03/2018	mRNA	BIOS13		genomic DNA isolated from 1222TI	1222TI_DNA
-BIOM14	05/06/2011	mRNA	BIOS14		neuroblastoma DNA	NBL_DNA
-BIOM15	05/06/2011	genomic DNA	BIOS15		neuroblastoma DNA	NBL_DNA
-BIOM16	07/03/2018	genomic DNA	BIOS16		genomic DNA isolated from 1222TI	1222TI_DNA
-BIOM17	05/06/2011	genomic DNA	BIOS17		neuroblastoma DNA	NBL_DNA
-BIOM18	05/06/2011	mRNA	BIOS18		neuroblastoma DNA	NBL_DNA
-BIOM20	05/06/2011	mRNA	BIOS11	BIOM11	neuroblastoma DNA	NBL_DNA
-BIOM21	05/06/2011	genomic DNA	BIOS12	BIOM12	neuroblastoma DNA	NBL_DNA
+biomaterial_id	biomaterial_date	type	src_biosource_id	src_biomaterial_id	description	label	library_strategy	analysis_type
+BIOM1T	07/03/2018	total RNA	BIOS1T		hepatoblastoma RNA	HBL_RNA	A,B
+BIOM1N	22/11/2018	total RNA	BIOS1N		healthy tissue	HBL_normal_RNA	A,B	X,Y,Z
+BIOM3T	16/04/2018	genomic DNA	BIOS3T		nephroblastoma DNA	NBL_DNA	A,B	Z
+BIOM3N	02/05/2018	genomic DNA	BIOS3N		healthy tissue	NBL_normal_DNA	A,B	Y
+BIOM4	07/03/2018	mRNA	BIOS4		genomic DNA isolated from 1222TI	1222TI_DNA	A,C	Y
+BIOM5	05/06/2011	mRNA	BIOS5		neuroblastoma DNA	NBL_DNA	A,C	X
+BIOM6	05/06/2011	mRNA DNA	BIOS6		neuroblastoma DNA	NBL_DNA	A,C	X
+BIOM7	07/03/2018	mRNA DNA	BIOS7		genomic DNA isolated from 1222TI	1222TI_DNA	A,C	Y,Z
+BIOM8	05/06/2011	mRNA DNA	BIOS8		neuroblastoma DNA	NBL_DNA	A,C	Y,Z
+BIOM9	05/06/2011	genomic DNA	BIOS9		neuroblastoma DNA	NBL_DNA	B,C	Y,Z
+BIOM10	07/03/2018	genomic DNA	BIOS10		genomic DNA isolated from 1222TI	1222TI_DNA	B,C	Y,Z
+BIOM11	05/06/2011	genomic DNA	BIOS11		neuroblastoma DNA	NBL_DNA	B,C	Y,Z
+BIOM12	05/06/2011	genomic DNA	BIOS12		neuroblastoma DNA	NBL_DNA	B,C	X,Z
+BIOM13	07/03/2018	mRNA	BIOS13		genomic DNA isolated from 1222TI	1222TI_DNA	B,C	X,Z
+BIOM14	05/06/2011	mRNA	BIOS14		neuroblastoma DNA	NBL_DNA	A	X,Z
+BIOM15	05/06/2011	genomic DNA	BIOS15		neuroblastoma DNA	NBL_DNA	A	X,Z
+BIOM16	07/03/2018	genomic DNA	BIOS16		genomic DNA isolated from 1222TI	1222TI_DNA	B	X,Z
+BIOM17	05/06/2011	genomic DNA	BIOS17		neuroblastoma DNA	NBL_DNA	B	X,Y
+BIOM18	05/06/2011	mRNA	BIOS18		neuroblastoma DNA	NBL_DNA	C	X,Y
+BIOM20	05/06/2011	mRNA	BIOS11	BIOM11	neuroblastoma DNA	NBL_DNA	A,B,C	X,Y
+BIOM21	05/06/2011	genomic DNA	BIOS12	BIOM12	neuroblastoma DNA	NBL_DNA		X,Y

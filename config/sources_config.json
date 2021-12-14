@@ -298,6 +298,22 @@
               "file": "laboratory/biomaterial.txt"
             }
           ]
+        },
+        {
+          "name": "library_strategy",
+          "sources": [
+            {
+              "file": "laboratory/biomaterial.txt"
+            }
+          ]
+        },
+        {
+          "name": "analysis_type",
+          "sources": [
+            {
+              "file": "laboratory/biomaterial.txt"
+            }
+          ]
         }
       ]
     },
