@@ -331,7 +331,8 @@
           "name": "examination_date",
           "sources": [
             {
-              "file": "laboratory/radiology.tsv"
+              "file": "laboratory/radiology.tsv",
+              "date_format": "%Y-%m-%d"
             }
           ]
         },
