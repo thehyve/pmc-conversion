@@ -135,7 +135,7 @@ As sha1 hashes 40 characters long the rest of the file gets ignored:
 `1625be750dab24057c4c82d62d27298236ebb04c diagnosis.txt`
 
 For more information, see the [CSR data model](https://github.com/thehyve/python_csr2transmart#data-model) description 
-and an example of [input data files](test_data/E2E_TEST_DATA/dropzone).
+and an example of [input data files](test_data_e2e/current/dropzone).
 
 ## Usage
 

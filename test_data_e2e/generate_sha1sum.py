@@ -30,4 +30,4 @@ def traverse(top_dir, algorithm: str = 'sha1'):
 
 
 if __name__ == '__main__':
-    traverse('test_data')
+    traverse('test_data_e2e')
