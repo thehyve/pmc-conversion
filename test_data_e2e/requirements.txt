@@ -1,1 +1,0 @@
-git+https://github.com/thehyve/python_csr2transmart.git@master
