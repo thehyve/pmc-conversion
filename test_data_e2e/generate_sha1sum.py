@@ -1,23 +1,10 @@
-import hashlib
 import os
 
-
-def compute_checksum(path, algorithm: str) -> str:
-    """ Generates a hex digest using specified algorithm for a file. """
-    buffer_size = 65536
-    hash_builder = hashlib.new(algorithm)
-
-    with open(path, 'rb') as f:
-        while True:
-            data = f.read(buffer_size)
-            if not data:
-                break
-            hash_builder.update(data)
-
-    return hash_builder.hexdigest()
+from scripts.checksum import compute_checksum
 
 
-def traverse(top_dir, algorithm: str = 'sha1'):
+def compute_checksum_in_folder(top_dir, algorithm: str):
+    """Traverse folder and write checksum file for each file found."""
     for root, d_names, f_names in os.walk(top_dir):
         for f_name in f_names:
             if f_name.endswith(algorithm):
@@ -30,4 +17,4 @@ def traverse(top_dir, algorithm: str = 'sha1'):
 
 
 if __name__ == '__main__':
-    traverse('test_data_e2e')
+    compute_checksum_in_folder('test_data_e2e/current', 'sha1')
