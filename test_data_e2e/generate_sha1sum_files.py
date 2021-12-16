@@ -17,4 +17,4 @@ def compute_checksum_in_folder(top_dir, algorithm: str):
 
 
 if __name__ == '__main__':
-    compute_checksum_in_folder('test_data_e2e/current', 'sha1')
+    compute_checksum_in_folder('test_data_e2e/current/dropzone', 'sha1')

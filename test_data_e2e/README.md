@@ -31,8 +31,9 @@ A repository complete with utilities to help create CSR-compatible test datasets
    to inspect it.
 
 
-5. Generate sha1sum files for all test data by running:
+5. Generate sha1sum files for all test data by moving to the root folder and running:
    ```
-   python generate_sha1sum.py
+   python -m test_data_e2e.generate_sha1sum_files
    ```
-   This automatically traverses the whole `test_data/` folder, no need to provide the path.
+   This automatically traverses the whole `test_data_e2e/current/dropzone` folder, no need to 
+   provide the path.
