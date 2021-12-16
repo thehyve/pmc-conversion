@@ -1,34 +1,50 @@
-# PMC E2E TESTDATA
+# E2E TESTDATA
 
-A repository complete with utilities to help create CSR-compatible test datasets for E2E testing.
-
-
-### How to use this repo
-
-1. Update `requirements.txt` to point to the latest release of `python_csr2transmart` you would 
-   like your test data to be compatible with (default `master` branch).
+This folder is complete with utilities to help create CSR-compatible test datasets for E2E testing.
+Test data updates should coordinate with 
+[csr2transmart](https://github.com/thehyve/python_csr2transmart) developments.
 
 
-2. Create a Python virtual environment (check the latest Python version supported by 
-   `python_csr2transmart`) and install the requirements:
-    ```
-      pip install -r requirements.txt
-    ```
+### Folder structure
+
+`current/` contains the latest test dataset compatible with `csr2transmart`. Inside this folder, 
+you will find:
+  - `config/` for configuration files (ontology and sources)
+  - `dropzone/` for the actual data
+
+Inside `dropzone`, you should have at least two test dataset versions (e.g. `full_dataset` and 
+`alternative`). This allows to quickly switch between them, which is handy to trigger a new ETL 
+pipeline run.
+
+ `xx_achive/` can be used to store old datasets for future reference.
 
 
-3. Create a new branch and start working on a new version of `test_data/`, and corresponding 
-   changes to the configuration files in `config/`. We recommend using two sub-folders, one for the 
-   complete dataset (e.g. `full_dataset/`) and one with an alternative version, obtained for 
-   example by removing or swapping the gender of one patient (e.g. `alternative/`).
+### How to update E2E test data
+
+1. Create a Python virtual environment (make sure the Python version is compatible with the 
+   `csr2transmart` version you want to use).
 
 
-4. Check that the dataset can be parsed by `sources2csr` and `csr2transmart` by running:
+2. Install the desired version of `csr2transmart` from PyPI, e.g.:
    ```
-   python validate_data.py <path_to_data>
+   pip install csr2transmart==0.1.0
    ```
-   where the provided path should point to a specific test data subfolder (e.g. `full_dataset/`).
-   The output will be written to the (git-ignored) `validation_results/` folder, should you need 
-   to inspect it.
+   Alternatively, install a development version from the `python_csr2transmart` repo by pointing 
+   to a specific tag or branch, e.g.:
+   ```
+   pip install git+https://github.com/thehyve/python_csr2transmart.git@my-dev-branch
+   ```
+
+
+3. Create a new branch and start updating your test data and configuration files. 
+
+
+4. Check that all of your new dataset versions can be parsed by `sources2csr` and 
+   `csr2transmart` by running (e.g. from inside `current/`):
+   ```
+   sources2csr dropzone/full_dataset /tmp/csr_test config
+   csr2transmart /tmp/csr_test /tmp/transmart_test config
+   ```
 
 
 5. Generate sha1sum files for all test data by moving to the root folder and running:
