@@ -2,15 +2,16 @@
 
 This folder is complete with utilities to help create CSR-compatible test datasets for E2E testing.
 Test data updates should coordinate with 
-[csr2transmart](https://github.com/thehyve/python_csr2transmart) developments.
+[csr2transmart](https://github.com/thehyve/python_csr2transmart) developments. Please refer to 
+that documentation for details about expected configuration files and source data format.
 
 
 ### Folder structure
 
 `current/` contains the latest test dataset compatible with `csr2transmart`. Inside this folder, 
 you will find:
-  - `config/` for configuration files (ontology and sources)
-  - `dropzone/` for the actual data
+  - `config/` for configuration files (ontology and sources). 
+  - `dropzone/` for the actual data.
 
 Inside `dropzone`, you should have at least two test dataset versions (e.g. `full_dataset` and 
 `alternative`). This allows to quickly switch between them, which is handy to trigger a new ETL 
@@ -53,3 +54,11 @@ pipeline run.
    ```
    This automatically traverses the whole `test_data_e2e/current/dropzone` folder, no need to 
    provide the path.
+
+
+6. Once a new release of `pmc-conversion` is deployed, copy the data to the appropriate folders:
+   - `dropzone/` contents to the same folder in the `drop` user home
+   - `config/` contents to the same folder in the `pmc` user home
+   See [here](https://github.com/thehyve/pmc-conversion#create-required-directories) for details.
+   Then you are ready to execute an end-to-end test!
+   
