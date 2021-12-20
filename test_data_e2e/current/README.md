@@ -19,6 +19,8 @@ Bear. More details about specific entities are provided below.
 | both           | 2            | 0     | 2         | 1           | 0     | 1         |
 | **TOTAL**      | 11           | 6     | 17        | 10          | 6     | 16        |
 
+_TC = angioimmunoblastic T-cell lymphoma, NH = malignant non-Hodgkin lymphoma_
+
 
 ### Radiology entity
 
