@@ -1,0 +1,22 @@
+biosource_id	biosource_dedicated	tissue	biosource_date	disease_status	individual_id	diagnosis_id	src_biosource_id	tumor_percentage	label	description
+BIOS1T	no	liver	25/01/2018	primary tumor	PAT1	DIA1		25	HBL	hepatoblastoma
+BIOS1N	no	liver	25/02/2018	unaffected	PAT1			0	HBL_normal	normal hepatic tissue
+BIOS2	no	nerve	24/01/2018	primary tumor	PAT2	DIA2		5	NBL	neuroblastoma
+BIOS3T	yes	kidney	24/02/2018	primary tumor	PAT3	DIA3		15	NBL	nephroblastoma
+BIOS3N	yes	kidney	04/03/2018	unaffected	PAT3			0	NBL_normal	normal kidney tissue
+BIOS4	yes	nerve	25/01/2018	unaffected	PAT4	DIA4		0	NBL_normal	normal nerve tissue
+BIOS5	yes	eye	24/01/2018	primary tumor	PAT5	DIA5		5	NBL	neuroblastoma
+BIOS6	yes	nerve	24/01/2018	primary tumor	PAT6	DIA6		5	NBL	neuroblastoma
+BIOS7	yes	eye	25/01/2018	unaffected	PAT7	DIA7		0	NBL_normal	normal nerve tissue
+BIOS8	yes	nerve	24/01/2018	primary tumor	PAT8	DIA8		5	NBL	neuroblastoma
+BIOS9	no	eye	24/01/2018	primary tumor	PAT9	DIA9		5	NBL	neuroblastoma
+BIOS10	yes	eye	25/01/2018	unaffected	PAT10	DIA10		0	NBL_normal	normal nerve tissue
+BIOS11	yes	eye	24/01/2018	primary tumor	PAT11	DIA11		5	NBL	neuroblastoma
+BIOS12	yes	eye	24/01/2018	primary tumor	PAT12	DIA12		5	NBL	neuroblastoma
+BIOS13	yes	nerve	25/01/2018	unaffected	PAT13	DIA13		0	NBL_normal	normal nerve tissue
+BIOS14	yes	nerve	24/01/2018	primary tumor	PAT14	DIA14		5	NBL	neuroblastoma
+BIOS15	no	nerve	24/01/2018	primary tumor	PAT15	DIA15		5	NBL	neuroblastoma
+BIOS16	no	nerve	25/01/2018	unaffected	PAT16	DIA16		0	NBL_normal	normal nerve tissue
+BIOS17	yes	nerve	24/01/2018	primary tumor	PAT17	DIA17		5	NBL	neuroblastoma
+BIOS18	yes	liver	30/01/2018	primary tumor	PAT1	DIA18	BIOS1T	30	HBL	hepatoblastoma
+BIOS19	no	nerve	24/01/2018	primary tumor	PAT2	DIA19	BIOS2	15	NBL	neuroblastoma

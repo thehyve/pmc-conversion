@@ -1,0 +1,17 @@
+radiology_id	examination_date	image_type	field_strength	individual_id	diagnosis_id	body_part
+R1A	2016-05-01	type_2		PAT1	DIA1	legs
+R1B	2016-10-31	type_1	20	PAT1	DIA18	torso
+R2A	2016-07-01	type_2	50	PAT2	DIA2	legs
+R2B	2016-08-31	type_1	30	PAT2	DIA19	torso
+R4	2016-11-03	type_1	20	PAT4		legs
+R5	2014-06-01	type_1		PAT5	DIA5	legs
+R6	2012-07-05	type_2	30	PAT6	DIA6	legs
+R7	2015-11-01	type_1	40	PAT7	DIA7	legs
+R8	2011-02-01	type_1	40	PAT8		torso
+R9	2017-05-01	type_1	40	PAT9	DIA9	torso
+R10A	2010-05-01	type_1	40	PAT10	DIA10	torso
+R10B	2011-10-31	type_2	30	PAT10	DIA10	torso
+R13A	2010-12-01	type_2		PAT13	DIA13	legs
+R13B	2011-05-01	type_2		PAT13	DIA13	legs
+R14	2016-08-31	type_2	30	PAT14		legs
+R15	2016-05-01	type_2		PAT15	DIA15	torso
