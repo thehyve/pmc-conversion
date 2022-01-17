@@ -144,7 +144,7 @@ and the input data is in the proper directory (see [input data section](#input-d
 
 2. Install dependencies:
 
-    Pipeline requires Python >= 3.6.
+    Pipeline requires Python >= 3.7.
 
     ``` bash
     python -m pip install -r requirements/requirements.txt
@@ -234,8 +234,8 @@ Instructions on how to set up the pipeline on a production environment.
 
 ### Dependencies
 
-- Python >= 3.6,
-- Package `python3.6-venv` (or higher version, depending on the version of Python) installed, 
+- Python >= 3.7,
+- Package `python3.7-venv` (or higher version, depending on the version of Python) installed, 
 - Git,
 - An SMTP server, listening on port 25.
 
