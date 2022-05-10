@@ -168,11 +168,7 @@ class TransmartApiTask(BaseTask):
         reload_obj.after_data_loading()
 
         logger.info('Waiting for the update to complete ...')
-        loop = asyncio.get_event_loop()
-        try:
-            loop.run_until_complete(reload_obj.check_status(self.max_status_check_retrial))
-        finally:
-            loop.close()
+        asyncio.run(reload_obj.check_status(self.max_status_check_retrial))
 
         logger.info('Scanning for new subscriptions')
         reload_obj.scan_subscription_queries()
