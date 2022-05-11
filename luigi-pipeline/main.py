@@ -209,7 +209,7 @@ class LoadDataFromNewFilesTask(luigi.WrapperTask):
         yield commit_input_data
 
         sources_to_csr_task = Sources2CsrTransformation()
-        sources_to_csr_task.required_tasks = [update_data_files]
+        sources_to_csr_task.required_tasks = [commit_input_data]
         yield sources_to_csr_task
 
         csr_to_transmart_task = TransmartDataTransformation()
